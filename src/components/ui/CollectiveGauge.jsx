@@ -57,6 +57,7 @@ export default function CollectiveGauge() {
       {showModal && (
         <LevelsModal
           collectiveLevel={currentLevel.level}
+          collectiveXp={progress.total_xp}
           onClose={() => setShowModal(false)}
         />
       )}

@@ -4,7 +4,7 @@ import { getCreature } from '../../lib/creatures'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 
-export default function LevelsModal({ collectiveLevel, onClose }) {
+export default function LevelsModal({ collectiveLevel, collectiveXp, onClose }) {
   const { user } = useAuthStore()
   const [activeTab, setActiveTab] = useState('paliers')
   const [leaderboard, setLeaderboard] = useState([])
@@ -105,9 +105,9 @@ export default function LevelsModal({ collectiveLevel, onClose }) {
                           {nextXp > level.xp && (
                             <>
                               <div className="levels-modal-progress-bar">
-                                <div className="levels-modal-progress-fill" style={{ width: `${Math.min((collectiveLevel / nextXp) * 100, 100)}%` }} />
+                                <div className="levels-modal-progress-fill" style={{ width: `${Math.min(((collectiveXp - level.xp) / (nextXp - level.xp)) * 100, 100)}%` }} />
                               </div>
-                              <div className="levels-modal-remaining">{(nextXp - level.xp).toLocaleString()} XP</div>
+                              <div className="levels-modal-remaining">{Math.max(nextXp - collectiveXp, 0).toLocaleString()} XP</div>
                             </>
                           )}
                         </div>

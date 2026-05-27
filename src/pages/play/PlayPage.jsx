@@ -266,7 +266,6 @@ export default function PlayPage() {
         <div className="play-left">
           <div className="play-scorebar">
             <span className="play-score">{liveScore} pts</span>
-            <span className="play-attempts">Essai {attemptNumber}/{MAX_ATTEMPTS}</span>
           </div>
 
           <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -290,7 +289,12 @@ export default function PlayPage() {
                   <span className="play-feedback-count">{attemptHistory[attemptHistory.length - 1].neither}</span>
                   <span>mal placé, mal orienté</span>
                 </div>
+                <div className="play-feedback-attempts">Essai {attemptNumber}/{MAX_ATTEMPTS}</div>
               </div>
+            )}
+
+            {attemptHistory.length === 0 && (
+              <div className="play-attempts-display">Essai {attemptNumber}/{MAX_ATTEMPTS}</div>
             )}
 
             <CardTray cards={trayCards} />

@@ -5,7 +5,6 @@ import confetti from 'canvas-confetti'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import Header from '../../components/ui/Header'
-import ReplayModal from '../../components/ui/ReplayModal'
 
 export default function ResultPage() {
   const { gridId } = useParams()
@@ -19,7 +18,6 @@ export default function ResultPage() {
   const [play, setPlay] = useState(null)
   const [grid, setGrid] = useState(null)
   const [attempts, setAttempts] = useState([])
-  const [replayPlay, setReplayPlay] = useState(null)
 
   useEffect(() => {
     if (success) {
@@ -52,7 +50,7 @@ export default function ResultPage() {
         .single(),
       supabase
         .from('orienta_grids')
-        .select('*, orienta_grid_cards(*)')
+        .select('*, orienta_grid_cards(*, orienta_word_cards(*))')
         .eq('id', gridId)
         .single(),
     ]).then(([leaderRes, playRes, gridRes]) => {
@@ -170,13 +168,6 @@ export default function ResultPage() {
 
         <Link to="/hub" className="btn-primary result-cta">Retour au Hub</Link>
       </main>
-      {replayPlay && (
-        <ReplayModal
-          playId={replayPlay.id}
-          gridId={replayPlay.grid_id}
-          onClose={() => setReplayPlay(null)}
-        />
-      )}
     </div>
   )
 }

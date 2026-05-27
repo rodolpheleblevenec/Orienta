@@ -56,6 +56,7 @@ export default function ReplayModal({ playId, gridId, onClose }) {
 
   const positions = [0, 1, 2, 3]
   const posLabels = { 0: 'Haut', 1: 'Droite', 2: 'Bas', 3: 'Gauche' }
+  const wordFields = { 0: 'word_top', 1: 'word_right', 2: 'word_bottom', 3: 'word_left' }
 
   return (
     <div className="replay-modal-backdrop" onClick={onClose}>
@@ -67,17 +68,23 @@ export default function ReplayModal({ playId, gridId, onClose }) {
 
         <div className="replay-modal-content">
           <div className="replay-grid">
-            {positions.map(pos => (
-              <div key={pos} className="replay-position">
-                <div className="replay-label">{posLabels[pos]}</div>
-                <div className={`replay-word ${answerByPos[pos]?.card ? (solutionByPos[pos]?.word_top === answerByPos[pos]?.card?.word_top ? 'replay-word--correct' : 'replay-word--wrong') : 'replay-word--empty'}`}>
-                  {answerByPos[pos]?.word?.['word_' + { 0: 'top', 1: 'right', 2: 'bottom', 3: 'left' }[pos]] ?? '—'}
+            {positions.map(pos => {
+              const wordField = wordFields[pos]
+              const playerWord = answerByPos[pos]?.word?.[wordField]
+              const correctWord = solutionByPos[pos]?.[wordField]
+              const isCorrect = playerWord === correctWord && playerWord !== undefined
+              return (
+                <div key={pos} className="replay-position">
+                  <div className="replay-label">{posLabels[pos]}</div>
+                  <div className={`replay-word ${answerByPos[pos]?.card ? (isCorrect ? 'replay-word--correct' : 'replay-word--wrong') : 'replay-word--empty'}`}>
+                    {playerWord ?? '—'}
+                  </div>
+                  <div className="replay-correct">
+                    {correctWord || '—'}
+                  </div>
                 </div>
-                <div className="replay-correct">
-                  {solutionByPos[pos]?.['word_' + { 0: 'top', 1: 'right', 2: 'bottom', 3: 'left' }[pos]] || '—'}
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           {attempts.length > 1 && (
