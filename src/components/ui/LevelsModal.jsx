@@ -73,6 +73,7 @@ export default function LevelsModal({ collectiveLevel, onClose }) {
           </button>
         </div>
 
+        <div className="levels-modal-body">
         {activeTab === 'paliers' ? (
           <>
             <div className="levels-modal-grid">
@@ -153,6 +154,7 @@ export default function LevelsModal({ collectiveLevel, onClose }) {
             )}
           </div>
         )}
+        </div>
       </div>
     </div>
   )

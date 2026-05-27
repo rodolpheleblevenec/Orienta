@@ -103,7 +103,6 @@ export default function PlayPage() {
   }, [gameOver, attemptsFailed])
 
   function handleDragStart({ active }) {
-    setIsDragging(true)
     const fromTray = trayCards.find(c => `tray-${c.card.id}` === active.id)
     if (fromTray) { setActiveCard(fromTray); return }
     for (const [pos, item] of Object.entries(placements)) {
@@ -160,8 +159,6 @@ export default function PlayPage() {
   }
 
   async function handleSubmit() {
-    if (trayCards.length > 0) return
-
     setIsSubmitting(true)
 
     const answer = Object.entries(placements)
@@ -259,7 +256,7 @@ export default function PlayPage() {
     </div>
   )
 
-  const allPlaced = trayCards.length === 0
+  const allPlaced = Object.values(placements).every(v => v !== null)
   const clues = { top: grid.clue_top, right: grid.clue_right, bottom: grid.clue_bottom, left: grid.clue_left }
 
   return (

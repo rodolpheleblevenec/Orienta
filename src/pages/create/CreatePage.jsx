@@ -159,7 +159,7 @@ export default function CreatePage() {
 
     const creatorTime = difficulty === 'facile' ? null : TIMER_DURATION - timeLeft
 
-    const { data: grid } = await supabase.from('orienta_grids').insert({
+    const { data: grid, error: gridError } = await supabase.from('orienta_grids').insert({
       creator_id: user.id,
       status: 'published',
       difficulty,
@@ -171,7 +171,7 @@ export default function CreatePage() {
       expires_at: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
     }).select().single()
 
-    if (!grid) return
+    if (gridError || !grid) { console.error('Grid insert error:', gridError); return }
 
     const gridCardInserts = Object.entries(placements)
       .filter(([, v]) => v)

@@ -98,6 +98,8 @@ export default function ProfilePage() {
         </div>
 
         {stats && (
+          <div className="profile-stats-block">
+            <h2 className="profile-stats-title">Statistiques</h2>
           <div className="profile-stats">
             {[
               { label: 'Parties',     value: stats.played },
@@ -113,6 +115,7 @@ export default function ProfilePage() {
               </motion.div>
             ))}
           </div>
+          </div>
         )}
 
         <section className="profile-section">
@@ -122,7 +125,7 @@ export default function ProfilePage() {
           </div>
           <div className="skin-grid">
             {MARINE_ITEMS.map((item) => {
-              const isUnlocked = user.level >= item.level
+              const isUnlocked = user.level >= item.level || collectiveLevel >= item.level
               const isSelected = selectedSkin === item.level
 
               return (

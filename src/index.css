@@ -390,6 +390,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   border-bottom-color: var(--accent);
 }
 
+.levels-modal-body {
+  min-height: 340px;
+}
 .levels-modal-leaderboard {
   padding: 16px 0;
 }
@@ -462,7 +465,12 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .grid-card-creator       { display: flex; align-items: center; gap: 9px; }
 .creator-avatar          { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-dim); border: 1px solid var(--accent-border); color: var(--accent); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 .creator-name            { font-size: 14px; font-weight: 600; }
+.grid-card-badges        { display: flex; align-items: center; gap: 6px; }
 .grid-card-badge         { font-size: 11px; color: var(--accent); background: var(--accent-dim); border: 1px solid var(--accent-border); border-radius: 6px; padding: 2px 8px; }
+.grid-card-badge--played { color: var(--text-muted); background: var(--bg-surface); border-color: var(--border); }
+.grid-card-footer        { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+.grid-card-time          { font-size: 12px; color: var(--text-muted); }
+.grid-card-stats         { font-size: 12px; color: var(--text-secondary); }
 .grid-card-meta          { font-size: 12px; color: var(--text-muted); }
 .grid-card-skeleton      { height: 68px; background: var(--bg-surface); border-radius: var(--radius-md); animation: pulse 1.5s ease-in-out infinite; }
 @keyframes pulse         { 0%,100%{opacity:.5} 50%{opacity:1} }
@@ -642,8 +650,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 /* ── Card Tray ───────────────────────────────────── */
 .card-tray { margin-top: 20px; text-align: center; }
 .card-tray-label { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
-.card-tray-items { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-.card-tray-item { transform: scale(0.75); transform-origin: center; }
+.card-tray-items { display: flex; gap: 12px; justify-content: center; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 8px; }
+.card-tray-item { transform: scale(0.75); transform-origin: center; flex-shrink: 0; }
 @media (max-width: 600px) {
   .card-tray-item { transform: scale(0.65); }
 }
@@ -882,8 +890,10 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .profile-streak { display: flex; gap: 20px; font-size: 14px; color: var(--text-secondary); }
 .profile-stats  { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
 .stat-card      { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 10px; text-align: center; display: flex; flex-direction: column; gap: 3px; box-shadow: var(--card-shadow); }
-.stat-value     { font-family: var(--display); font-size: 22px; font-weight: 800; color: var(--accent); }
+.stat-value     { font-family: var(--display); font-size: 22px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
 .stat-label     { font-size: 11px; color: var(--text-muted); }
+.profile-stats-block { display: flex; flex-direction: column; gap: 10px; }
+.profile-stats-title { font-size: 17px; margin: 0; }
 .profile-section h2 { font-size: 17px; margin-bottom: 10px; }
 .history-list   { list-style: none; display: flex; flex-direction: column; gap: 7px; }
 .history-item   { display: flex; align-items: center; justify-content: space-between; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 14px; font-size: 13px; box-shadow: var(--card-shadow); }
