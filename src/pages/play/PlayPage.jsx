@@ -29,9 +29,10 @@ export default function PlayPage() {
   const [playId, setPlayId] = useState(null)
   const [attemptNumber, setAttemptNumber] = useState(1)
   const [attemptsFailed, setAttemptsFailed] = useState(0)
-  const [feedbacks, setFeedbacks] = useState({})
-  const [lastResult, setLastResult] = useState(null)
+  const [attemptHistory, setAttemptHistory] = useState([])
   const [gameOver, setGameOver] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSwappingSlots, setIsSwappingSlots] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -87,6 +88,7 @@ export default function PlayPage() {
   }, [gameOver, attemptsFailed])
 
   function handleDragStart({ active }) {
+    setIsDragging(true)
     const fromTray = trayCards.find(c => `tray-${c.card.id}` === active.id)
     if (fromTray) { setActiveCard(fromTray); return }
     for (const [pos, item] of Object.entries(placements)) {
@@ -122,11 +124,13 @@ export default function PlayPage() {
         const sourceSlot = parseInt(pos)
         if (sourceSlot === slotIdx) return
         const existing = placements[slotIdx]
+        setIsSwappingSlots(true)
         setPlacements(prev => ({
           ...prev,
           [slotIdx]: item,
           [sourceSlot]: existing ?? null,
         }))
+        setTimeout(() => setIsSwappingSlots(false), 50)
         return
       }
     }
@@ -143,6 +147,8 @@ export default function PlayPage() {
   async function handleSubmit() {
     if (trayCards.length > 0) return
 
+    setIsSubmitting(true)
+
     const answer = Object.entries(placements)
       .filter(([, v]) => v)
       .map(([pos, { card, rotation }]) => ({
@@ -156,11 +162,15 @@ export default function PlayPage() {
       body: { play_id: playId, attempt_number: attemptNumber, answer },
     })
 
-    if (error || !result) return
+    if (error || !result) {
+      setIsSubmitting(false)
+      return
+    }
 
-    const { correctFull, correctRotation, neither, success: won, card_feedbacks } = result
+    const { correctFull, correctRotation, neither, success: won } = result
 
-    await supabase.from('orienta_play_attempts').insert({
+    // Fire & forget: log attempt (not critical path)
+    supabase.from('orienta_play_attempts').insert({
       play_id: playId,
       attempt_number: attemptNumber,
       answer,
@@ -169,14 +179,8 @@ export default function PlayPage() {
       neither,
     })
 
-    // Apply per-position feedbacks
-    const newFeedbacks = {}
-    for (const a of answer) {
-      const fb = card_feedbacks?.[a.card_id] ?? 'wrong'
-      newFeedbacks[a.position] = fb
-    }
-    setFeedbacks(newFeedbacks)
-    setLastResult({ correctFull, correctRotation, neither })
+    // Add to history
+    setAttemptHistory(prev => [...prev, { correctFull, correctRotation, neither }])
 
     if (won) {
       const finalScore = computeScore(elapsed, attemptsFailed)
@@ -195,6 +199,7 @@ export default function PlayPage() {
       const next = attemptNumber + 1
       setAttemptNumber(next)
       setAttemptsFailed(f => f + 1)
+      setIsSubmitting(false)
       if (next > MAX_ATTEMPTS) {
         await supabase.from('orienta_plays').update({
           completed_at: new Date().toISOString(),
@@ -221,33 +226,59 @@ export default function PlayPage() {
     <div className="play-page">
       <Header />
       <main className="play-main">
-        <div className="play-scorebar">
-          <span className="play-score">{liveScore} pts</span>
-          <span className="play-attempts">Essai {attemptNumber}/{MAX_ATTEMPTS}</span>
+        <div className="play-left">
+          <div className="play-scorebar">
+            <span className="play-score">{liveScore} pts</span>
+            <span className="play-attempts">Essai {attemptNumber}/{MAX_ATTEMPTS}</span>
+          </div>
+
+          <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <CloverGrid placements={placements} clues={clues} onRotate={handleRotate} disableTransition={isSwappingSlots} />
+
+            {attemptHistory.length > 0 && (
+              <div className="play-feedback-section">
+                <div className="play-feedback-title">Essai {attemptHistory.length}</div>
+                <div className="play-feedback-row">
+                  <div className="play-feedback-dot play-feedback-dot--correct" />
+                  <span className="play-feedback-count">{attemptHistory[attemptHistory.length - 1].correctFull}</span>
+                  <span>bien placé et bien orienté</span>
+                </div>
+                <div className="play-feedback-row">
+                  <div className="play-feedback-dot play-feedback-dot--rotation" />
+                  <span className="play-feedback-count">{attemptHistory[attemptHistory.length - 1].correctRotation}</span>
+                  <span>bien placé, mal orienté</span>
+                </div>
+                <div className="play-feedback-row">
+                  <div className="play-feedback-dot play-feedback-dot--wrong" />
+                  <span className="play-feedback-count">{attemptHistory[attemptHistory.length - 1].neither}</span>
+                  <span>mal placé, mal orienté</span>
+                </div>
+              </div>
+            )}
+
+            <CardTray cards={trayCards} />
+            <DragOverlay dropAnimation={null}>
+              {activeCard && <WordCard id="overlay" card={activeCard.card} rotation={activeCard.rotation} draggable={false} />}
+            </DragOverlay>
+          </DndContext>
+
+          <button className="btn-primary play-submit" onClick={handleSubmit} disabled={!allPlaced || isSubmitting}>
+            {isSubmitting ? '…' : (allPlaced ? 'Soumettre' : `Placez toutes les cartes (${trayCards.length} restante${trayCards.length > 1 ? 's' : ''})`)}
+          </button>
         </div>
 
-        <AnimatePresence>
-          {lastResult && !gameOver && (
-            <motion.div className="play-feedback"
-              initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <span className="fb-correct">🟢 {lastResult.correctFull}</span>
-              <span className="fb-rotation">🟡 {lastResult.correctRotation}</span>
-              <span className="fb-wrong">🔴 {lastResult.neither}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <CloverGrid placements={placements} clues={clues} feedbacks={feedbacks} onRotate={handleRotate} />
-          <CardTray cards={trayCards} />
-          <DragOverlay dropAnimation={null}>
-            {activeCard && <WordCard id="overlay" card={activeCard.card} rotation={activeCard.rotation} draggable={false} />}
-          </DragOverlay>
-        </DndContext>
-
-        <button className="btn-primary play-submit" onClick={handleSubmit} disabled={!allPlaced}>
-          {allPlaced ? 'Soumettre' : `Placez toutes les cartes (${trayCards.length} restante${trayCards.length > 1 ? 's' : ''})`}
-        </button>
+        <div className="play-right">
+          {attemptHistory.map((attempt, idx) => (
+            <div key={idx} className="play-attempt-row">
+              <div className="play-attempt-label">Essai {idx + 1}</div>
+              <div className="play-pegs">
+                {Array(attempt.correctFull).fill(0).map((_, i) => <div key={i} className="play-peg play-peg--correct" />)}
+                {Array(attempt.correctRotation).fill(0).map((_, i) => <div key={i} className="play-peg play-peg--rotation" />)}
+                {Array(attempt.neither).fill(0).map((_, i) => <div key={i} className="play-peg play-peg--wrong" />)}
+              </div>
+            </div>
+          ))}
+        </div>
       </main>
     </div>
   )
