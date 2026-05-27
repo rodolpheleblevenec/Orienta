@@ -15,7 +15,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!user) return
-    supabase.from('orienta_grids').select('*').eq('id', gridId).single()
+    supabase.from('orienta_grids').select('*, orienta_grid_cards(*, orienta_word_cards(*))').eq('id', gridId).single()
       .then(async ({ data: g }) => {
         if (!g) { setLoading(false); return }
         if (g.creator_id !== user.id) { setNotOwner(true); setLoading(false); return }
@@ -69,6 +69,27 @@ export default function DashboardPage() {
             </motion.div>
           ))}
         </div>
+
+        <section className="dashboard-section">
+          <h2>Solution attendue</h2>
+          <div className="dashboard-solution-grid">
+            {[
+              { pos: 0, label: 'Haut', field: 'word_top' },
+              { pos: 1, label: 'Droite', field: 'word_right' },
+              { pos: 2, label: 'Bas', field: 'word_bottom' },
+              { pos: 3, label: 'Gauche', field: 'word_left' },
+            ].map(({ pos, label, field }) => {
+              const card = grid.orienta_grid_cards?.find(c => c.position === pos)
+              const word = card?.orienta_word_cards?.[field] ?? '—'
+              return (
+                <div key={pos} className="dashboard-solution-card">
+                  <div className="dashboard-solution-label">{label}</div>
+                  <div className="dashboard-solution-word">{word}</div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
 
         <section className="dashboard-section">
           <h2>Distribution des essais</h2>

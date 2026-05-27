@@ -21,7 +21,9 @@ export default function Header() {
           title="Tutoriel"
           type="button"
         >
-          <span className="header-tutorial-icon">🎓</span>
+          <svg className="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
           <span className="header-tutorial-label">Tutoriel</span>
         </button>
         <button
@@ -30,7 +32,9 @@ export default function Header() {
           title="Déconnexion"
           type="button"
         >
-          <span className="header-logout-icon">🚪</span>
+          <svg className="header-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 3l5 5M21 3l-5 5M16 17l4 0M21 17l-5 0M21 17v2a2 2 0 0 1-2 2h-4"/>
+          </svg>
         </button>
         <Link to="/profile" className="header-profile">
           <div className="header-avatar">

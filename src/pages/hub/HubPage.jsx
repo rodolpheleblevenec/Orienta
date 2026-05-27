@@ -9,6 +9,7 @@ import GridCard from '../../components/ui/GridCard'
 export default function HubPage() {
   const { user } = useAuthStore()
   const [grids, setGrids] = useState([])
+  const [createdGrid, setCreatedGrid] = useState(null)
   const [playedGridIds, setPlayedGridIds] = useState(new Set())
   const [hasCreatedToday, setHasCreatedToday] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -35,15 +36,19 @@ export default function HubPage() {
 
         supabase
           .from('orienta_grids')
-          .select('id')
+          .select('*, orienta_users(pseudo), orienta_plays(success, player_id, completed_at)')
           .eq('creator_id', user.id)
           .gte('created_at', todayStart.toISOString())
-          .limit(1),
+          .limit(1)
+          .single(),
       ])
 
       setGrids(activeGrids ?? [])
       setPlayedGridIds(new Set((plays ?? []).map(p => p.grid_id)))
-      setHasCreatedToday((todayGrid ?? []).length > 0)
+      if (todayGrid && todayGrid.id) {
+        setCreatedGrid(todayGrid)
+        setHasCreatedToday(true)
+      }
       setLoading(false)
     }
     fetchData()
@@ -55,6 +60,19 @@ export default function HubPage() {
       <main className="hub-main">
         <CollectiveGauge />
 
+        {createdGrid && (
+          <section className="hub-section">
+            <h2 style={{ marginBottom: '14px' }}>Votre grille</h2>
+            <Link to={`/dashboard/${createdGrid.id}`} className="hub-created-grid">
+              <div className="hub-created-grid-header">
+                <span className="hub-created-grid-label">Votre grille</span>
+                <span className="hub-created-grid-title">"{createdGrid.clue_top}"</span>
+              </div>
+              <div className="hub-created-grid-footer">Voir le dashboard →</div>
+            </Link>
+          </section>
+        )}
+
         <section className="hub-section">
           <div className="hub-section-header">
             <h2>Grilles du jour</h2>
@@ -63,6 +81,7 @@ export default function HubPage() {
               className={`btn-primary hub-create-btn ${hasCreatedToday ? 'btn-primary--disabled' : ''}`}
               onClick={e => hasCreatedToday && e.preventDefault()}
               aria-disabled={hasCreatedToday}
+              title={hasCreatedToday ? 'Vous ne pouvez créer qu\'une grille par jour. Revenez demain ou résolvez les grilles des autres joueurs.' : ''}
             >
               {hasCreatedToday ? 'Grille créée ✓' : '+ Créer une grille'}
             </Link>
