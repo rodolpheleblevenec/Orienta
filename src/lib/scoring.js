@@ -12,8 +12,8 @@ export function computeScore(elapsedSeconds, attemptsFailed) {
 }
 
 export function computeXp(score, success) {
-  if (!success) return Math.round(score * 0.1)
-  return Math.round(score * 0.5)
+  if (!success) return 10   // participation, encourages coming back
+  return Math.round(score * 0.15)  // max ~165 XP per win — progression lente
 }
 
 // Compare player answer vs solution

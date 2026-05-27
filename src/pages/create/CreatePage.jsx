@@ -56,6 +56,14 @@ export default function CreatePage() {
       })
   }, [])
 
+  // Auto-switch to clues phase when all cards are placed
+  useEffect(() => {
+    const hasPlaced = Object.values(placements).some(v => v !== null)
+    if (hasPlaced && trayCards.length === 0) {
+      setPhase('clues')
+    }
+  }, [trayCards.length, placements])
+
   function handleDragStart({ active }) {
     const fromTray = trayCards.find(c => `tray-${c.card.id}` === active.id)
     if (fromTray) { setActiveCard(fromTray); return }
@@ -176,8 +184,13 @@ export default function CreatePage() {
 
         {expired && (
           <div className="create-expired">
-            Temps écoulé — la grille n'a pas été sauvegardée.
-            <button className="btn-secondary" onClick={() => navigate('/hub')}>Retour au Hub</button>
+            <div className="create-expired-icon">⏰</div>
+            <p className="create-expired-title">Le temps est écoulé !</p>
+            <p className="create-expired-text">Ta grille n'a pas été sauvegardée. Pas de panique, réessaie !</p>
+            <div className="create-expired-actions">
+              <button className="btn-primary" onClick={() => window.location.reload()}>Réessayer</button>
+              <button className="btn-secondary" onClick={() => navigate('/hub')}>Retour au Hub</button>
+            </div>
           </div>
         )}
 
@@ -207,12 +220,6 @@ export default function CreatePage() {
               )}
             </DragOverlay>
           </DndContext>
-        )}
-
-        {!expired && phase === 'placement' && (
-          <button className="btn-primary create-confirm" onClick={() => setPhase('clues')} disabled={!allPlaced}>
-            {allPlaced ? 'Passer aux indices →' : `Place toutes les cartes (${trayCards.length} restante${trayCards.length > 1 ? 's' : ''})`}
-          </button>
         )}
 
         {!expired && phase === 'clues' && (

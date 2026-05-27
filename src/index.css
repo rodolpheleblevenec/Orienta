@@ -255,29 +255,31 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 
 .word-card-top    { grid-area: top;    font-size: 10px; font-weight: 800; color: var(--text-primary); text-align: center; letter-spacing: 0.04em; text-transform: uppercase; }
 .word-card-bottom { grid-area: bottom; font-size: 10px; font-weight: 800; color: var(--text-primary); text-align: center; letter-spacing: 0.04em; text-transform: uppercase; }
-.word-card-left   { grid-area: left;   font-size: 9px; font-weight: 800; color: var(--text-primary); text-align: center; letter-spacing: 0.04em; text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); line-height: 1.1; }
-.word-card-right  { grid-area: right;  font-size: 9px; font-weight: 800; color: var(--text-primary); text-align: center; letter-spacing: 0.04em; text-transform: uppercase; writing-mode: vertical-rl; line-height: 1.1; }
+.word-card-left   { grid-area: left;   font-size: 9px; font-weight: 800; color: var(--text-primary); text-align: center; letter-spacing: 0.04em; text-transform: uppercase; line-height: 1.1; }
+.word-card-right  { grid-area: right;  font-size: 9px; font-weight: 800; color: var(--text-primary); text-align: center; letter-spacing: 0.04em; text-transform: uppercase; line-height: 1.1; }
 
-/* draggable wrapper — ne participe pas au layout de la carte */
-.word-card-draggable { display: inline-flex; cursor: grab; }
+/* draggable wrapper */
+.word-card-draggable { display: inline-flex; cursor: grab; position: relative; }
 .word-card-draggable:active { cursor: grabbing; }
 
-/* Rotation button — always visible */
+/* Rotation button — fixed at center, does not rotate with the card */
 .word-card-rotate {
   position: absolute;
-  bottom: 5px; right: 5px;
-  width: 26px; height: 26px;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px; height: 36px;
   border-radius: 50%;
-  border: 1.5px solid var(--border);
-  background: var(--bg-surface);
-  font-size: 14px;
+  border: 2px solid var(--accent);
+  background: rgba(255,255,255,0.92);
+  font-size: 18px;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  color: var(--text-secondary);
-  transition: all 0.15s;
-  z-index: 2;
+  color: var(--accent);
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
 }
-.word-card-rotate:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+.word-card-rotate:hover { background: var(--accent); color: #fff; transform: translate(-50%, -50%) scale(1.1); }
 
 /* ── Clover Grid ─────────────────────────────────── */
 .clover-wrapper {
@@ -386,7 +388,11 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .timer-bar-track { flex: 1; height: 8px; background: var(--bg-surface); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
 .timer-bar-fill  { height: 100%; border-radius: 4px; }
 .timer-value     { font-family: var(--display); font-size: 20px; font-weight: 800; min-width: 48px; text-align: right; }
-.create-expired  { background: var(--coral-dim); border: 1px solid var(--coral); border-radius: var(--radius-md); padding: 14px 20px; color: var(--coral); margin-bottom: 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.create-expired  { background: var(--coral-dim); border: 1px solid var(--coral); border-radius: var(--radius-md); padding: 20px 24px; color: var(--coral); margin-bottom: 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.create-expired-icon  { font-size: 36px; line-height: 1; }
+.create-expired-title { font-family: var(--display); font-size: 18px; font-weight: 800; margin: 0; }
+.create-expired-text  { font-size: 14px; color: var(--text-secondary); margin: 0; }
+.create-expired-actions { display: flex; gap: 10px; margin-top: 4px; }
 .create-confirm  { margin-top: 20px; min-width: 220px; }
 
 /* ── Result Page ─────────────────────────────────── */

@@ -7,21 +7,25 @@ export default function WordCard({ card, rotation = 0, feedback = 'neutral', onR
     disabled: !draggable,
   })
 
-  const dragStyle = transform
-    ? { transform: CSS.Translate.toString(transform) }
-    : {}
+  const dragStyle = transform ? { transform: CSS.Translate.toString(transform) } : {}
 
   const containerStyle = {
     ...dragStyle,
     opacity: isDragging ? 0.3 : 1,
     zIndex: isDragging ? 999 : 'auto',
     touchAction: 'none',
+    position: 'relative',
   }
 
   const cardInnerStyle = {
     transform: `rotate(${rotation}deg)`,
     transition: isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
   }
+
+  // Text counter-rotates to stay readable at any card rotation
+  const ease = isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)'
+  const hStyle = { transform: `rotate(${-rotation}deg)`, transition: ease }          // always horizontal
+  const vStyle = { transform: `rotate(${-90 - rotation}deg)`, transition: ease }     // always bottom-to-top
 
   const feedbackClass = feedback !== 'neutral' ? `word-card--${feedback}` : ''
 
@@ -33,23 +37,23 @@ export default function WordCard({ card, rotation = 0, feedback = 'neutral', onR
       {...(draggable ? { ...listeners, ...attributes } : {})}
     >
       <div className={`word-card ${feedbackClass} ${isDragging ? 'word-card--dragging' : ''}`} style={cardInnerStyle}>
-        <span className="word-card-top">{card.word_top}</span>
-        <span className="word-card-right">{card.word_right}</span>
-        <span className="word-card-bottom">{card.word_bottom}</span>
-        <span className="word-card-left">{card.word_left}</span>
-
-        {onRotate && (
-          <button
-            className="word-card-rotate"
-            onPointerDown={e => e.stopPropagation()}
-            onClick={e => { e.stopPropagation(); onRotate() }}
-            title="Tourner la carte"
-            type="button"
-          >
-            ↻
-          </button>
-        )}
+        <span className="word-card-top"    style={hStyle}>{card.word_top}</span>
+        <span className="word-card-right"  style={vStyle}>{card.word_right}</span>
+        <span className="word-card-bottom" style={hStyle}>{card.word_bottom}</span>
+        <span className="word-card-left"   style={vStyle}>{card.word_left}</span>
       </div>
+
+      {onRotate && (
+        <button
+          className="word-card-rotate"
+          onPointerDown={e => e.stopPropagation()}
+          onClick={e => { e.stopPropagation(); onRotate() }}
+          title="Tourner la carte"
+          type="button"
+        >
+          ↻
+        </button>
+      )}
     </div>
   )
 }
