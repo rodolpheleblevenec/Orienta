@@ -1,22 +1,13 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
-
-const LEVELS = [
-  { level: 1,  xp: 0,     name: 'Naissance',   mascot: '🥚' },
-  { level: 2,  xp: 500,   name: 'Alevin',       mascot: '🐟' },
-  { level: 3,  xp: 1500,  name: 'Banc',         mascot: '🐠' },
-  { level: 4,  xp: 3500,  name: 'Explorateur',  mascot: '🤿' },
-  { level: 5,  xp: 7000,  name: 'Voyageur',     mascot: '🐡' },
-  { level: 6,  xp: 12000, name: 'Chasseur',     mascot: '🦈' },
-  { level: 7,  xp: 20000, name: 'Sage',         mascot: '🐢' },
-  { level: 8,  xp: 35000, name: 'Légende',      mascot: '🐋' },
-  { level: 9,  xp: 55000, name: 'Titan',        mascot: '🐳' },
-  { level: 10, xp: 80000, name: 'Immortel',     mascot: '🐉' },
-]
+import { LEVELS, getLevelProgress } from '../../lib/levels'
+import { getCreature } from '../../lib/creatures'
+import LevelsModal from './LevelsModal'
 
 export default function CollectiveGauge() {
   const [progress, setProgress] = useState(null)
+  const [showModal, setShowModal] = useState(false)
 
   useEffect(() => {
     supabase
@@ -29,34 +20,46 @@ export default function CollectiveGauge() {
 
   if (!progress) return null
 
-  const currentLevel = LEVELS.find(l => l.level === progress.level) ?? LEVELS[0]
-  const nextLevel = LEVELS[progress.level] ?? null
-  const xpInLevel = progress.total_xp - currentLevel.xp
-  const xpForNext = nextLevel ? nextLevel.xp - currentLevel.xp : 1
-  const pct = nextLevel ? Math.min((xpInLevel / xpForNext) * 100, 100) : 100
+  const levelProgress = getLevelProgress(progress.total_xp)
+  const { currentLevel, nextLevel, pct } = levelProgress
+  const creature = getCreature(currentLevel.level)
 
   return (
-    <div className="collective-gauge">
-      <div className="gauge-header">
-        <span className="gauge-mascot">{currentLevel.mascot}</span>
-        <div className="gauge-info">
-          <span className="gauge-level">Niveau {currentLevel.level} — {currentLevel.name}</span>
-          <span className="gauge-xp">{progress.total_xp.toLocaleString()} XP collectifs</span>
+    <>
+      <div className="collective-gauge" onClick={() => setShowModal(true)}>
+        <div className="gauge-header">
+          <div className="gauge-mascot">
+            <creature.Component size={32} />
+          </div>
+          <div className="gauge-info">
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: '2px' }}>
+              Communauté
+            </div>
+            <span className="gauge-level">Niveau {currentLevel.level} — {currentLevel.name}</span>
+            <span className="gauge-xp">{progress.total_xp.toLocaleString()} XP collectifs</span>
+          </div>
+          <span style={{ fontSize: '18px', marginLeft: 'auto', opacity: 0.6 }}>›</span>
         </div>
+        <div className="gauge-bar-track">
+          <motion.div
+            className="gauge-bar-fill"
+            initial={{ width: 0 }}
+            animate={{ width: `${pct}%` }}
+            transition={{ duration: 1, ease: 'easeOut' }}
+          />
+        </div>
+        {nextLevel && (
+          <div className="gauge-next">
+            {nextLevel.name} dans {(nextLevel.xp - progress.total_xp).toLocaleString()} XP
+          </div>
+        )}
       </div>
-      <div className="gauge-bar-track">
-        <motion.div
-          className="gauge-bar-fill"
-          initial={{ width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 1, ease: 'easeOut' }}
+      {showModal && (
+        <LevelsModal
+          collectiveLevel={currentLevel.level}
+          onClose={() => setShowModal(false)}
         />
-      </div>
-      {nextLevel && (
-        <div className="gauge-next">
-          {nextLevel.mascot} {nextLevel.name} dans {(nextLevel.xp - progress.total_xp).toLocaleString()} XP
-        </div>
       )}
-    </div>
+    </>
   )
 }

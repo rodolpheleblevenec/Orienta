@@ -7,14 +7,15 @@ export default function CardTray({ cards, onRotate }) {
       <p className="card-tray-label">Cartes à placer</p>
       <div className="card-tray-items">
         {cards.map(({ card, rotation }) => (
-          <WordCard
-            key={card.id}
-            id={`tray-${card.id}`}
-            card={card}
-            rotation={rotation ?? 0}
-            onRotate={onRotate ? () => onRotate(card.id) : undefined}
-            draggable
-          />
+          <div key={card.id} className="card-tray-item">
+            <WordCard
+              id={`tray-${card.id}`}
+              card={card}
+              rotation={rotation ?? 0}
+              onRotate={onRotate ? () => onRotate(card.id) : undefined}
+              draggable
+            />
+          </div>
         ))}
       </div>
     </div>

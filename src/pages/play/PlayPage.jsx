@@ -7,7 +7,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
-import { computeScore, computeXp, evaluateAttempt } from '../../lib/scoring'
+import { computeScore, computeXp, xpStreakBonus, evaluateAttempt } from '../../lib/scoring'
 import Header from '../../components/ui/Header'
 import CloverGrid from '../../components/game/CloverGrid'
 import CardTray from '../../components/game/CardTray'
@@ -18,13 +18,14 @@ const MAX_ATTEMPTS = 3
 export default function PlayPage() {
   const { gridId } = useParams()
   const navigate = useNavigate()
-  const { user } = useAuthStore()
+  const { user, refreshUser } = useAuthStore()
 
   const [grid, setGrid] = useState(null)
   const [placements, setPlacements] = useState({ 0: null, 1: null, 2: null, 3: null })
   const [trayCards, setTrayCards] = useState([])
   const [activeCard, setActiveCard] = useState(null)
   const [solution, setSolution] = useState(null) // only loaded after game over
+  const [alreadyPlayed, setAlreadyPlayed] = useState(false)
 
   const [playId, setPlayId] = useState(null)
   const [attemptNumber, setAttemptNumber] = useState(1)
@@ -54,6 +55,20 @@ export default function PlayPage() {
 
       if (!gridData) { navigate('/hub'); return }
       setGrid(gridData)
+
+      // Check if user already played this grid
+      const { data: existingPlay } = await supabase
+        .from('orienta_plays')
+        .select('id')
+        .eq('grid_id', gridId)
+        .eq('player_id', user.id)
+        .single()
+
+      if (existingPlay) {
+        setAlreadyPlayed(true)
+        setPlayId(existingPlay.id)
+        return
+      }
 
       // Cards without solution positions
       const { data: gridCards } = await supabase
@@ -184,39 +199,64 @@ export default function PlayPage() {
 
     if (won) {
       const finalScore = computeScore(elapsed, attemptsFailed)
-      const xp = computeXp(finalScore, true)
+      const baseXp = computeXp(finalScore, true)
+      const bonusXp = xpStreakBonus(user.streak_current)
+      const totalXp = baseXp + bonusXp
       await supabase.from('orienta_plays').update({
         completed_at: new Date().toISOString(),
         time_seconds: elapsed,
         attempts_count: attemptNumber,
         success: true,
         score: finalScore,
-        xp_earned: xp,
+        xp_earned: totalXp,
       }).eq('id', playId)
+      await supabase.rpc('add_user_xp', { uid: user.id, amount: totalXp })
+      await refreshUser()
       setGameOver(true)
-      navigate(`/result/${gridId}`, { state: { score: finalScore, xp, success: true } })
+      navigate(`/result/${gridId}`, { state: { score: finalScore, xp: totalXp, success: true } })
     } else {
       const next = attemptNumber + 1
       setAttemptNumber(next)
       setAttemptsFailed(f => f + 1)
       setIsSubmitting(false)
       if (next > MAX_ATTEMPTS) {
+        const participationXp = computeXp(0, false)
         await supabase.from('orienta_plays').update({
           completed_at: new Date().toISOString(),
           time_seconds: elapsed,
           attempts_count: MAX_ATTEMPTS,
           success: false,
           score: 0,
-          xp_earned: computeXp(0, false),
+          xp_earned: participationXp,
         }).eq('id', playId)
+        await supabase.rpc('add_user_xp', { uid: user.id, amount: participationXp })
+        await refreshUser()
         setGameOver(true)
-        navigate(`/result/${gridId}`, { state: { score: 0, xp: 0, success: false } })
+        navigate(`/result/${gridId}`, { state: { score: 0, xp: participationXp, success: false } })
       }
     }
   }
 
   if (!grid) return (
     <div className="play-page"><Header /><div className="play-loading">Chargement…</div></div>
+  )
+
+  if (alreadyPlayed) return (
+    <div className="play-page">
+      <Header />
+      <main className="play-main" style={{ justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center', maxWidth: '400px' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
+          <h2 style={{ marginBottom: '12px' }}>Tu as déjà joué à cette grille</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
+            Tu peux jouer à chaque grille une seule fois. Reviens plus tard pour découvrir de nouvelles grilles !
+          </p>
+          <button className="btn-primary" onClick={() => navigate('/hub')} style={{ width: '100%' }}>
+            Retour au Hub
+          </button>
+        </div>
+      </main>
+    </div>
   )
 
   const allPlaced = trayCards.length === 0

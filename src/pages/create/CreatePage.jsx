@@ -7,23 +7,27 @@ import {
 import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
+import { XP_CREATE } from '../../lib/scoring'
 import Header from '../../components/ui/Header'
 import CloverGrid from '../../components/game/CloverGrid'
 import CardTray from '../../components/game/CardTray'
 import WordCard from '../../components/game/WordCard'
 
-const TOTAL_TIME = 90 // chrono unique pour tout
+const TIMER_DURATION = 90 // chrono pour moyen/difficile
 
 export default function CreatePage() {
   const navigate = useNavigate()
-  const { user } = useAuthStore()
+  const { user, refreshUser } = useAuthStore()
 
+  const [showDifficultyModal, setShowDifficultyModal] = useState(true)
+  const [alreadyCreatedToday, setAlreadyCreatedToday] = useState(false)
   const [phase, setPhase] = useState('placement') // 'placement' | 'clues'
+  const [difficulty, setDifficulty] = useState(null) // 'facile' | 'moyen' | 'difficile'
   const [placements, setPlacements] = useState({ 0: null, 1: null, 2: null, 3: null })
   const [trayCards, setTrayCards] = useState([])
   const [activeCard, setActiveCard] = useState(null)
   const [clues, setClues] = useState({ top: '', right: '', bottom: '', left: '' })
-  const [timeLeft, setTimeLeft] = useState(TOTAL_TIME)
+  const [timeLeft, setTimeLeft] = useState(TIMER_DURATION)
   const [expired, setExpired] = useState(false)
   const startTimeRef = useRef(null)
   const timerRef = useRef(null)
@@ -33,11 +37,32 @@ export default function CreatePage() {
     useSensor(TouchSensor,   { activationConstraint: { delay: 120, tolerance: 8 } }),
   )
 
-  // Chrono démarre dès le chargement
+  // Check if user already created a grid today
   useEffect(() => {
-    startTimeRef.current = Date.now()
+    if (!user) return
+    const today = new Date().toISOString().split('T')[0]
+    supabase.from('orienta_grids')
+      .select('id')
+      .eq('creator_id', user.id)
+      .gte('created_at', today + 'T00:00:00')
+      .then(({ data }) => {
+        if (data && data.length > 0) setAlreadyCreatedToday(true)
+      })
+  }, [user])
+
+  // Chrono démarre seulement si pas en phase 'difficulty' et si la difficulté n'est pas 'facile'
+  useEffect(() => {
+    if (phase === 'difficulty' || difficulty === 'facile') {
+      if (timerRef.current) clearInterval(timerRef.current)
+      return
+    }
+
+    if (phase === 'placement' && !startTimeRef.current) {
+      startTimeRef.current = Date.now()
+    }
+
     timerRef.current = setInterval(() => {
-      const remaining = TOTAL_TIME - Math.floor((Date.now() - startTimeRef.current) / 1000)
+      const remaining = TIMER_DURATION - Math.floor((Date.now() - startTimeRef.current) / 1000)
       if (remaining <= 0) {
         setTimeLeft(0); setExpired(true); clearInterval(timerRef.current)
       } else {
@@ -45,24 +70,27 @@ export default function CreatePage() {
       }
     }, 500)
     return () => clearInterval(timerRef.current)
-  }, [])
+  }, [phase, difficulty])
 
   useEffect(() => {
+    if (phase !== 'placement' || !difficulty) return
+
     supabase.from('orienta_word_cards').select('*').limit(200)
       .then(({ data }) => {
         if (!data) return
-        const shuffled = [...data].sort(() => Math.random() - 0.5).slice(0, 4)
+        const cardCount = difficulty === 'difficile' ? 5 : 4
+        const shuffled = [...data].sort(() => Math.random() - 0.5).slice(0, cardCount)
         setTrayCards(shuffled.map(card => ({ card, rotation: 0 })))
       })
-  }, [])
+  }, [phase, difficulty])
 
-  // Auto-switch to clues phase when all cards are placed
+  // Auto-switch to clues phase when all 4 slots are occupied
   useEffect(() => {
-    const hasPlaced = Object.values(placements).some(v => v !== null)
-    if (hasPlaced && trayCards.length === 0) {
+    const allSlotsOccupied = Object.values(placements).every(v => v !== null)
+    if (phase === 'placement' && allSlotsOccupied) {
       setPhase('clues')
     }
-  }, [trayCards.length, placements])
+  }, [placements, phase])
 
   function handleDragStart({ active }) {
     const fromTray = trayCards.find(c => `tray-${c.card.id}` === active.id)
@@ -126,61 +154,139 @@ export default function CreatePage() {
   }
 
   async function handleSubmit() {
-    if (expired) return
+    if (expired || !difficulty) return
     if (!Object.values(clues).every(c => c.trim())) return
+
+    const creatorTime = difficulty === 'facile' ? null : TIMER_DURATION - timeLeft
 
     const { data: grid } = await supabase.from('orienta_grids').insert({
       creator_id: user.id,
       status: 'published',
+      difficulty,
       clue_top:    clues.top.trim(),
       clue_right:  clues.right.trim(),
       clue_bottom: clues.bottom.trim(),
       clue_left:   clues.left.trim(),
-      creator_time_seconds: TOTAL_TIME - timeLeft,
+      creator_time_seconds: creatorTime,
       expires_at: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
     }).select().single()
 
     if (!grid) return
 
-    await supabase.from('orienta_grid_cards').insert(
-      Object.entries(placements)
-        .filter(([, v]) => v)
-        .map(([pos, { card, rotation }]) => ({
-          grid_id: grid.id, card_id: card.id,
-          position: parseInt(pos), rotation,
-        }))
-    )
+    const gridCardInserts = Object.entries(placements)
+      .filter(([, v]) => v)
+      .map(([pos, { card, rotation }]) => ({
+        grid_id: grid.id, card_id: card.id,
+        position: parseInt(pos), rotation,
+      }))
+
+    // Add the decoy card in hard mode (the one left in tray)
+    if (difficulty === 'difficile' && trayCards.length === 1) {
+      gridCardInserts.push({
+        grid_id: grid.id,
+        card_id: trayCards[0].card.id,
+        position: -1,
+        rotation: 0,
+      })
+    }
+
+    await supabase.from('orienta_grid_cards').insert(gridCardInserts)
+
+    const xpEarned = XP_CREATE[difficulty]
+    await supabase.rpc('add_user_xp', { uid: user.id, amount: xpEarned })
+    await refreshUser()
+
     navigate('/hub')
   }
 
-  const allPlaced = trayCards.length === 0
-  const timerPct = (timeLeft / TOTAL_TIME) * 100
+  function handleSelectDifficulty(chosen) {
+    setDifficulty(chosen)
+    setShowDifficultyModal(false)
+  }
+
+  const allPlaced = trayCards.length === (difficulty === 'difficile' ? 1 : 0)
+  const showTimer = difficulty && difficulty !== 'facile'
+  const timerPct = showTimer ? (timeLeft / TIMER_DURATION) * 100 : 100
   const timerColor = timeLeft < 20 ? 'var(--coral)' : timeLeft < 45 ? 'var(--warning)' : 'var(--accent)'
 
   return (
     <div className="create-page">
       <Header />
+
+      {/* Modal de sélection de difficulté ou message limite quotidienne */}
+      {showDifficultyModal && (
+        <div className="difficulty-modal-backdrop">
+          <div className="difficulty-modal">
+            {alreadyCreatedToday ? (
+              <>
+                <h2 className="difficulty-modal-title">Limite quotidienne atteinte</h2>
+                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                  Tu as déjà créé une grille aujourd'hui. Reviens demain pour en créer une nouvelle ! 🎯
+                </p>
+                <button className="btn-primary" onClick={() => navigate('/hub')} style={{ width: '100%' }}>
+                  Retour au Hub
+                </button>
+              </>
+            ) : (
+              <>
+                <h2 className="difficulty-modal-title">Quel niveau de difficulté ?</h2>
+                <div className="difficulty-options">
+                  <button
+                    className="difficulty-card"
+                    onClick={() => handleSelectDifficulty('facile')}
+                    type="button"
+                  >
+                    <div className="difficulty-name">Facile</div>
+                    <div className="difficulty-desc">Temps illimité<br />4 cartes</div>
+                  </button>
+                  <button
+                    className="difficulty-card"
+                    onClick={() => handleSelectDifficulty('moyen')}
+                    type="button"
+                  >
+                    <div className="difficulty-name">Moyen</div>
+                    <div className="difficulty-desc">90 secondes<br />4 cartes</div>
+                  </button>
+                  <button
+                    className="difficulty-card"
+                    onClick={() => handleSelectDifficulty('difficile')}
+                    type="button"
+                  >
+                    <div className="difficulty-name">Difficile</div>
+                    <div className="difficulty-desc">90 secondes<br />5 cartes (1 leurre)</div>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       <main className="create-main">
 
-        {/* Chrono toujours visible */}
-        <div className="create-timer">
-          <div className="timer-bar-track">
-            <motion.div
-              className="timer-bar-fill"
-              animate={{ width: `${timerPct}%`, backgroundColor: timerColor }}
-              transition={{ duration: 0.5 }}
-            />
+        {/* Chrono seulement si timer actif */}
+        {showTimer && (
+          <div className="create-timer">
+            <div className="timer-bar-track">
+              <motion.div
+                className="timer-bar-fill"
+                animate={{ width: `${timerPct}%`, backgroundColor: timerColor }}
+                transition={{ duration: 0.5 }}
+              />
+            </div>
+            <span className="timer-value" style={{ color: timerColor }}>
+              {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+            </span>
           </div>
-          <span className="timer-value" style={{ color: timerColor }}>
-            {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
-          </span>
-        </div>
+        )}
 
-        <div className="create-phase-label">
-          {phase === 'placement'
-            ? 'Étape 1 — Place et oriente tes 4 cartes'
-            : 'Étape 2 — Écris tes 4 indices'}
-        </div>
+        {!showDifficultyModal && (
+          <div className="create-phase-label">
+            {phase === 'placement'
+              ? `Étape 1 — Place et oriente tes ${difficulty === 'difficile' ? '4' : '4'} cartes`
+              : 'Étape 2 — Écris tes 4 indices'}
+          </div>
+        )}
 
         {expired && (
           <div className="create-expired">
@@ -210,7 +316,7 @@ export default function CreatePage() {
               />
             )}
 
-            {phase === 'placement' && (
+            {(phase === 'placement' || phase === 'clues') && (
               <CardTray cards={trayCards} onRotate={handleTrayRotate} />
             )}
 
@@ -222,10 +328,10 @@ export default function CreatePage() {
           </DndContext>
         )}
 
-        {!expired && phase === 'clues' && (
+        {!expired && allPlaced && (
           <button className="btn-primary create-confirm" onClick={handleSubmit}
             disabled={!Object.values(clues).every(c => c.trim())}>
-            Publier la grille
+            {phase === 'clues' ? 'Publier la grille' : `Remplissez les indices (${phase})`}
           </button>
         )}
       </main>

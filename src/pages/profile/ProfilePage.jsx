@@ -3,13 +3,18 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
+import { LEVELS, getLevelProgress } from '../../lib/levels'
+import { getCreature } from '../../lib/creatures'
+import { MARINE_ITEMS, getMarineItem } from '../../lib/marineItems'
 import Header from '../../components/ui/Header'
 
 export default function ProfilePage() {
-  const { user, logout } = useAuthStore()
+  const { user, logout, refreshUser } = useAuthStore()
   const [stats, setStats] = useState(null)
   const [playHistory, setPlayHistory] = useState([])
   const [createdGrids, setCreatedGrids] = useState([])
+  const [collectiveLevel, setCollectiveLevel] = useState(1)
+  const [selectedSkin, setSelectedSkin] = useState(user?.selected_skin ?? 1)
 
   useEffect(() => {
     if (!user) return
@@ -20,7 +25,9 @@ export default function ProfilePage() {
 
       supabase.from('orienta_grids').select('id, clue_top, created_at, status')
         .eq('creator_id', user.id).order('created_at', { ascending: false }).limit(20),
-    ]).then(([playsRes, gridsRes]) => {
+
+      supabase.from('orienta_collective_progress').select('*').eq('id', 1).single(),
+    ]).then(([playsRes, gridsRes, collectiveRes]) => {
       const plays = playsRes.data ?? []
       setPlayHistory(plays)
       setCreatedGrids(gridsRes.data ?? [])
@@ -32,19 +39,56 @@ export default function ProfilePage() {
         avgScore: plays.length > 0 ? Math.round(total / plays.length) : 0,
         bestScore: plays.reduce((m, p) => Math.max(m, p.score ?? 0), 0),
       })
+      if (collectiveRes.data) {
+        const collectiveProgress = getLevelProgress(collectiveRes.data.total_xp)
+        setCollectiveLevel(collectiveProgress.currentLevel.level)
+      }
     })
   }, [user])
 
   if (!user) return null
+
+  const handleSelectSkin = async (level) => {
+    await supabase.from('orienta_users').update({ selected_skin: level }).eq('id', user.id)
+    setSelectedSkin(level)
+    await refreshUser()
+  }
+
+  const userLevelProgress = getLevelProgress(user.xp)
 
   return (
     <div className="profile-page">
       <Header />
       <main className="profile-main">
         <div className="profile-header-block">
-          <div className="profile-avatar">{user.pseudo[0].toUpperCase()}</div>
+          <div className="profile-avatar">
+            {selectedSkin > 1 ? (
+              getMarineItem(selectedSkin).Component({ size: 48 })
+            ) : (
+              user.pseudo[0].toUpperCase()
+            )}
+          </div>
           <div>
             <h1 className="profile-name">{user.pseudo}</h1>
+            <div className="profile-xp-bar">
+              <div className="profile-xp-info">
+                <span className="profile-xp-label">Niveau {user.level} — {userLevelProgress.currentLevel.name}</span>
+                <span className="profile-xp-amount">{user.xp.toLocaleString()} XP</span>
+              </div>
+              <div className="profile-xp-track">
+                <motion.div
+                  className="profile-xp-fill"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${userLevelProgress.pct}%` }}
+                  transition={{ duration: 1, ease: 'easeOut' }}
+                />
+              </div>
+              {userLevelProgress.nextLevel && (
+                <div className="profile-xp-next">
+                  {(userLevelProgress.nextLevel.xp - user.xp).toLocaleString()} XP pour {userLevelProgress.nextLevel.name}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -70,6 +114,43 @@ export default function ProfilePage() {
             ))}
           </div>
         )}
+
+        <section className="profile-section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
+            <h2 style={{ marginBottom: 0 }}>Ton bestiaire</h2>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Déverrouillés avec ton XP</span>
+          </div>
+          <div className="skin-grid">
+            {MARINE_ITEMS.map((item) => {
+              const isUnlocked = user.level >= item.level
+              const isSelected = selectedSkin === item.level
+
+              return (
+                <motion.div
+                  key={item.level}
+                  className={`skin-card ${isUnlocked ? 'skin-card--unlocked' : 'skin-card--locked'} ${isSelected ? 'skin-card--active' : ''}`}
+                  whileHover={isUnlocked && !isSelected ? { scale: 1.05 } : {}}
+                  onClick={() => isUnlocked && !isSelected && handleSelectSkin(item.level)}
+                >
+                  <div className="skin-creature">
+                    {isUnlocked ? (
+                      <item.Component size={40} />
+                    ) : (
+                      <>
+                        <item.Component size={40} style={{ opacity: 0.3 }} />
+                        <div className="skin-lock">🔒</div>
+                      </>
+                    )}
+                  </div>
+                  <div className="skin-info">
+                    <div className="skin-name">{item.name}</div>
+                    {isSelected && <div className="skin-badge">✓ Actif</div>}
+                  </div>
+                </motion.div>
+              )
+            })}
+          </div>
+        </section>
 
         <section className="profile-section">
           <h2>Grilles jouées</h2>

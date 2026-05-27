@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import RequireAuth from './components/ui/RequireAuth'
+import TutorialModal from './components/ui/TutorialModal'
 import LoginPage from './pages/login/LoginPage'
 import HubPage from './pages/hub/HubPage'
 import CreatePage from './pages/create/CreatePage'
@@ -23,6 +24,7 @@ export default function App() {
         <Route path="/dashboard/:gridId" element={<RequireAuth><DashboardPage /></RequireAuth>} />
         <Route path="*"                  element={<Navigate to="/hub" replace />} />
       </Routes>
+      <TutorialModal />
     </BrowserRouter>
   )
 }

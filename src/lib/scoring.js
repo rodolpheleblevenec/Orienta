@@ -3,6 +3,9 @@ const ATTEMPT_PENALTY = 150
 const SPEED_BONUS = 100
 const SPEED_THRESHOLD_SECONDS = 60
 
+export const XP_CREATE = { facile: 25, moyen: 50, difficile: 75 }
+export const xpStreakBonus = (streak) => Math.min(streak * 2, 30)
+
 // Logarithmic time decay: score never drops below ~200 during normal play
 export function computeScore(elapsedSeconds, attemptsFailed) {
   const timeDecay = Math.max(0, BASE_SCORE * (1 - 0.35 * Math.log10(1 + elapsedSeconds / 30)))

@@ -6,6 +6,7 @@ const STORAGE_KEY = 'orienta_user_id'
 export const useAuthStore = create((set, get) => ({
   user: null,      // row from orienta_users
   loading: true,
+  tutorialOpen: false,
 
   // Called on app boot — rehydrate from localStorage
   init: async () => {
@@ -35,7 +36,7 @@ export const useAuthStore = create((set, get) => ({
     if (existing) {
       localStorage.setItem(STORAGE_KEY, existing.id)
       set({ user: existing })
-      return { user: existing }
+      return { user: existing, isNew: false }
     }
 
     const { data: created, error } = await supabase
@@ -47,8 +48,8 @@ export const useAuthStore = create((set, get) => ({
     if (error) return { error: 'Ce pseudo est déjà pris ou invalide.' }
 
     localStorage.setItem(STORAGE_KEY, created.id)
-    set({ user: created })
-    return { user: created }
+    set({ user: created, tutorialOpen: true })
+    return { user: created, isNew: true }
   },
 
   logout: () => {
@@ -66,4 +67,7 @@ export const useAuthStore = create((set, get) => ({
       .single()
     if (data) set({ user: data })
   },
+
+  openTutorial: () => set({ tutorialOpen: true }),
+  closeTutorial: () => set({ tutorialOpen: false }),
 }))
