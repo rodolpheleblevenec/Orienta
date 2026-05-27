@@ -1,16 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   DndContext, DragOverlay, closestCorners,
   PointerSensor, TouchSensor, useSensor, useSensors,
 } from '@dnd-kit/core'
-import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
-import { computeScore, computeXp, xpStreakBonus, evaluateAttempt } from '../../lib/scoring'
+import { computeScore, computeXp, xpStreakBonus } from '../../lib/scoring'
 import Header from '../../components/ui/Header'
+import StaticMiniGrid from '../../components/ui/StaticMiniGrid'
 import CloverGrid from '../../components/game/CloverGrid'
-import CardTray from '../../components/game/CardTray'
 import WordCard from '../../components/game/WordCard'
 
 const MAX_ATTEMPTS = 3
@@ -24,13 +23,12 @@ export default function PlayPage() {
   const [placements, setPlacements] = useState({ 0: null, 1: null, 2: null, 3: null })
   const [trayCards, setTrayCards] = useState([])
   const [activeCard, setActiveCard] = useState(null)
-  const [solution, setSolution] = useState(null) // only loaded after game over
-  const [alreadyPlayed, setAlreadyPlayed] = useState(false)
 
   const [playId, setPlayId] = useState(null)
   const [attemptNumber, setAttemptNumber] = useState(1)
   const [attemptsFailed, setAttemptsFailed] = useState(0)
   const [attemptHistory, setAttemptHistory] = useState([])
+  const [activeHistoryTab, setActiveHistoryTab] = useState(0)
   const [gameOver, setGameOver] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSwappingSlots, setIsSwappingSlots] = useState(false)
@@ -42,7 +40,6 @@ export default function PlayPage() {
 
   const startTimeRef = useRef(Date.now())
   const [elapsed, setElapsed] = useState(0)
-  const [liveScore, setLiveScore] = useState(1000)
 
   useEffect(() => {
     if (!gridId || !user) return
@@ -56,38 +53,52 @@ export default function PlayPage() {
       if (!gridData) { navigate('/hub'); return }
       setGrid(gridData)
 
-      // Check if user already played this grid
       const { data: existingPlay } = await supabase
         .from('orienta_plays')
-        .select('id')
+        .select('id, completed_at, score, xp_earned, success, time_seconds, attempts_count')
         .eq('grid_id', gridId)
         .eq('player_id', user.id)
-        .single()
+        .maybeSingle()
 
-      if (existingPlay) {
-        setAlreadyPlayed(true)
-        setPlayId(existingPlay.id)
+      if (existingPlay?.completed_at) {
+        navigate(`/result/${gridId}`, {
+          replace: true,
+          state: {
+            score: existingPlay.score ?? 0,
+            xp: existingPlay.xp_earned ?? 0,
+            success: existingPlay.success ?? false,
+            baseXp: existingPlay.xp_earned ?? 0,
+            bonusXp: 0,
+            timeSeconds: existingPlay.time_seconds ?? 0,
+            attemptCount: existingPlay.attempts_count ?? 1,
+            streakCurrent: 0,
+          },
+        })
         return
       }
 
-      // Cards without solution positions
       const { data: gridCards } = await supabase
         .from('orienta_grid_cards')
         .select('card_id, orienta_word_cards(*)')
         .eq('grid_id', gridId)
 
-      const shuffled = [...(gridCards ?? [])].sort(() => Math.random() - 0.5).map(gc => ({
+      const shuffled = [...(gridCards ?? [])].sort(() => Math.random() - 0.5).map((gc, i) => ({
         card: gc.orienta_word_cards,
         rotation: [0, 90, 180, 270][Math.floor(Math.random() * 4)],
+        colorIndex: i,
       }))
       setTrayCards(shuffled)
 
-      const { data: play } = await supabase
-        .from('orienta_plays')
-        .insert({ grid_id: gridId, player_id: user.id })
-        .select()
-        .single()
-      if (play) setPlayId(play.id)
+      if (existingPlay) {
+        setPlayId(existingPlay.id)
+      } else {
+        const { data: play } = await supabase
+          .from('orienta_plays')
+          .insert({ grid_id: gridId, player_id: user.id })
+          .select()
+          .single()
+        if (play) setPlayId(play.id)
+      }
     }
     fetchGrid()
   }, [gridId, user, navigate])
@@ -95,12 +106,17 @@ export default function PlayPage() {
   useEffect(() => {
     if (gameOver) return
     const interval = setInterval(() => {
-      const secs = Math.floor((Date.now() - startTimeRef.current) / 1000)
-      setElapsed(secs)
-      setLiveScore(computeScore(secs, attemptsFailed))
+      setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000))
     }, 1000)
     return () => clearInterval(interval)
-  }, [gameOver, attemptsFailed])
+  }, [gameOver])
+
+  function handleReset() {
+    const placed = Object.values(placements).filter(Boolean)
+    if (!placed.length) return
+    setTrayCards(prev => [...prev, ...placed])
+    setPlacements({ 0: null, 1: null, 2: null, 3: null })
+  }
 
   function handleDragStart({ active }) {
     const fromTray = trayCards.find(c => `tray-${c.card.id}` === active.id)
@@ -118,7 +134,6 @@ export default function PlayPage() {
     const slotIdx = parseInt(over.id.replace('slot-', ''), 10)
     if (isNaN(slotIdx)) return
 
-    // Tray → slot
     const trayIdx = trayCards.findIndex(c => `tray-${c.card.id}` === active.id)
     if (trayIdx !== -1) {
       const cardItem = trayCards[trayIdx]
@@ -132,7 +147,6 @@ export default function PlayPage() {
       return
     }
 
-    // Slot → slot
     for (const [pos, item] of Object.entries(placements)) {
       if (item && `placed-${item.card.id}-${pos}` === active.id) {
         const sourceSlot = parseInt(pos)
@@ -169,7 +183,6 @@ export default function PlayPage() {
         rotation,
       }))
 
-    // Server-side validation via Edge Function
     const { data: result, error } = await supabase.functions.invoke('check-attempt', {
       body: { play_id: playId, attempt_number: attemptNumber, answer },
     })
@@ -181,7 +194,6 @@ export default function PlayPage() {
 
     const { correctFull, correctRotation, neither, success: won } = result
 
-    // Fire & forget: log attempt (not critical path)
     supabase.from('orienta_play_attempts').insert({
       play_id: playId,
       attempt_number: attemptNumber,
@@ -191,8 +203,12 @@ export default function PlayPage() {
       neither,
     })
 
-    // Add to history
-    setAttemptHistory(prev => [...prev, { correctFull, correctRotation, neither }])
+    const placementsSnapshot = { ...placements }
+    setAttemptHistory(prev => {
+      const next = [...prev, { correctFull, correctRotation, neither, placements: placementsSnapshot }]
+      setActiveHistoryTab(next.length - 1)
+      return next
+    })
 
     if (won) {
       const finalScore = computeScore(elapsed, attemptsFailed)
@@ -210,7 +226,7 @@ export default function PlayPage() {
       await supabase.rpc('add_user_xp', { uid: user.id, amount: totalXp })
       await refreshUser()
       setGameOver(true)
-      navigate(`/result/${gridId}`, { state: { score: finalScore, xp: totalXp, success: true } })
+      navigate(`/result/${gridId}`, { state: { score: finalScore, xp: totalXp, success: true, baseXp, bonusXp, timeSeconds: elapsed, attemptCount: attemptNumber, streakCurrent: user.streak_current } })
     } else {
       const next = attemptNumber + 1
       setAttemptNumber(next)
@@ -238,89 +254,124 @@ export default function PlayPage() {
     <div className="play-page"><Header /><div className="play-loading">Chargement…</div></div>
   )
 
-  if (alreadyPlayed) return (
-    <div className="play-page">
-      <Header />
-      <main className="play-main" style={{ justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center', maxWidth: '400px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-          <h2 style={{ marginBottom: '12px' }}>Tu as déjà joué à cette grille</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
-            Tu peux jouer à chaque grille une seule fois. Reviens plus tard pour découvrir de nouvelles grilles !
-          </p>
-          <button className="btn-primary" onClick={() => navigate('/hub')} style={{ width: '100%' }}>
-            Retour au Hub
-          </button>
-        </div>
-      </main>
-    </div>
-  )
-
   const allPlaced = Object.values(placements).every(v => v !== null)
   const clues = { top: grid.clue_top, right: grid.clue_right, bottom: grid.clue_bottom, left: grid.clue_left }
 
   return (
     <div className="play-page">
       <Header />
-      <main className="play-main">
-        <div className="play-left">
-          <div className="play-scorebar">
-            <span className="play-score">{liveScore} pts</span>
-          </div>
+      <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
 
-          <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <CloverGrid placements={placements} clues={clues} onRotate={handleRotate} disableTransition={isSwappingSlots} />
-
-            {attemptHistory.length > 0 && (
-              <div className="play-feedback-section">
-                <div className="play-feedback-title">Essai {attemptHistory.length}</div>
-                <div className="play-feedback-row">
-                  <div className="play-feedback-dot play-feedback-dot--correct" />
-                  <span className="play-feedback-count">{attemptHistory[attemptHistory.length - 1].correctFull}</span>
-                  <span>bien placé et bien orienté</span>
-                </div>
-                <div className="play-feedback-row">
-                  <div className="play-feedback-dot play-feedback-dot--rotation" />
-                  <span className="play-feedback-count">{attemptHistory[attemptHistory.length - 1].correctRotation}</span>
-                  <span>bien placé, mal orienté</span>
-                </div>
-                <div className="play-feedback-row">
-                  <div className="play-feedback-dot play-feedback-dot--wrong" />
-                  <span className="play-feedback-count">{attemptHistory[attemptHistory.length - 1].neither}</span>
-                  <span>mal placé, mal orienté</span>
-                </div>
-                <div className="play-feedback-attempts">Essai {attemptNumber}/{MAX_ATTEMPTS}</div>
+        {/* ── Drawer gauche — réserve (toujours visible) ── */}
+        <aside className="play-tray-drawer">
+          <div className="tray-cards">
+            {trayCards.map(({ card, rotation, colorIndex }) => (
+              <div key={card.id} className="card-tray-item">
+                <WordCard
+                  id={`tray-${card.id}`}
+                  card={card}
+                  rotation={rotation ?? 0}
+                  colorIndex={colorIndex ?? 0}
+                  draggable
+                />
               </div>
-            )}
+            ))}
+          </div>
+        </aside>
 
-            {attemptHistory.length === 0 && (
-              <div className="play-attempts-display">Essai {attemptNumber}/{MAX_ATTEMPTS}</div>
-            )}
-
-            <CardTray cards={trayCards} />
-            <DragOverlay dropAnimation={null}>
-              {activeCard && <WordCard id="overlay" card={activeCard.card} rotation={activeCard.rotation} draggable={false} />}
-            </DragOverlay>
-          </DndContext>
-
-          <button className="btn-primary play-submit" onClick={handleSubmit} disabled={!allPlaced || isSubmitting}>
-            {isSubmitting ? '…' : (allPlaced ? 'Soumettre' : `Placez toutes les cartes (${trayCards.length} restante${trayCards.length > 1 ? 's' : ''})`)}
+        {/* ── Centre — grille ── */}
+        <main className="play-main">
+          <button
+            className="btn-reset"
+            onClick={handleReset}
+            type="button"
+            title="Remettre toutes les cartes dans la réserve"
+            disabled={Object.values(placements).every(v => v === null)}
+          >
+            ↺ <span>Reset</span>
           </button>
-        </div>
+          <div className="play-grid-area">
+            <CloverGrid
+              placements={placements}
+              clues={clues}
+              onRotate={handleRotate}
+              disableTransition={isSwappingSlots}
+            />
+          </div>
+        </main>
 
-        <div className="play-right">
-          {attemptHistory.map((attempt, idx) => (
-            <div key={idx} className="play-attempt-row">
-              <div className="play-attempt-label">Essai {idx + 1}</div>
-              <div className="play-pegs">
-                {Array(attempt.correctFull).fill(0).map((_, i) => <div key={i} className="play-peg play-peg--correct" />)}
-                {Array(attempt.correctRotation).fill(0).map((_, i) => <div key={i} className="play-peg play-peg--rotation" />)}
-                {Array(attempt.neither).fill(0).map((_, i) => <div key={i} className="play-peg play-peg--wrong" />)}
+        {/* ── Drawer droit — feedback ── */}
+        <aside className="play-feedback-drawer">
+          {attemptHistory.length === 0 ? (
+            <div className="play-hint">
+              <p>Placez vos 4 cartes dans la grille et soumettez — votre feedback apparaîtra ici.</p>
+            </div>
+          ) : (
+            <div className="play-history">
+              {/* Onglets en haut — englobent résultat + aperçu */}
+              <div className="play-history-tabs">
+                {attemptHistory.map((_, idx) => (
+                  <button
+                    key={idx}
+                    className={`play-history-tab ${activeHistoryTab === idx ? 'play-history-tab--active' : ''}`}
+                    onClick={() => setActiveHistoryTab(idx)}
+                    type="button"
+                  >
+                    Essai {idx + 1}
+                  </button>
+                ))}
+              </div>
+              {/* Panneau unifié */}
+              <div className="play-history-panel">
+                <div className="play-feedback-rows">
+                  <div className="play-feedback-row">
+                    <div className="play-feedback-dot play-feedback-dot--correct" />
+                    <span className="play-feedback-count">{attemptHistory[activeHistoryTab].correctFull}</span>
+                    <span>bien placé et orienté</span>
+                  </div>
+                  <div className="play-feedback-row">
+                    <div className="play-feedback-dot play-feedback-dot--rotation" />
+                    <span className="play-feedback-count">{attemptHistory[activeHistoryTab].correctRotation}</span>
+                    <span>bien placé, mal orienté</span>
+                  </div>
+                  <div className="play-feedback-row">
+                    <div className="play-feedback-dot play-feedback-dot--wrong" />
+                    <span className="play-feedback-count">{attemptHistory[activeHistoryTab].neither}</span>
+                    <span>mal placé</span>
+                  </div>
+                </div>
+                <div className="play-feedback-divider" />
+                <div className="play-mini-grid-center">
+                  <StaticMiniGrid placements={attemptHistory[activeHistoryTab].placements} clues={clues} />
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-      </main>
+          )}
+        </aside>
+
+        <DragOverlay dropAnimation={null}>
+          {activeCard && (
+            <WordCard
+              id="overlay"
+              card={activeCard.card}
+              rotation={activeCard.rotation}
+              colorIndex={activeCard.colorIndex ?? 0}
+              draggable={false}
+            />
+          )}
+        </DragOverlay>
+      </DndContext>
+
+      <footer className="play-footer">
+        <button
+          className="btn-primary play-footer-submit"
+          onClick={handleSubmit}
+          disabled={!allPlaced || isSubmitting}
+        >
+          {isSubmitting ? '…' : (allPlaced ? 'Soumettre' : `Placez toutes les cartes (${trayCards.length} restante${trayCards.length > 1 ? 's' : ''})`)}
+        </button>
+        <Link to="/hub" className="btn-secondary play-footer-hub">Retour au Hub</Link>
+      </footer>
     </div>
   )
 }

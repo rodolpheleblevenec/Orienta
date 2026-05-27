@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core'
 import WordCard from './WordCard'
 
-function DroppableSlot({ pos, card, rotation, feedback, onRotate, disableTransition }) {
+function DroppableSlot({ pos, card, rotation, colorIndex, feedback, onRotate, disableTransition }) {
   const { isOver, setNodeRef } = useDroppable({ id: `slot-${pos}` })
 
   return (
@@ -14,6 +14,7 @@ function DroppableSlot({ pos, card, rotation, feedback, onRotate, disableTransit
           id={`placed-${card.id}-${pos}`}
           card={card}
           rotation={rotation}
+          colorIndex={colorIndex}
           feedback={feedback ?? 'neutral'}
           onRotate={onRotate}
           draggable
@@ -39,6 +40,7 @@ export default function CloverGrid({ placements, clues, feedbacks = {}, onRotate
             pos={pos}
             card={placements[pos]?.card}
             rotation={placements[pos]?.rotation ?? 0}
+            colorIndex={placements[pos]?.colorIndex ?? 0}
             feedback={feedbacks[pos]}
             onRotate={onRotate ? () => onRotate(pos) : undefined}
             disableTransition={disableTransition}

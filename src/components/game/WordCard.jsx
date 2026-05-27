@@ -1,8 +1,9 @@
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { useRef, useEffect } from 'react'
+import { getCardColor } from '../../lib/cardColors'
 
-export default function WordCard({ card, rotation = 0, feedback = 'neutral', onRotate, draggable = true, id, disableTransition = false }) {
+export default function WordCard({ card, rotation = 0, feedback = 'neutral', onRotate, draggable = true, id, disableTransition = false, colorIndex = 0 }) {
   const isInitialRender = useRef(true)
   useEffect(() => {
     isInitialRender.current = false
@@ -23,9 +24,12 @@ export default function WordCard({ card, rotation = 0, feedback = 'neutral', onR
     position: 'relative',
   }
 
+  const { bg, border } = getCardColor(colorIndex)
   const cardInnerStyle = {
     transform: `rotate(${rotation}deg)`,
     transition: (isDragging || isInitialRender.current || disableTransition) ? 'none' : 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+    backgroundColor: bg,
+    borderColor: border,
   }
 
   const POSITIONS = ['top', 'right', 'bottom', 'left']
