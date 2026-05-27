@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/authStore'
 import Header from '../../components/ui/Header'
 import CollectiveGauge from '../../components/ui/CollectiveGauge'
 import GridCard from '../../components/ui/GridCard'
+import CreatedGridCard from '../../components/ui/CreatedGridCard'
 
 export default function HubPage() {
   const { user } = useAuthStore()
@@ -62,14 +63,10 @@ export default function HubPage() {
 
         {createdGrid && (
           <section className="hub-section">
-            <h2 style={{ marginBottom: '14px' }}>Votre grille</h2>
-            <Link to={`/dashboard/${createdGrid.id}`} className="hub-created-grid">
-              <div className="hub-created-grid-header">
-                <span className="hub-created-grid-label">Votre grille</span>
-                <span className="hub-created-grid-title">"{createdGrid.clue_top}"</span>
-              </div>
-              <div className="hub-created-grid-footer">Voir le dashboard →</div>
-            </Link>
+            <h2 style={{ marginBottom: '20px' }}>Votre grille</h2>
+            <div className="grid-list">
+              <CreatedGridCard grid={createdGrid} index={0} />
+            </div>
           </section>
         )}
 

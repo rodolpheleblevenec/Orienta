@@ -1,26 +1,16 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { useAuthStore } from '../../stores/authStore'
-
-const DIFFICULTY_LABEL = { facile: 'Facile', moyen: 'Moyen', difficile: 'Difficile' }
-const DIFFICULTY_COLOR = { facile: '#2a9d84', moyen: '#F59E0B', difficile: '#ff6b6b' }
 
 const IconClock = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <circle cx="12" cy="12" r="10"></circle>
-    <polyline points="12 6 12 12 16 14"></polyline>
+    <path d="M12 6v6l4 2"></path>
   </svg>
 )
 
 const IconStar = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
     <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
-  </svg>
-)
-
-const IconCheck = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="20 6 9 17 4 12"></polyline>
   </svg>
 )
 
@@ -39,14 +29,17 @@ const IconChart = () => (
   </svg>
 )
 
-export default function GridCard({ grid, played, index }) {
-  const { user } = useAuthStore()
+const DIFFICULTY_LABEL = { facile: 'Facile', moyen: 'Moyen', difficile: 'Difficile' }
+const DIFFICULTY_COLOR = { facile: '#2a9d84', moyen: '#81abe7', difficile: '#81abe7' }
 
+export default function CreatedGridCard({ grid, index }) {
   const plays = (grid.orienta_plays ?? []).filter(p => p.success !== null)
   const totalPlays = plays.length
   const successPlays = plays.filter(p => p.success).length
   const successRate = totalPlays > 0 ? Math.round((successPlays / totalPlays) * 100) : 0
-  const creatorInitial = grid.orienta_users?.pseudo?.[0]?.toUpperCase() ?? '?'
+  const avgAttempts = totalPlays > 0
+    ? (plays.reduce((sum, p) => sum + (p.attempts_count ?? 0), 0) / totalPlays).toFixed(1)
+    : 0
 
   return (
     <motion.div
@@ -54,23 +47,18 @@ export default function GridCard({ grid, played, index }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
     >
-      <Link to={`/play/${grid.id}`} className="card-v2">
+      <Link to={`/dashboard/${grid.id}`} className="card-v2">
         <div className="card-v2-header" style={{ backgroundColor: '#33B69A' }}>
-          <div className="card-v2-avatar">
-            {creatorInitial}
-          </div>
-          <div className="card-v2-name">{grid.orienta_users?.pseudo ?? 'Inconnu'}</div>
+          <div className="card-v2-name">Ma Grille</div>
           <div className="card-v2-icon">→</div>
         </div>
         <div className="card-v2-body">
           <div className="card-v2-cell">
             <div className="card-v2-cell-label">
               <IconClock />
-              {played ? 'Statut' : 'Statut'}
+              Essais moyens
             </div>
-            <div className="card-v2-cell-value">
-              {played ? 'Joué' : 'Non joué'}
-            </div>
+            <div className="card-v2-cell-value">{avgAttempts}</div>
           </div>
           <div className="card-v2-cell">
             <div className="card-v2-cell-label">
