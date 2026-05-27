@@ -165,6 +165,22 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .logout-modal-buttons { display: flex; gap: 8px; }
 .logout-modal-buttons button { flex: 1; }
 
+/* ── Streak Modal ────────────────────────────────── */
+.streak-modal-backdrop { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1001; }
+.streak-modal { background: var(--bg-card); border-radius: var(--radius-xl); padding: 24px; max-width: 420px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-height: 80vh; overflow-y: auto; }
+.streak-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.streak-modal-title { margin: 0; font-size: 18px; font-weight: 700; }
+.streak-modal-close { background: transparent; border: none; font-size: 20px; cursor: pointer; color: var(--text-secondary); padding: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; transition: color 0.18s; }
+.streak-modal-close:hover { color: var(--text-primary); }
+.streak-modal-content { display: flex; flex-direction: column; gap: 16px; }
+.streak-section { padding: 12px; background: var(--bg-secondary); border-radius: var(--radius-md); }
+.streak-section h3 { margin: 0 0 8px 0; font-size: 14px; }
+.streak-section p { margin: 0; font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+.streak-list { margin: 0; padding-left: 16px; font-size: 13px; color: var(--text-secondary); }
+.streak-list li { margin-bottom: 6px; }
+.streak-section.highlight { background: rgba(0,184,153,0.08); border: 1.5px solid var(--accent-border); }
+.streak-modal-btn { width: 100%; margin-top: 8px; }
+
 /* ── Login ───────────────────────────────────────── */
 .login-page {
   min-height: 100dvh;

@@ -9,10 +9,12 @@ export default function LevelsModal({ collectiveLevel, collectiveXp, onClose }) 
   const [activeTab, setActiveTab] = useState('paliers')
   const [leaderboard, setLeaderboard] = useState([])
   const [userRank, setUserRank] = useState(null)
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false)
 
   useEffect(() => {
     if (activeTab === 'classement' && user) {
       const fetchLeaderboard = async () => {
+        setLeaderboardLoading(true)
         const [{ data: topPlayers }, { data: currentUser }] = await Promise.all([
           supabase.from('orienta_users')
             .select('pseudo, xp_contributed')
@@ -37,6 +39,7 @@ export default function LevelsModal({ collectiveLevel, collectiveXp, onClose }) 
             rank: (count ?? 0) + 1
           })
         }
+        setLeaderboardLoading(false)
       }
 
       fetchLeaderboard()
@@ -126,7 +129,9 @@ export default function LevelsModal({ collectiveLevel, collectiveXp, onClose }) 
           </>
         ) : (
           <div className="levels-modal-leaderboard">
-            {leaderboard.length === 0 ? (
+            {leaderboardLoading ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>Chargement…</p>
+            ) : leaderboard.length === 0 ? (
               <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>Aucun contributeur encore</p>
             ) : (
               <div className="leaderboard-list">

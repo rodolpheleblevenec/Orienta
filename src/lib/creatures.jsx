@@ -4,7 +4,7 @@ const EmojiCreature = ({ emoji, size = 40, ...props }) => (
   </span>
 )
 
-export const CREATURES = [
+const CREATURES = [
   { level: 1, name: 'Naissance', emoji: '🥚', Component: (props) => <EmojiCreature emoji="🥚" {...props} /> },
   { level: 2, name: 'Alevin', emoji: '🐟', Component: (props) => <EmojiCreature emoji="🐟" {...props} /> },
   { level: 3, name: 'Banc', emoji: '🐠', Component: (props) => <EmojiCreature emoji="🐠" {...props} /> },

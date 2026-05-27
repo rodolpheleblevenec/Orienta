@@ -54,7 +54,7 @@ export default function CreatedGridCard({ grid, index }) {
       transition={{ delay: index * 0.06 }}
     >
       <Link to={`/dashboard/${grid.id}`} className="card-v2">
-        <div className="card-v2-header" style={{ backgroundColor: '#33B69A' }}>
+        <div className="card-v2-header" style={{ backgroundColor: '#287162' }}>
           <div className="card-v2-name">Ma Grille</div>
           <div className="card-v2-icon">
             <ChevronIcon />

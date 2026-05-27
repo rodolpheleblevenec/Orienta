@@ -283,7 +283,7 @@ export default function CreatePage() {
         {!showDifficultyModal && (
           <div className="create-phase-label">
             {phase === 'placement'
-              ? `Étape 1 — Place et oriente tes ${difficulty === 'difficile' ? '4' : '4'} cartes`
+              ? `Étape 1 — Place et oriente tes ${difficulty === 'difficile' ? '5' : '4'} cartes`
               : 'Étape 2 — Écris tes 4 indices'}
           </div>
         )}

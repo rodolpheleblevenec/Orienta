@@ -86,7 +86,7 @@ const Compass = ({ size = 40, ...props }) => (
 )
 
 export const MARINE_ITEMS = [
-  { level: 1, name: 'Buée', Component: Buoy },
+  { level: 1, name: 'Bouée', Component: Buoy },
   { level: 2, name: 'Phare', Component: Lighthouse },
   { level: 3, name: 'Voilier', Component: Sailboat },
   { level: 4, name: 'Ancre', Component: Anchor },

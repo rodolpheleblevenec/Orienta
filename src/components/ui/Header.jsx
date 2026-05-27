@@ -2,24 +2,29 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import { getMarineItem } from '../../lib/marineItems'
+import StreakModal from './StreakModal'
 
 export default function Header() {
   const { user, openTutorial, logout } = useAuthStore()
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [showStreakModal, setShowStreakModal] = useState(false)
   const streak = user?.streak_current ?? 0
 
   return (
     <header className="app-header">
       <Link to="/hub" className="header-logo">Orienta</Link>
       <div className="header-right">
-        {streak > 0 && (
-          <a href="#" className="header-item">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/>
-            </svg>
-            {streak}
-          </a>
-        )}
+        <button
+          className="header-item"
+          onClick={() => setShowStreakModal(true)}
+          title="Votre Streak"
+          type="button"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/>
+          </svg>
+          {streak}
+        </button>
         <button
           className="header-item"
           onClick={openTutorial}
@@ -54,6 +59,7 @@ export default function Header() {
           </svg>
         </button>
       </div>
+      {showStreakModal && <StreakModal onClose={() => setShowStreakModal(false)} />}
       {showLogoutConfirm && (
         <div className="logout-modal-backdrop" onClick={() => setShowLogoutConfirm(false)}>
           <div className="logout-modal" onClick={e => e.stopPropagation()}>

@@ -28,16 +28,13 @@ export default function WordCard({ card, rotation = 0, feedback = 'neutral', onR
     transition: (isDragging || isInitialRender.current || disableTransition) ? 'none' : 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
   }
 
-  // Compute style based on the word's PHYSICAL position after card rotation,
-  // not its original label (top/right/bottom/left).
-  // Physical position determines horizontal vs vertical-bottom-to-top rendering.
-  const ease = isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)'
   const POSITIONS = ['top', 'right', 'bottom', 'left']
   function wordStyle(originalPos) {
     const physIdx = (POSITIONS.indexOf(originalPos) + rotation / 90) % 4
     const isVertical = physIdx % 2 === 1  // physically at right(1) or left(3)
     const deg = isVertical ? -90 - rotation : -rotation
-    return { transform: `rotate(${deg}deg)`, whiteSpace: 'nowrap', transition: ease }
+    const transition = isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)'
+    return { transform: `rotate(${deg}deg)`, whiteSpace: 'nowrap', transition }
   }
 
   const feedbackClass = feedback !== 'neutral' ? `word-card--${feedback}` : ''

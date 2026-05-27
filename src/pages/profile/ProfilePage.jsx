@@ -19,6 +19,10 @@ export default function ProfilePage() {
   const [replayPlay, setReplayPlay] = useState(null)
 
   useEffect(() => {
+    if (user?.selected_skin != null) setSelectedSkin(user.selected_skin)
+  }, [user?.selected_skin])
+
+  useEffect(() => {
     if (!user) return
     Promise.all([
       supabase.from('orienta_plays').select('score, success, completed_at, orienta_grids(clue_top)')

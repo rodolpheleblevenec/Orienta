@@ -32,13 +32,15 @@ export default function ReplayModal({ playId, gridId, onClose }) {
     )
   }
 
+  const gridCards = grid.orienta_grid_cards ?? []
+
   const cardMap = {}
-  for (const gc of grid.orienta_grid_cards) {
+  for (const gc of gridCards) {
     cardMap[gc.id] = gc
   }
 
   const solutionByPos = {}
-  for (const gc of grid.orienta_grid_cards) {
+  for (const gc of gridCards) {
     if (gc.position !== -1) {
       solutionByPos[gc.position] = gc.orienta_word_cards
     }
