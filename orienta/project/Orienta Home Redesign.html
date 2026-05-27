@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orienta — Mini-jeu Quotidien</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Orienta Color System */
+      --bg-primary:   #FFFFFF;
+      --bg-secondary: #F7F6F3;
+      --bg-card:      #FFFFFF;
+      --bg-surface:   #F2F1EE;
+
+      --accent:        #00B899;
+      --accent-dim:    rgba(0, 184, 153, 0.10);
+      --accent-border: rgba(0, 184, 153, 0.25);
+
+      --text-primary:   #111827;
+      --text-secondary: #4B5563;
+      --text-muted:     #9CA3AF;
+
+      --card-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+      --border:        rgba(0, 0, 0, 0.08);
+      --border-subtle: rgba(0, 0, 0, 0.04);
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
+      --radius-xl: 28px;
+
+      --sans:    'DM Sans', system-ui, sans-serif;
+      --display: 'Syne', system-ui, sans-serif;
+
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.5;
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg-secondary);
+      min-height: 100dvh;
+    }
+
+    h1, h2, h3 {
+      font-family: var(--display);
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-logo {
+      font-family: var(--display);
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+      text-decoration: none;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      background: var(--bg-surface);
+      border: 1.5px solid var(--border);
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      color: var(--text-primary);
+      transition: all 0.2s;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .header-item:hover {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,184,153,0.15);
+    }
+
+    .logout-btn {
+      border: none;
+      background: transparent;
+      padding: 0;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .logout-btn:hover {
+      color: var(--coral);
+      background: rgba(255, 107, 107, 0.08);
+      border-color: rgba(255, 107, 107, 0.25);
+    }
+
+    /* ===== MAIN CONTAINER ===== */
+    .main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    /* ===== TOP SECTIONS ===== */
+    .top-sections {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 60px;
+    }
+
+    .section-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      color: var(--text-primary);
+    }
+
+    .collective-gauge {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--card-shadow);
+      cursor: pointer;
+      transition: all 0.18s;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .collective-gauge:hover {
+      border-color: var(--accent-border);
+      box-shadow: 0 4px 20px rgba(0, 184, 153, 0.1);
+    }
+
+    .gauge-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .gauge-mascot {
+      font-size: 32px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .gauge-info h2 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 2px;
+      line-height: 1.2;
+    }
+
+    .gauge-xp {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .gauge-chevron {
+      margin-left: auto;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      transition: color 0.18s;
+    }
+
+    .collective-gauge:hover .gauge-chevron {
+      color: var(--accent);
+    }
+
+    .gauge-bar-track {
+      height: 6px;
+      background: var(--bg-surface);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+
+    .gauge-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #00E8B8);
+    }
+
+    .gauge-next {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .gauge-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .gauge-mascot {
+      font-size: 40px;
+      line-height: 1;
+    }
+
+    .gauge-info h2 {
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+
+    .gauge-xp {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .gauge-bar-track {
+      height: 8px;
+      background: var(--bg-surface);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .gauge-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #00E8B8);
+    }
+
+    .gauge-next {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
+    /* ===== MY GRID SECTION ===== */
+    .my-grid-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--card-shadow);
+    }
+
+    .my-grid-empty {
+      text-align: center;
+      width: 100%;
+    }
+
+    .my-grid-empty h3 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+
+    .create-grid-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 14px 32px;
+      font-family: var(--sans);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+
+    .create-grid-btn:hover {
+      background: #009e83;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0,184,153,0.25);
+    }
+
+    .my-grid-card-container {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* ===== GRID CARDS (Redesigned) ===== */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 60px;
+    }
+
+    .card-v2 {
+      width: 100%;
+      height: 280px;
+      background: white;
+      border-radius: 12px;
+      padding: 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .card-v2:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-v2-header {
+      background: #33B69A;
+      padding: 16px;
+      border-bottom: 2px solid #2a9a84;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+    }
+
+    .card-v2-header.blue-header {
+      background: #33B69A;
+    }
+
+    .card-v2-header.pink-header {
+      background: #33B69A;
+    }
+
+    .card-v2-header.green-header {
+      background: #33B69A;
+    }
+
+    .card-v2-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+      background: rgba(255, 255, 255, 0.25);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+    }
+
+    .card-v2-avatar.blue {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .card-v2-avatar.pink {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .card-v2-avatar.green {
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .card-v2-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: white;
+      flex: 1;
+    }
+
+    .card-v2-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 16px;
+    }
+
+    .card-v2-body {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .card-v2-cell {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 8px;
+      background: #fafafa;
+      border-radius: 6px;
+    }
+
+    .card-v2-cell-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 4px;
+    }
+
+    .card-v2-cell-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    /* ===== EMPTY STATE ===== */
+    .empty-state {
+      background: var(--bg-card);
+      border: 1.5px dashed var(--border);
+      border-radius: var(--radius-lg);
+      padding: 60px 40px;
+      text-align: center;
+      color: var(--text-secondary);
+    }
+
+    .empty-state p {
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 32px;
+      }
+
+      .hero-content h1 {
+        font-size: 32px;
+      }
+
+      .hero-visual {
+        min-height: 300px;
+      }
+
+      .cards-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 16px;
+      }
+
+      .card-v2 {
+        height: 240px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .main {
+        padding: 24px 16px;
+      }
+
+      .hero-content h1 {
+        font-size: 28px;
+      }
+
+      .hero-content p {
+        font-size: 16px;
+      }
+
+      .hero-ctas {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .btn-primary, .btn-secondary {
+        width: 100%;
+      }
+
+      .grids-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .cards-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .card-v2 {
+        height: auto;
+        min-height: 200px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <a href="#" class="header-logo">Orienta</a>
+    <div class="header-right">
+      <a href="#" class="header-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/>
+        </svg>
+        1
+      </a>
+      <a href="#" class="header-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          <line x1="10" y1="8" x2="14" y2="8"></line>
+          <line x1="10" y1="12" x2="14" y2="12"></line>
+        </svg>
+        Tutoriel
+      </a>
+      <a href="#" class="header-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+        Profil
+      </a>
+      <button class="header-item logout-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        Logout
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+    <!-- Top Sections: Collective Gauge + My Grid -->
+    <div class="top-sections">
+      <!-- Collective Gauge -->
+      <section>
+        <h2 class="section-title">Progression Collective</h2>
+        <div class="collective-gauge" style="height: 200px">
+          <div class="gauge-header">
+            <div class="gauge-mascot">🥚</div>
+            <div class="gauge-info">
+              <h2>Niveau 1 — Naissance</h2>
+              <p class="gauge-xp">120 XP collectifs</p>
+            </div>
+            <div class="gauge-chevron">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
+          </div>
+          <div class="gauge-bar-track">
+            <div class="gauge-bar-fill" style="width: 40%;"></div>
+          </div>
+          <div class="gauge-next">Encore 380 XP avant le niveau 2</div>
+        </div>
+      </section>
+
+      <!-- My Grid Section -->
+      <section>
+        <h2 class="section-title">Ma grille</h2>
+        <div class="my-grid-section">
+          <!-- State: No grid created yet -->
+          <div class="my-grid-empty">
+            <h3>Vous n'avez pas encore créé votre grille du jour</h3>
+            <button class="create-grid-btn">+ Créer ma grille</button>
+          </div>
+
+          <!-- State: Grid already created (hidden by default, show with JS/CSS class) -->
+          <!-- <div class="my-grid-card-container" style="display: none;">
+            <div class="card-v2" style="width: 280px;">
+              <div class="card-v2-header pink-header">
+                <div class="card-v2-name">Ma Grille</div>
+                <div class="card-v2-icon">→</div>
+              </div>
+              <div class="card-v2-body">
+                <div class="card-v2-cell">
+                  <div class="card-v2-cell-label">Essais moyens</div>
+                  <div class="card-v2-cell-value">1.8</div>
+                </div>
+                <div class="card-v2-cell">
+                  <div class="card-v2-cell-label">Niveau</div>
+                  <div class="card-v2-cell-value">Moyen</div>
+                </div>
+                <div class="card-v2-cell">
+                  <div class="card-v2-cell-label">Joueurs</div>
+                  <div class="card-v2-cell-value">8</div>
+                </div>
+                <div class="card-v2-cell">
+                  <div class="card-v2-cell-label">Réussi</div>
+                  <div class="card-v2-cell-value">75%</div>
+                </div>
+              </div>
+            </div>
+          </div> -->
+        </div>
+      </section>
+    </div>
+
+    <!-- Grids of the Day -->
+    <section>
+      <h2 class="section-title">Grilles du jour</h2>
+
+      <div class="cards-grid">
+        <!-- Card Type A: Created by others (Blue) -->
+        <div class="card-v2">
+          <div class="card-v2-header blue-header">
+            <div class="card-v2-avatar blue">A</div>
+            <div class="card-v2-name">Alexis</div>
+            <div class="card-v2-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                Statut
+              </div>
+              <div class="card-v2-cell-value">Non joué</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
+                </svg>
+                Niveau
+              </div>
+              <div class="card-v2-cell-value">Facile</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Joueurs
+              </div>
+              <div class="card-v2-cell-value">1</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                Réussi
+              </div>
+              <div class="card-v2-cell-value">0%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Type A: Another player (Blue) -->
+        <div class="card-v2">
+          <div class="card-v2-header blue-header">
+            <div class="card-v2-avatar blue">R</div>
+            <div class="card-v2-name">Rod</div>
+            <div class="card-v2-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Statut
+              </div>
+              <div class="card-v2-cell-value">Joué</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
+                </svg>
+                Niveau
+              </div>
+              <div class="card-v2-cell-value">Difficile</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                Joueurs
+              </div>
+              <div class="card-v2-cell-value">2</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                Réussi
+              </div>
+              <div class="card-v2-cell-value">50%</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -27,6 +27,7 @@ export default function HubPage() {
           .from('orienta_grids')
           .select('*, orienta_users(pseudo), orienta_plays(success, player_id, completed_at)')
           .eq('status', 'published')
+          .neq('creator_id', user.id)
           .gt('expires_at', now)
           .order('created_at', { ascending: false }),
 
@@ -37,7 +38,7 @@ export default function HubPage() {
 
         supabase
           .from('orienta_grids')
-          .select('*, orienta_users(pseudo), orienta_plays(success, player_id, completed_at)')
+          .select('*, orienta_users(pseudo), orienta_plays(success, player_id, completed_at, attempts_count)')
           .eq('creator_id', user.id)
           .gte('created_at', todayStart.toISOString())
           .limit(1)
@@ -59,41 +60,52 @@ export default function HubPage() {
     <div className="hub-page">
       <Header />
       <main className="hub-main">
-        <CollectiveGauge />
-
-        {createdGrid && (
-          <section className="hub-section">
-            <h2 style={{ marginBottom: '20px' }}>Votre grille</h2>
-            <div className="grid-list">
-              <CreatedGridCard grid={createdGrid} index={0} />
-            </div>
+        {/* Top Sections: Collective Gauge + My Grid */}
+        <div className="top-sections">
+          {/* Collective Gauge */}
+          <section>
+            <h2 className="section-title">Progression Collective</h2>
+            <CollectiveGauge />
           </section>
-        )}
 
-        <section className="hub-section">
-          <div className="hub-section-header">
-            <h2>Grilles du jour</h2>
-            <Link
-              to="/create"
-              className={`btn-primary hub-create-btn ${hasCreatedToday ? 'btn-primary--disabled' : ''}`}
-              onClick={e => hasCreatedToday && e.preventDefault()}
-              aria-disabled={hasCreatedToday}
-              title={hasCreatedToday ? 'Vous ne pouvez créer qu\'une grille par jour. Revenez demain ou résolvez les grilles des autres joueurs.' : ''}
-            >
-              {hasCreatedToday ? 'Grille créée ✓' : '+ Créer une grille'}
-            </Link>
-          </div>
+          {/* My Grid Section */}
+          <section>
+            <h2 className="section-title">Ma grille</h2>
+            {!createdGrid ? (
+              <div className="my-grid-section">
+                <div className="my-grid-empty">
+                  <h3>Vous n'avez pas encore créé votre grille du jour</h3>
+                  <Link
+                    to="/create"
+                    className="create-grid-btn"
+                    onClick={e => hasCreatedToday && e.preventDefault()}
+                  >
+                    + Créer ma grille
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="my-grid-card-container">
+                <CreatedGridCard grid={createdGrid} index={0} />
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* Grilles du jour */}
+        <section>
+          <h2 className="section-title">Grilles du jour</h2>
 
           {loading ? (
             <div className="hub-loading">
               {[1, 2, 3].map(i => <div key={i} className="grid-card-skeleton" />)}
             </div>
           ) : grids.length === 0 ? (
-            <div className="hub-empty">
+            <div className="empty-state">
               <p>Aucune grille aujourd'hui — sois le premier à en créer une !</p>
             </div>
           ) : (
-            <div className="grid-list">
+            <div className="cards-grid">
               {grids.map((grid, i) => (
                 <GridCard
                   key={grid.id}

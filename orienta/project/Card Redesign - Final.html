@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grilles du jour – Redesign Cartes Final</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #1a1a1a;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: #666;
+      margin-bottom: 40px;
+      line-height: 1.5;
+    }
+
+    .proposal {
+      margin-bottom: 80px;
+    }
+
+    .proposal-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #333;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .proposal-desc {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 30px;
+    }
+
+    /* ===== CARD STYLES ===== */
+    .card-v2 {
+      width: 280px;
+      height: 280px;
+      background: white;
+      border-radius: 12px;
+      padding: 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .card-v2:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-v2-header {
+      background: #f5f5f5;
+      padding: 16px;
+      border-bottom: 2px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+    }
+
+    .card-v2-header.blue-header {
+      background: #e3f2fd;
+    }
+
+    .card-v2-header.pink-header {
+      background: #fce4ec;
+    }
+
+    .card-v2-header.green-header {
+      background: #e0f2f1;
+    }
+
+    .card-v2-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-v2-avatar.blue { background: linear-gradient(135deg, #5bc0de 0%, #3ba5c4 100%); }
+    .card-v2-avatar.pink { background: linear-gradient(135deg, #f8b4c7 0%, #f598bb 100%); }
+    .card-v2-avatar.green { background: linear-gradient(135deg, #98d8c8 0%, #7ac9b4 100%); }
+
+    .card-v2-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a1a;
+      flex: 1;
+    }
+
+    .card-v2-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #999;
+      font-size: 16px;
+    }
+
+    .card-v2-body {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .card-v2-cell {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 8px;
+      background: #fafafa;
+      border-radius: 6px;
+    }
+
+    .card-v2-cell-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 4px;
+    }
+
+    .card-v2-cell-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Redesign des Cartes</h1>
+    <p class="subtitle">
+      Deux types de cartes : Type A pour jouer les grilles d'autres, Type B pour vos créations
+    </p>
+
+    <div class="proposal">
+      <h2 class="proposal-title">Type A : Cartes pour Jouer (créé par d'autres)</h2>
+      <p class="proposal-desc">
+        Cartes bleues pour afficher les grilles créées par d'autres joueurs. Affiche le statut, niveau, nombre de joueurs et pourcentage de réussite.
+      </p>
+      <div class="cards-grid">
+        <!-- Card A1 -->
+        <div class="card-v2">
+          <div class="card-v2-header blue-header" style="background-color: rgb(42, 157, 132)">
+            <div class="card-v2-avatar blue">A</div>
+            <div class="card-v2-name">Alexis</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                Statut
+              </div>
+              <div class="card-v2-cell-value">Non joué</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
+                </svg>
+                Niveau
+              </div>
+              <div class="card-v2-cell-value">Facile</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Joueurs
+              </div>
+              <div class="card-v2-cell-value">1</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                Réussi
+              </div>
+              <div class="card-v2-cell-value">0%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card A2 -->
+        <div class="card-v2">
+          <div class="card-v2-header blue-header" style="background-color: rgb(42, 157, 132)">
+            <div class="card-v2-avatar blue">R</div>
+            <div class="card-v2-name">Rod</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Statut
+              </div>
+              <div class="card-v2-cell-value">Joué</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
+                </svg>
+                Niveau
+              </div>
+              <div class="card-v2-cell-value">Difficile</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                Joueurs
+              </div>
+              <div class="card-v2-cell-value">2</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                Réussi
+              </div>
+              <div class="card-v2-cell-value">50%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="proposal">
+      <h2 class="proposal-title">Type B : Cartes Ma Création (grilles que j'ai créées)</h2>
+      <p class="proposal-desc">
+        Cartes rose/vert pour afficher vos grilles créées. Affiche les essais moyens, niveau, nombre de joueurs et pourcentage de réussite.
+      </p>
+      <div class="cards-grid">
+        <!-- Card B1 -->
+        <div class="card-v2">
+          <div class="card-v2-header pink-header" style="background-color: rgb(129, 171, 239)">
+            <div class="card-v2-name">Ma Grille</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 6v6l4 2"></path>
+                </svg>
+                Essais moyens
+              </div>
+              <div class="card-v2-cell-value">1.8</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
+                </svg>
+                Niveau
+              </div>
+              <div class="card-v2-cell-value">Moyen</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Joueurs
+              </div>
+              <div class="card-v2-cell-value">8</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                Réussi
+              </div>
+              <div class="card-v2-cell-value">75%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card B2 -->
+        <div class="card-v2">
+          <div class="card-v2-header green-header" style="background-color: rgb(129, 171, 239)">
+            <div class="card-v2-name">Ma Grille</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 6v6l4 2"></path>
+                </svg>
+                Essais moyens
+              </div>
+              <div class="card-v2-cell-value">2.5</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
+                </svg>
+                Niveau
+              </div>
+              <div class="card-v2-cell-value">Expert</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Joueurs
+              </div>
+              <div class="card-v2-cell-value">15</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                Réussi
+              </div>
+              <div class="card-v2-cell-value">40%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

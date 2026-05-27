@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grilles du jour – Redesign Cartes</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f5f5f5;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 40px;
+      color: #1a1a1a;
+    }
+
+    .proposal {
+      margin-bottom: 80px;
+    }
+
+    .proposal-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      color: #333;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    .proposal-desc {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 30px;
+    }
+
+    /* ===== OPTION 1: MINIMALISTE GÉOMÉTRIQUE ===== */
+    .card-v1 {
+      width: 280px;
+      height: 280px;
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transition: box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #e8e8e8;
+    }
+
+    .card-v1:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .card-v1-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .card-v1-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .card-v1-avatar.blue { background: #5bc0de; }
+    .card-v1-avatar.pink { background: #f8b4c7; }
+    .card-v1-avatar.green { background: #98d8c8; }
+
+    .card-v1-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .card-v1-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      flex: 1;
+      margin-bottom: 12px;
+    }
+
+    .card-v1-cell {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    .card-v1-cell-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .card-v1-cell-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a1a;
+      line-height: 1.3;
+    }
+
+    .card-v1-footer {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding-top: 12px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid;
+    }
+
+    .badge-facile {
+      background: #e8f5e9;
+      border-color: #98d8c8;
+      color: #2d7a6f;
+    }
+
+    .badge-difficile {
+      background: #fce4ec;
+      border-color: #f8b4c7;
+      color: #a81e47;
+    }
+
+    .badge-joue {
+      background: #e3f2fd;
+      border-color: #5bc0de;
+      color: #1565c0;
+      margin-left: auto;
+    }
+
+    /* ===== OPTION 2: RICHE ET GRAPHIQUE ===== */
+    .card-v2 {
+      width: 280px;
+      height: 280px;
+      background: white;
+      border-radius: 12px;
+      padding: 0;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .card-v2:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-v2-header {
+      background: #f5f5f5;
+      padding: 16px;
+      border-bottom: 2px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+    }
+
+    .card-v2-header.blue-header {
+      background: #e3f2fd;
+    }
+
+    .card-v2-header.pink-header {
+      background: #fce4ec;
+    }
+
+    .card-v2-header.green-header {
+      background: #e0f2f1;
+    }
+
+    .card-v2-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-v2-avatar.blue { background: linear-gradient(135deg, #5bc0de 0%, #3ba5c4 100%); }
+    .card-v2-avatar.pink { background: linear-gradient(135deg, #f8b4c7 0%, #f598bb 100%); }
+    .card-v2-avatar.green { background: linear-gradient(135deg, #98d8c8 0%, #7ac9b4 100%); }
+
+    .card-v2-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a1a1a;
+      flex: 1;
+    }
+
+    .card-v2-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #999;
+      font-size: 16px;
+    }
+
+    .card-v2-body {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .card-v2-cell {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 8px;
+      background: #fafafa;
+      border-radius: 6px;
+    }
+
+    .card-v2-cell-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 4px;
+    }
+
+    .card-v2-cell-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    /* ===== TWEAKS STYLES ===== */
+    .card-v2.minimal {
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-v2.minimal:hover {
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-v2.elevated {
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-v2.elevated:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    .cards-grid.compact {
+      gap: 16px !important;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+    }
+
+    .cards-grid.spacious {
+      gap: 48px !important;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)) !important;
+    }
+
+    .card-v2-body.compact {
+      padding: 10px !important;
+      gap: 8px !important;
+    }
+
+    .card-v2-body.spacious {
+      padding: 18px !important;
+      gap: 16px !important;
+    }
+
+    .card-v2-cell.minimal {
+      background: transparent !important;
+      padding: 4px !important;
+      border-radius: 0 !important;
+    }
+
+    .card-v2-cell.elevated {
+      background: linear-gradient(135deg, #f9f9f9 0%, #ffffff 100%) !important;
+      padding: 12px !important;
+      border-radius: 8px !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    .card-v2-cell-label.hidden-icon svg {
+      display: none;
+    }
+
+    /* Tweaks panel */
+    #tweaks-panel {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+      max-width: 320px;
+      font-family: inherit;
+      z-index: 1000;
+    }
+
+    #tweaks-panel h3 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #1a1a1a;
+    }
+
+    .tweak-section {
+      margin-bottom: 20px;
+    }
+
+    .tweak-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .tweak-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tweak-options {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .tweak-btn {
+      flex: 1;
+      min-width: 70px;
+      padding: 8px 12px;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 6px;
+      background: white;
+      font-size: 11px;
+      font-weight: 600;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tweak-btn:hover {
+      border-color: #999;
+      color: #333;
+    }
+
+    .tweak-btn.active {
+      background: #5bc0de;
+      color: white;
+      border-color: #5bc0de;
+    }
+
+    #tweaks-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 24px;
+      height: 24px;
+      border: none;
+      background: none;
+      color: #999;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    #tweaks-close:hover {
+      color: #333;
+    }
+
+    /* ===== OPTION 3: MODERNE ET LUDIQUE ===== */
+    .card-v3 {
+      width: 280px;
+      height: 280px;
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      border: 2px solid transparent;
+    }
+
+    .card-v3:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      border-color: #e0e0e0;
+    }
+
+    .card-v3.played {
+      background: #f0f9f7;
+    }
+
+    .card-v3-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+      position: relative;
+    }
+
+    .card-v3-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+      box-shadow: 0 3px 8px rgba(91, 192, 222, 0.3);
+    }
+
+    .card-v3-avatar.blue { background: linear-gradient(135deg, #5bc0de 0%, #3ba5c4 100%); }
+    .card-v3-avatar.pink { background: linear-gradient(135deg, #f8b4c7 0%, #f598bb 100%); }
+    .card-v3-avatar.green { background: linear-gradient(135deg, #98d8c8 0%, #7ac9b4 100%); }
+
+    .card-v3-check {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 24px;
+      height: 24px;
+      background: #98d8c8;
+      border: 2px solid white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-v3-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1a1a1a;
+      line-height: 1.2;
+    }
+
+    .card-v3-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      flex: 1;
+      margin-bottom: 14px;
+    }
+
+    .card-v3-cell {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding: 10px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      border-left: 3px solid #e0e0e0;
+    }
+
+    .card-v3-cell-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .card-v3-cell-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1a1a1a;
+    }
+
+    .card-v3-footer {
+      display: flex;
+      gap: 6px;
+      padding-top: 12px;
+      border-top: 1px solid #eee;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Redesign des Cartes – Trois Propositions</h1>
+
+    <!-- FINAL PROPOSAL: DEUX TYPES DE CARTES -->
+    <div class="proposal">
+      <h2 class="proposal-title">Proposition Finale : Deux Types de Cartes</h2>
+      <p class="proposal-desc">
+        Type A (Bleu) : Cartes pour jouer une grille créée par quelqu'un d'autre<br>
+        Type B (Rose/Vert) : Cartes pour voir une grille que j'ai créée
+      </p>
+
+      <!-- TYPE A: CARTES JOUEUR -->
+      <h3 style="font-size: 16px; font-weight: 600; margin: 30px 0 20px 0; color: #555;">Type A : Cartes pour Jouer (créé par d'autres)</h3>
+      <div class="cards-grid">
+        <!-- Card A1 -->
+        <div class="card-v2">
+          <div class="card-v2-header blue-header">
+            <div class="card-v2-avatar blue">A</div>
+            <div class="card-v2-name">Alexis</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                Statut
+              </div>
+              <div class="card-v2-cell-value">Non joué</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
+                </svg>
+                Niveau
+              </div>
+              <div class="card-v2-cell-value">Facile</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Joueurs
+              </div>
+              <div class="card-v2-cell-value">1</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                Réussi
+              </div>
+              <div class="card-v2-cell-value">0%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card A2 -->
+        <div class="card-v2">
+          <div class="card-v2-header blue-header">
+            <div class="card-v2-avatar blue">R</div>
+            <div class="card-v2-name">Rod</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Statut
+              </div>
+              <div class="card-v2-cell-value">Joué</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
+                </svg>
+                Niveau
+              </div>
+              <div class="card-v2-cell-value">Difficile</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                Joueurs
+              </div>
+              <div class="card-v2-cell-value">2</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                Réussi
+              </div>
+              <div class="card-v2-cell-value">50%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TYPE B: CARTES CRÉATEUR -->
+      <h3 style="font-size: 16px; font-weight: 600; margin: 30px 0 20px 0; color: #555;">Type B : Cartes Ma Création (grilles que j'ai créées)</h3>
+      <div class="cards-grid">
+        <!-- Card B1 -->
+        <div class="card-v2">
+          <div class="card-v2-header pink-header">
+            <div class="card-v2-name">Ma Grille</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 6v6l4 2"></path>
+                </svg>
+                Essais moyens
+              </div>
+              <div class="card-v2-cell-value">1.8</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
+                </svg>
+                Niveau
+              </div>
+              <div class="card-v2-cell-value">Moyen</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Joueurs
+              </div>
+              <div class="card-v2-cell-value">8</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                Réussi
+              </div>
+              <div class="card-v2-cell-value">75%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card B2 -->
+        <div class="card-v2">
+          <div class="card-v2-header green-header">
+            <div class="card-v2-name">Ma Grille</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 6v6l4 2"></path>
+                </svg>
+                Essais moyens
+              </div>
+              <div class="card-v2-cell-value">2.5</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
+                </svg>
+                Niveau
+              </div>
+              <div class="card-v2-cell-value">Expert</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Joueurs
+              </div>
+              <div class="card-v2-cell-value">15</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                Réussi
+              </div>
+              <div class="card-v2-cell-value">40%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROPOSAL 1 -->
+    <div class="proposal">
+      <h2 class="proposal-title">Proposition 1 : Minimaliste Géométrique</h2>
+      <p class="proposal-desc">
+        Lignes épurées, séparations nettes, typographie élégante. Focus sur la clarté et la lisibilité.
+      </p>
+      <div class="cards-grid">
+        <div class="card-v1">
+          <div class="card-v1-header">
+            <div class="card-v1-avatar blue">A</div>
+            <div class="card-v1-name">Alexis</div>
+          </div>
+          <div class="card-v1-body">
+            <div class="card-v1-cell">
+              <div class="card-v1-cell-label">Durée</div>
+              <div class="card-v1-cell-value">2h</div>
+            </div>
+            <div class="card-v1-cell">
+              <div class="card-v1-cell-label">Niveau</div>
+              <div class="card-v1-cell-value">Facile</div>
+            </div>
+            <div class="card-v1-cell">
+              <div class="card-v1-cell-label">Joueurs</div>
+              <div class="card-v1-cell-value">1 / 0%</div>
+            </div>
+            <div class="card-v1-cell">
+              <div class="card-v1-cell-label">Statut</div>
+              <div class="card-v1-cell-value">Non joué</div>
+            </div>
+          </div>
+          <div class="card-v1-footer">
+            <span class="badge badge-facile">Facile</span>
+          </div>
+        </div>
+
+        <div class="card-v1">
+          <div class="card-v1-header">
+            <div class="card-v1-avatar pink">R</div>
+            <div class="card-v1-name">Rod</div>
+          </div>
+          <div class="card-v1-body">
+            <div class="card-v1-cell">
+              <div class="card-v1-cell-label">Durée</div>
+              <div class="card-v1-cell-value">2h</div>
+            </div>
+            <div class="card-v1-cell">
+              <div class="card-v1-cell-label">Niveau</div>
+              <div class="card-v1-cell-value">Difficile</div>
+            </div>
+            <div class="card-v1-cell">
+              <div class="card-v1-cell-label">Joueurs</div>
+              <div class="card-v1-cell-value">2 / 50%</div>
+            </div>
+            <div class="card-v1-cell">
+              <div class="card-v1-cell-label">Statut</div>
+              <div class="card-v1-cell-value">Joué</div>
+            </div>
+          </div>
+          <div class="card-v1-footer">
+            <span class="badge badge-difficile">Difficile</span>
+            <span class="badge badge-joue">✓ Joué</span>
+          </div>
+        </div>
+
+        <div class="card-v1">
+          <div class="card-v1-header">
+            <div class="card-v1-avatar green">R</div>
+            <div class="card-v1-name">Rodolphe</div>
+          </div>
+          <div class="card-v1-body">
+            <div class="card-v1-cell">
+              <div class="card-v1-cell-label">Durée</div>
+              <div class="card-v1-cell-value">4h</div>
+            </div>
+            <div class="card-v1-cell">
+              <div class="card-v1-cell-label">Niveau</div>
+              <div class="card-v1-cell-value">Difficile</div>
+            </div>
+            <div class="card-v1-cell">
+              <div class="card-v1-cell-label">Joueurs</div>
+              <div class="card-v1-cell-value">42 / 5%</div>
+            </div>
+            <div class="card-v1-cell">
+              <div class="card-v1-cell-label">Statut</div>
+              <div class="card-v1-cell-value">Non joué</div>
+            </div>
+          </div>
+          <div class="card-v1-footer">
+            <span class="badge badge-difficile">Difficile</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROPOSAL 2 -->
+    <div class="proposal">
+      <h2 class="proposal-title">Proposition 2 : Riche et Graphique – Trois Alternatives</h2>
+      <p class="proposal-desc">
+        Trois variantes avec chevron horizontal et emojis pour ajouter de la personnalité aux cartes.
+      </p>
+
+      <!-- VARIANT 2A: Icônes structurées -->
+      <h3 style="font-size: 16px; font-weight: 600; margin: 30px 0 20px 0; color: #555;">Variante 2A : Icônes structurées</h3>
+      <div class="cards-grid">
+        <div class="card-v2">
+          <div class="card-v2-header">
+            <div class="card-v2-avatar blue">A</div>
+            <div class="card-v2-name">Alexis</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                Statut
+              </div>
+              <div class="card-v2-cell-value">Non joué</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
+                </svg>
+                Niveau
+              </div>
+              <div class="card-v2-cell-value">Facile</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                Joueurs
+              </div>
+              <div class="card-v2-cell-value">1</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <line x1="12" y1="2" x2="12" y2="22"></line>
+                  <polyline points="4 7 12 2 20 7"></polyline>
+                  <polyline points="4 17 12 12 20 17"></polyline>
+                </svg>
+                Réussi
+              </div>
+              <div class="card-v2-cell-value">0%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-v2">
+          <div class="card-v2-header">
+            <div class="card-v2-avatar pink">R</div>
+            <div class="card-v2-name">Rod</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Statut
+              </div>
+              <div class="card-v2-cell-value">Joué</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
+                </svg>
+                Niveau
+              </div>
+              <div class="card-v2-cell-value">Difficile</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                Joueurs
+              </div>
+              <div class="card-v2-cell-value">2</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <line x1="18" y1="20" x2="18" y2="10"></line>
+                  <line x1="12" y1="20" x2="12" y2="4"></line>
+                  <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                Réussi
+              </div>
+              <div class="card-v2-cell-value">50%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-v2">
+          <div class="card-v2-header">
+            <div class="card-v2-avatar green">R</div>
+            <div class="card-v2-name">Rodolphe</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                Statut
+              </div>
+              <div class="card-v2-cell-value">Non joué</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
+                </svg>
+                Niveau
+              </div>
+              <div class="card-v2-cell-value">Difficile</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                Joueurs
+              </div>
+              <div class="card-v2-cell-value">42</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 4px; vertical-align: middle;">
+                  <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                  <polyline points="13 2 13 9 20 9"></polyline>
+                </svg>
+                Réussi
+              </div>
+              <div class="card-v2-cell-value">5%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VARIANT 2B: Couleurs par statut + icônes -->
+      <h3 style="font-size: 16px; font-weight: 600; margin: 30px 0 20px 0; color: #555;">Variante 2B : Code couleur par statut + icônes</h3>
+      <div class="cards-grid">
+        <div class="card-v2" style="border-left: 4px solid #ddd;">
+          <div class="card-v2-header">
+            <div class="card-v2-avatar blue">A</div>
+            <div class="card-v2-name">Alexis</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">Statut</div>
+              <div class="card-v2-cell-value">🔵 Non joué</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">Niveau</div>
+              <div class="card-v2-cell-value">🟢 Facile</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">Joueurs</div>
+              <div class="card-v2-cell-value">1 seul</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">Réussi</div>
+              <div class="card-v2-cell-value">0%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-v2" style="border-left: 4px solid #98d8c8;">
+          <div class="card-v2-header">
+            <div class="card-v2-avatar pink">R</div>
+            <div class="card-v2-name">Rod</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">Statut</div>
+              <div class="card-v2-cell-value">✨ Joué</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">Niveau</div>
+              <div class="card-v2-cell-value">🔴 Difficile</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">Joueurs</div>
+              <div class="card-v2-cell-value">2 joueurs</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">Réussi</div>
+              <div class="card-v2-cell-value">50%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-v2" style="border-left: 4px solid #ddd;">
+          <div class="card-v2-header">
+            <div class="card-v2-avatar green">R</div>
+            <div class="card-v2-name">Rodolphe</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">Statut</div>
+              <div class="card-v2-cell-value">🔵 Non joué</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">Niveau</div>
+              <div class="card-v2-cell-value">🔴 Difficile</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">Joueurs</div>
+              <div class="card-v2-cell-value">42 joueurs</div>
+            </div>
+            <div class="card-v2-cell">
+              <div class="card-v2-cell-label">Réussi</div>
+              <div class="card-v2-cell-value">5%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VARIANT 2C: Minimaliste avec petits visuels -->
+      <h3 style="font-size: 16px; font-weight: 600; margin: 30px 0 20px 0; color: #555;">Variante 2C : Minimaliste avec accents visuels</h3>
+      <div class="cards-grid">
+        <div class="card-v2" style="background: linear-gradient(135deg, #fff 0%, #fafafa 100%);">
+          <div class="card-v2-header">
+            <div class="card-v2-avatar blue">A</div>
+            <div class="card-v2-name">Alexis</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell" style="background: #e3f2fd; border-radius: 8px;">
+              <div class="card-v2-cell-label">Statut</div>
+              <div class="card-v2-cell-value">Non joué</div>
+            </div>
+            <div class="card-v2-cell" style="background: #e8f5e9;">
+              <div class="card-v2-cell-label">Niveau</div>
+              <div class="card-v2-cell-value">Facile</div>
+            </div>
+            <div class="card-v2-cell" style="background: #f3e5f5;">
+              <div class="card-v2-cell-label">Joueurs</div>
+              <div class="card-v2-cell-value">1</div>
+            </div>
+            <div class="card-v2-cell" style="background: #fff3e0;">
+              <div class="card-v2-cell-label">Réussi</div>
+              <div class="card-v2-cell-value">0%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-v2" style="background: linear-gradient(135deg, #fff 0%, #fafafa 100%);">
+          <div class="card-v2-header">
+            <div class="card-v2-avatar pink">R</div>
+            <div class="card-v2-name">Rod</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell" style="background: #f0f9f7;">
+              <div class="card-v2-cell-label">Statut</div>
+              <div class="card-v2-cell-value">Joué ✓</div>
+            </div>
+            <div class="card-v2-cell" style="background: #fce4ec;">
+              <div class="card-v2-cell-label">Niveau</div>
+              <div class="card-v2-cell-value">Difficile</div>
+            </div>
+            <div class="card-v2-cell" style="background: #e0f2f1;">
+              <div class="card-v2-cell-label">Joueurs</div>
+              <div class="card-v2-cell-value">2</div>
+            </div>
+            <div class="card-v2-cell" style="background: #fff9c4;">
+              <div class="card-v2-cell-label">Réussi</div>
+              <div class="card-v2-cell-value">50%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-v2" style="background: linear-gradient(135deg, #fff 0%, #fafafa 100%);">
+          <div class="card-v2-header">
+            <div class="card-v2-avatar green">R</div>
+            <div class="card-v2-name">Rodolphe</div>
+            <div class="card-v2-icon">→</div>
+          </div>
+          <div class="card-v2-body">
+            <div class="card-v2-cell" style="background: #e3f2fd;">
+              <div class="card-v2-cell-label">Statut</div>
+              <div class="card-v2-cell-value">Non joué</div>
+            </div>
+            <div class="card-v2-cell" style="background: #fce4ec;">
+              <div class="card-v2-cell-label">Niveau</div>
+              <div class="card-v2-cell-value">Difficile</div>
+            </div>
+            <div class="card-v2-cell" style="background: #e0f2f1;">
+              <div class="card-v2-cell-label">Joueurs</div>
+              <div class="card-v2-cell-value">42</div>
+            </div>
+            <div class="card-v2-cell" style="background: #fff3e0;">
+              <div class="card-v2-cell-label">Réussi</div>
+              <div class="card-v2-cell-value">5%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROPOSAL 3 -->
+    <div class="proposal">
+      <h2 class="proposal-title">Proposition 3 : Moderne et Ludique</h2>
+      <p class="proposal-desc">
+        Coins arrondis généreux, avatar avec ombre, checkmark en badge, borders colorées. Sensation de mouvement et de vie.
+      </p>
+      <div class="cards-grid">
+        <div class="card-v3">
+          <div class="card-v3-header">
+            <div class="card-v3-avatar blue">A</div>
+            <div class="card-v3-name">Alexis</div>
+          </div>
+          <div class="card-v3-body">
+            <div class="card-v3-cell" style="border-left-color: #5bc0de;">
+              <div class="card-v3-cell-label">Durée</div>
+              <div class="card-v3-cell-value">2h</div>
+            </div>
+            <div class="card-v3-cell" style="border-left-color: #98d8c8;">
+              <div class="card-v3-cell-label">Niveau</div>
+              <div class="card-v3-cell-value">Facile</div>
+            </div>
+            <div class="card-v3-cell" style="border-left-color: #5bc0de;">
+              <div class="card-v3-cell-label">Joueurs</div>
+              <div class="card-v3-cell-value">1 / 0%</div>
+            </div>
+            <div class="card-v3-cell" style="border-left-color: #aaa;">
+              <div class="card-v3-cell-label">Statut</div>
+              <div class="card-v3-cell-value">Non joué</div>
+            </div>
+          </div>
+          <div class="card-v3-footer">
+            <span class="badge badge-facile">Facile</span>
+          </div>
+        </div>
+
+        <div class="card-v3 played">
+          <div class="card-v3-header">
+            <div class="card-v3-avatar pink">R</div>
+            <div class="card-v3-name">Rod</div>
+            <div class="card-v3-check">✓</div>
+          </div>
+          <div class="card-v3-body">
+            <div class="card-v3-cell" style="border-left-color: #5bc0de;">
+              <div class="card-v3-cell-label">Durée</div>
+              <div class="card-v3-cell-value">2h</div>
+            </div>
+            <div class="card-v3-cell" style="border-left-color: #f8b4c7;">
+              <div class="card-v3-cell-label">Niveau</div>
+              <div class="card-v3-cell-value">Difficile</div>
+            </div>
+            <div class="card-v3-cell" style="border-left-color: #5bc0de;">
+              <div class="card-v3-cell-label">Joueurs</div>
+              <div class="card-v3-cell-value">2 / 50%</div>
+            </div>
+            <div class="card-v3-cell" style="border-left-color: #98d8c8;">
+              <div class="card-v3-cell-label">Statut</div>
+              <div class="card-v3-cell-value">Joué</div>
+            </div>
+          </div>
+          <div class="card-v3-footer">
+            <span class="badge badge-difficile">Difficile</span>
+          </div>
+        </div>
+
+        <div class="card-v3">
+          <div class="card-v3-header">
+            <div class="card-v3-avatar green">R</div>
+            <div class="card-v3-name">Rodolphe</div>
+          </div>
+          <div class="card-v3-body">
+            <div class="card-v3-cell" style="border-left-color: #5bc0de;">
+              <div class="card-v3-cell-label">Durée</div>
+              <div class="card-v3-cell-value">4h</div>
+            </div>
+            <div class="card-v3-cell" style="border-left-color: #f8b4c7;">
+              <div class="card-v3-cell-label">Niveau</div>
+              <div class="card-v3-cell-value">Difficile</div>
+            </div>
+            <div class="card-v3-cell" style="border-left-color: #5bc0de;">
+              <div class="card-v3-cell-label">Joueurs</div>
+              <div class="card-v3-cell-value">42 / 5%</div>
+            </div>
+            <div class="card-v3-cell" style="border-left-color: #aaa;">
+              <div class="card-v3-cell-label">Statut</div>
+              <div class="card-v3-cell-value">Non joué</div>
+            </div>
+          </div>
+          <div class="card-v3-footer">
+            <span class="badge badge-difficile">Difficile</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

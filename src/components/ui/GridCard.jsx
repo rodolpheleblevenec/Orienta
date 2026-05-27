@@ -3,39 +3,44 @@ import { motion } from 'framer-motion'
 import { useAuthStore } from '../../stores/authStore'
 
 const DIFFICULTY_LABEL = { facile: 'Facile', moyen: 'Moyen', difficile: 'Difficile' }
-const DIFFICULTY_COLOR = { facile: '#2a9d84', moyen: '#F59E0B', difficile: '#ff6b6b' }
 
 const IconClock = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <circle cx="12" cy="12" r="10"></circle>
     <polyline points="12 6 12 12 16 14"></polyline>
   </svg>
 )
 
-const IconStar = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-    <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
-  </svg>
-)
-
-const IconCheck = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+const IconCheckmark = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <polyline points="20 6 9 17 4 12"></polyline>
   </svg>
 )
 
+const IconStar = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
+  </svg>
+)
+
 const IconPeople = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
     <circle cx="12" cy="7" r="4"></circle>
   </svg>
 )
 
 const IconChart = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <line x1="18" y1="20" x2="18" y2="10"></line>
     <line x1="12" y1="20" x2="12" y2="4"></line>
     <line x1="6" y1="20" x2="6" y2="14"></line>
+  </svg>
+)
+
+const ChevronIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <polyline points="9 18 15 12 9 6"></polyline>
   </svg>
 )
 
@@ -60,13 +65,15 @@ export default function GridCard({ grid, played, index }) {
             {creatorInitial}
           </div>
           <div className="card-v2-name">{grid.orienta_users?.pseudo ?? 'Inconnu'}</div>
-          <div className="card-v2-icon">→</div>
+          <div className="card-v2-icon">
+            <ChevronIcon />
+          </div>
         </div>
         <div className="card-v2-body">
           <div className="card-v2-cell">
             <div className="card-v2-cell-label">
-              <IconClock />
-              {played ? 'Statut' : 'Statut'}
+              {played ? <IconCheckmark /> : <IconClock />}
+              Statut
             </div>
             <div className="card-v2-cell-value">
               {played ? 'Joué' : 'Non joué'}
