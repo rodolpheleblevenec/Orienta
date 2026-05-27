@@ -23,7 +23,7 @@ export default function HubPage() {
       const [{ data: activeGrids }, { data: plays }, { data: todayGrid }] = await Promise.all([
         supabase
           .from('orienta_grids')
-          .select('*, orienta_users(pseudo), orienta_plays(success, player_id)')
+          .select('*, orienta_users(pseudo), orienta_plays(success, player_id, completed_at)')
           .eq('status', 'published')
           .gt('expires_at', now)
           .order('created_at', { ascending: false }),

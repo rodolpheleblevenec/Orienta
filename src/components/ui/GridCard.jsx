@@ -16,7 +16,7 @@ export default function GridCard({ grid, played, index }) {
     return `Il y a ${Math.floor(diff / 86400)} j`
   }
 
-  const plays = grid.orienta_plays ?? []
+  const plays = (grid.orienta_plays ?? []).filter(p => p.success !== null)
   const totalPlays = plays.length
   const successPlays = plays.filter(p => p.success).length
   const successRate = totalPlays > 0 ? Math.round((successPlays / totalPlays) * 100) : null

@@ -7,6 +7,7 @@ import { LEVELS, getLevelProgress } from '../../lib/levels'
 import { getCreature } from '../../lib/creatures'
 import { MARINE_ITEMS, getMarineItem } from '../../lib/marineItems'
 import Header from '../../components/ui/Header'
+import ReplayModal from '../../components/ui/ReplayModal'
 
 export default function ProfilePage() {
   const { user, logout, refreshUser } = useAuthStore()
@@ -15,6 +16,7 @@ export default function ProfilePage() {
   const [createdGrids, setCreatedGrids] = useState([])
   const [collectiveLevel, setCollectiveLevel] = useState(1)
   const [selectedSkin, setSelectedSkin] = useState(user?.selected_skin ?? 1)
+  const [replayPlay, setReplayPlay] = useState(null)
 
   useEffect(() => {
     if (!user) return
@@ -161,10 +163,12 @@ export default function ProfilePage() {
             <ul className="history-list">
               {playHistory.map((p, i) => (
                 <li key={i} className="history-item">
-                  <span className="history-clue">{p.orienta_grids?.clue_top ?? '—'}</span>
-                  <span className={`history-result ${p.success ? 'success' : 'fail'}`}>
-                    {p.success ? '✓' : '✗'} {p.score} pts
-                  </span>
+                  <button className="history-item-btn" onClick={() => setReplayPlay(p)} type="button">
+                    <span className="history-clue">{p.orienta_grids?.clue_top ?? '—'}</span>
+                    <span className={`history-result ${p.success ? 'success' : 'fail'}`}>
+                      {p.success ? '✓' : '✗'} {p.score} pts
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -189,6 +193,13 @@ export default function ProfilePage() {
           Changer de pseudo
         </button>
       </main>
+      {replayPlay && (
+        <ReplayModal
+          playId={replayPlay.id}
+          gridId={replayPlay.grid_id}
+          onClose={() => setReplayPlay(null)}
+        />
+      )}
     </div>
   )
 }
