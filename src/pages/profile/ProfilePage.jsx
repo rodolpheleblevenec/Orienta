@@ -188,10 +188,6 @@ export default function ProfilePage() {
             </ul>
           )}
         </section>
-
-        <button className="btn-secondary profile-logout" onClick={logout}>
-          Changer de pseudo
-        </button>
       </main>
       {replayPlay && (
         <ReplayModal
