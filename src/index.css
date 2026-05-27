@@ -962,7 +962,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .profile-streak { display: flex; gap: 20px; font-size: 14px; color: var(--text-secondary); }
 .profile-stats  { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
 .stat-card      { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 10px; text-align: center; display: flex; flex-direction: column; gap: 3px; box-shadow: var(--card-shadow); }
-.stat-value     { font-family: var(--display); font-size: 22px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; }
+.stat-value     { font-family: var(--display); font-size: 28px; font-weight: 900; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
 .stat-label     { font-size: 11px; color: var(--text-muted); }
 .profile-stats-block { display: flex; flex-direction: column; gap: 10px; }
 .profile-stats-title { font-size: 17px; margin: 0; }
