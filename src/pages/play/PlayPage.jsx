@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core'
+import {
+  DndContext, DragOverlay, closestCorners,
+  PointerSensor, TouchSensor, useSensor, useSensors,
+} from '@dnd-kit/core'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
@@ -29,6 +32,11 @@ export default function PlayPage() {
   const [feedbacks, setFeedbacks] = useState({})
   const [lastResult, setLastResult] = useState(null)
   const [gameOver, setGameOver] = useState(false)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor,   { activationConstraint: { delay: 120, tolerance: 8 } }),
+  )
 
   const startTimeRef = useRef(Date.now())
   const [elapsed, setElapsed] = useState(0)
@@ -78,18 +86,23 @@ export default function PlayPage() {
     return () => clearInterval(interval)
   }, [gameOver, attemptsFailed])
 
-  function handleDragStart(event) {
-    const fromTray = trayCards.find(c => `tray-${c.card.id}` === event.active.id)
-    setActiveCard(fromTray ?? null)
+  function handleDragStart({ active }) {
+    const fromTray = trayCards.find(c => `tray-${c.card.id}` === active.id)
+    if (fromTray) { setActiveCard(fromTray); return }
+    for (const [pos, item] of Object.entries(placements)) {
+      if (item && `placed-${item.card.id}-${pos}` === active.id) {
+        setActiveCard(item); return
+      }
+    }
   }
 
-  function handleDragEnd(event) {
-    const { active, over } = event
+  function handleDragEnd({ active, over }) {
     setActiveCard(null)
     if (!over) return
     const slotIdx = parseInt(over.id.replace('slot-', ''), 10)
     if (isNaN(slotIdx)) return
 
+    // Tray → slot
     const trayIdx = trayCards.findIndex(c => `tray-${c.card.id}` === active.id)
     if (trayIdx !== -1) {
       const cardItem = trayCards[trayIdx]
@@ -100,6 +113,22 @@ export default function PlayPage() {
         if (existing) updated.push(existing)
         return updated
       })
+      return
+    }
+
+    // Slot → slot
+    for (const [pos, item] of Object.entries(placements)) {
+      if (item && `placed-${item.card.id}-${pos}` === active.id) {
+        const sourceSlot = parseInt(pos)
+        if (sourceSlot === slotIdx) return
+        const existing = placements[slotIdx]
+        setPlacements(prev => ({
+          ...prev,
+          [slotIdx]: item,
+          [sourceSlot]: existing ?? null,
+        }))
+        return
+      }
     }
   }
 
@@ -208,10 +237,10 @@ export default function PlayPage() {
           )}
         </AnimatePresence>
 
-        <DndContext collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <CloverGrid placements={placements} clues={clues} feedbacks={feedbacks} onRotate={handleRotate} />
           <CardTray cards={trayCards} />
-          <DragOverlay>
+          <DragOverlay dropAnimation={null}>
             {activeCard && <WordCard id="overlay" card={activeCard.card} rotation={activeCard.rotation} draggable={false} />}
           </DragOverlay>
         </DndContext>

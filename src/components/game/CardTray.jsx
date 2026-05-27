@@ -1,8 +1,7 @@
 import WordCard from './WordCard'
 
-export default function CardTray({ cards }) {
+export default function CardTray({ cards, onRotate }) {
   if (!cards || cards.length === 0) return null
-
   return (
     <div className="card-tray">
       <p className="card-tray-label">Cartes à placer</p>
@@ -13,7 +12,7 @@ export default function CardTray({ cards }) {
             id={`tray-${card.id}`}
             card={card}
             rotation={rotation ?? 0}
-            feedback="neutral"
+            onRotate={onRotate ? () => onRotate(card.id) : undefined}
             draggable
           />
         ))}

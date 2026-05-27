@@ -1,12 +1,5 @@
-import { motion } from 'framer-motion'
 import { useDraggable } from '@dnd-kit/core'
-
-const FEEDBACK_COLORS = {
-  correct: '#00D4AA',
-  rotation: '#F5D04A',
-  wrong: '#FF6B6B',
-  neutral: undefined,
-}
+import { CSS } from '@dnd-kit/utilities'
 
 export default function WordCard({ card, rotation = 0, feedback = 'neutral', onRotate, draggable = true, id }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -14,42 +7,49 @@ export default function WordCard({ card, rotation = 0, feedback = 'neutral', onR
     disabled: !draggable,
   })
 
-  const style = transform ? {
-    transform: `translate3d(${transform.x}px, ${transform.y}px, 0) rotate(${rotation}deg)`,
-  } : {
-    transform: `rotate(${rotation}deg)`,
+  const dragStyle = transform
+    ? { transform: CSS.Translate.toString(transform) }
+    : {}
+
+  const containerStyle = {
+    ...dragStyle,
+    opacity: isDragging ? 0.3 : 1,
+    zIndex: isDragging ? 999 : 'auto',
+    touchAction: 'none',
   }
 
-  const borderColor = FEEDBACK_COLORS[feedback]
+  const cardInnerStyle = {
+    transform: `rotate(${rotation}deg)`,
+    transition: isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+  }
+
+  const feedbackClass = feedback !== 'neutral' ? `word-card--${feedback}` : ''
 
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
-      className={`word-card word-card--${feedback} ${isDragging ? 'word-card--dragging' : ''}`}
-      style={{
-        ...style,
-        borderColor: borderColor || undefined,
-        opacity: isDragging ? 0.4 : 1,
-        cursor: draggable ? 'grab' : 'default',
-        touchAction: 'none',
-      }}
-      {...listeners}
-      {...attributes}
+      style={containerStyle}
+      className="word-card-draggable"
+      {...(draggable ? { ...listeners, ...attributes } : {})}
     >
-      <span className="word-card-top">{card.word_top}</span>
-      <span className="word-card-right">{card.word_right}</span>
-      <span className="word-card-bottom">{card.word_bottom}</span>
-      <span className="word-card-left">{card.word_left}</span>
+      <div className={`word-card ${feedbackClass} ${isDragging ? 'word-card--dragging' : ''}`} style={cardInnerStyle}>
+        <span className="word-card-top">{card.word_top}</span>
+        <span className="word-card-right">{card.word_right}</span>
+        <span className="word-card-bottom">{card.word_bottom}</span>
+        <span className="word-card-left">{card.word_left}</span>
 
-      {onRotate && (
-        <button
-          className="word-card-rotate"
-          onClick={e => { e.stopPropagation(); onRotate() }}
-          title="Tourner"
-        >
-          ↻
-        </button>
-      )}
-    </motion.div>
+        {onRotate && (
+          <button
+            className="word-card-rotate"
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => { e.stopPropagation(); onRotate() }}
+            title="Tourner la carte"
+            type="button"
+          >
+            ↻
+          </button>
+        )}
+      </div>
+    </div>
   )
 }
