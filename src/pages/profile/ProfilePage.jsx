@@ -52,8 +52,8 @@ export default function ProfilePage() {
 
   const handleSelectSkin = async (level) => {
     await supabase.from('orienta_users').update({ selected_skin: level }).eq('id', user.id)
-    setSelectedSkin(level)
     await refreshUser()
+    setSelectedSkin(level)
   }
 
   const userLevelProgress = getLevelProgress(user.xp)

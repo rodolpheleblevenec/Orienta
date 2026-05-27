@@ -704,7 +704,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   .play-right { width: 100%; flex-direction: row; flex-wrap: wrap; gap: 8px; padding-top: 0; }
 }
 .play-scorebar { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 420px; margin-bottom: 12px; }
-.play-score    { font-family: var(--display); font-size: 26px; font-weight: 800; color: var(--accent); }
+.play-score    { font-family: var(--sans); font-size: 28px; font-weight: 700; color: var(--accent); }
 .play-attempts { font-size: 13px; color: var(--text-secondary); }
 .play-feedback {
   display: flex; gap: 20px;
@@ -729,7 +729,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   font-size: 13px; color: var(--text-secondary);
 }
 .play-feedback-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
-.play-feedback-count { font-family: var(--display); font-size: 14px; font-weight: 700; min-width: 24px; color: var(--text-primary); }
+.play-feedback-count { font-family: var(--sans); font-size: 14px; font-weight: 700; min-width: 24px; color: var(--text-primary); }
 .play-feedback-dot--correct { background: var(--success); }
 .play-feedback-dot--rotation { background: var(--warning); }
 .play-feedback-dot--wrong { background: var(--error); }
@@ -779,7 +779,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .create-timer { display: flex; align-items: center; gap: 14px; width: 100%; max-width: 380px; margin-bottom: 14px; }
 .timer-bar-track { flex: 1; height: 8px; background: var(--bg-surface); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
 .timer-bar-fill  { height: 100%; border-radius: 4px; }
-.timer-value     { font-family: var(--display); font-size: 20px; font-weight: 800; min-width: 48px; text-align: right; }
+.timer-value     { font-family: var(--sans); font-size: 22px; font-weight: 700; min-width: 48px; text-align: right; }
 .create-expired  { background: rgba(255, 107, 107, 0.05); border: 1px solid rgba(255, 107, 107, 0.2); border-radius: var(--radius-md); padding: 24px; color: var(--text-primary); margin-bottom: 14px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
 .create-expired-icon  { font-size: 36px; line-height: 1; }
 .create-expired-title { font-family: var(--display); font-size: 18px; font-weight: 800; margin: 0; color: var(--text-primary); }
@@ -904,7 +904,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .result-icon  { font-size: 44px; margin-bottom: 10px; }
 .result-title { font-size: 26px; margin-bottom: 18px; }
 .result-score-block { display: flex; align-items: baseline; justify-content: center; gap: 8px; }
-.result-score       { font-family: var(--display); font-size: 52px; font-weight: 800; color: var(--accent); }
+.result-score       { font-family: var(--sans); font-size: 56px; font-weight: 700; color: var(--accent); }
 .result-score-label { font-size: 15px; color: var(--text-secondary); }
 .result-xp          { margin-top: 6px; font-size: 13px; color: var(--text-secondary); }
 .result-leaderboard h2 { font-size: 17px; margin-bottom: 10px; }
@@ -962,7 +962,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .profile-streak { display: flex; gap: 20px; font-size: 14px; color: var(--text-secondary); }
 .profile-stats  { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
 .stat-card      { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px 10px; text-align: center; display: flex; flex-direction: column; gap: 3px; box-shadow: var(--card-shadow); }
-.stat-value     { font-family: var(--display); font-size: 28px; font-weight: 900; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: -0.5px; }
+.stat-value     { font-family: var(--sans); font-size: 32px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; letter-spacing: -0.5px; line-height: 1.2; }
 .stat-label     { font-size: 11px; color: var(--text-muted); }
 .profile-stats-block { display: flex; flex-direction: column; gap: 10px; }
 .profile-stats-title { font-size: 17px; margin: 0; }
