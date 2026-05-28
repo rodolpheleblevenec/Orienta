@@ -388,10 +388,11 @@ export default function PlayPage() {
                     { cls: 'play-feedback-dot--rotation', label: 'partiellement correct', title: 'Position correcte + orientation incorrecte, OU position incorrecte + orientation correcte' },
                     { cls: 'play-feedback-dot--wrong', label: 'mal placé' },
                   ].map(({ cls, label, title }) => (
-                    <div key={label} className="play-feedback-row play-feedback-row--ghost" title={title}>
+                    <div key={label} className="play-feedback-row play-feedback-row--ghost">
                       <div className={`play-feedback-dot ${cls}`} />
                       <span className="play-ghost-count" />
                       <span className="play-ghost-label" />
+                      {title && <span className="feedback-info-icon" title={title}>ⓘ</span>}
                     </div>
                   ))}
                 </div>
@@ -425,10 +426,11 @@ export default function PlayPage() {
                     <span className="play-feedback-count">{attemptHistory[activeHistoryTab].correctFull}</span>
                     <span>bien placé et orienté</span>
                   </div>
-                  <div className="play-feedback-row" title="Position correcte + orientation incorrecte, OU position incorrecte + orientation correcte">
+                  <div className="play-feedback-row">
                     <div className="play-feedback-dot play-feedback-dot--rotation" />
                     <span className="play-feedback-count">{attemptHistory[activeHistoryTab].correctRotation}</span>
                     <span>partiellement correct</span>
+                    <span className="feedback-info-icon" title="Position correcte + orientation incorrecte, OU position incorrecte + orientation correcte">ⓘ</span>
                   </div>
                   <div className="play-feedback-row">
                     <div className="play-feedback-dot play-feedback-dot--wrong" />
