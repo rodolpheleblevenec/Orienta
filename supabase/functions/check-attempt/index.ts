@@ -79,7 +79,7 @@ serve(async (req) => {
     if (posMatch && rotMatch) {
       correctFull++
       cardFeedbacks[a.card_id] = 'correct'
-    } else if (rotMatch) {
+    } else if ((posMatch && !rotMatch) || (!posMatch && rotMatch)) {
       correctRotation++
       cardFeedbacks[a.card_id] = 'rotation'
     } else {
