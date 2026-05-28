@@ -1891,17 +1891,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .text-muted   { color: var(--text-muted); }
 .dashboard-loading { display: flex; align-items: center; justify-content: center; min-height: 100dvh; color: var(--text-secondary); }
 
-/* ── Hub — Admin banner ──────────────────────────── */
-.admin-banner {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--accent-dim); border: 1px solid var(--accent-border);
-  border-radius: var(--radius-md); padding: 10px 16px;
-  font-size: 13px;
-}
-.admin-banner-label { font-weight: 700; color: var(--accent); }
-.admin-banner-link  { color: var(--accent); text-decoration: none; font-weight: 600; margin-left: auto; }
-.admin-banner-link:hover { text-decoration: underline; }
-
 /* ── Hub — Daily grid sections ───────────────────── */
 .daily-challenge-layout {
   display: grid;

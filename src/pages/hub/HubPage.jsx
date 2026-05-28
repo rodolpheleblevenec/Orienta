@@ -7,8 +7,6 @@ import CollectiveGauge from '../../components/ui/CollectiveGauge'
 import GridCard from '../../components/ui/GridCard'
 import CreatedGridCard from '../../components/ui/CreatedGridCard'
 
-const ADMIN_PSEUDO = 'Rodolphe LE BLEVENEC'
-
 function formatDayLabel(dateStr) {
   const today = new Date().toISOString().split('T')[0]
   const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
@@ -21,8 +19,6 @@ export default function HubPage() {
   const { user } = useAuthStore()
   const today = new Date().toISOString().split('T')[0]
   const hasForfeited = localStorage.getItem(`orienta_create_forfeit_${user?.id}`) === today
-
-  const isAdmin = user?.pseudo === ADMIN_PSEUDO
 
   const [grids, setGrids] = useState([])
   const [createdGrid, setCreatedGrid] = useState(null)
@@ -133,14 +129,6 @@ export default function HubPage() {
     <div className="hub-page">
       <Header />
       <main className="hub-main">
-
-        {/* Admin panel */}
-        {isAdmin && (
-          <section className="admin-banner">
-            <span className="admin-banner-label">⚙️ Admin</span>
-            <Link to="/admin/daily" className="admin-banner-link">Gérer les grilles du jour →</Link>
-          </section>
-        )}
 
         {/* Top Sections: Collective Gauge + My Grid */}
         <div className="top-sections">
