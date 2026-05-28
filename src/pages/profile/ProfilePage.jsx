@@ -23,7 +23,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) return
     Promise.all([
-      supabase.from('orienta_plays').select('id, grid_id, score, success, completed_at, attempts_count, time_seconds, orienta_grids(clue_top, clue_right, clue_bottom, clue_left, difficulty)')
+      supabase.from('orienta_plays').select('id, grid_id, score, success, completed_at, attempts_count, time_seconds, xp_earned, orienta_grids(clue_top, clue_right, clue_bottom, clue_left, difficulty)')
         .eq('player_id', user.id).not('completed_at', 'is', null)
         .order('completed_at', { ascending: false }).limit(20),
 
@@ -200,7 +200,11 @@ export default function ProfilePage() {
                       <span className={`history-result ${p.success ? 'success' : 'fail'}`}>
                         {p.success ? '✓' : '✗'} {p.score} pts
                       </span>
-                      <Link to={`/result/${p.grid_id}`} className="history-replay-btn">Voir les essais →</Link>
+                      <Link
+                        to={`/result/${p.grid_id}`}
+                        state={{ score: p.score ?? 0, success: p.success ?? false, timeSeconds: p.time_seconds ?? 0, attemptCount: p.attempts_count ?? 1, xp: p.xp_earned ?? 0, baseXp: p.xp_earned ?? 0, bonusXp: 0, streakCurrent: 0 }}
+                        className="history-replay-btn"
+                      >Voir les essais →</Link>
                     </div>
                   </li>
                 )
