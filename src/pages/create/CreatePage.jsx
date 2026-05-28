@@ -76,8 +76,10 @@ export default function CreatePage() {
   const [showCluesTour, setShowCluesTour] = useState(false)
   useBodyScrollLock(showDifficultyModal || showExitWarning)
   const [alreadyCreatedToday, setAlreadyCreatedToday] = useState(false)
+  const [unlockedDifficulties, setUnlockedDifficulties] = useState(['facile'])
   const [phase, setPhase] = useState('placement')
   const [difficulty, setDifficulty] = useState(null)
+  const [tourFinished, setTourFinished] = useState(false)
   const [placements, setPlacements] = useState({ 0: null, 1: null, 2: null, 3: null })
   const [trayCards, setTrayCards] = useState([])
   const [activeCard, setActiveCard] = useState(null)
@@ -96,18 +98,31 @@ export default function CreatePage() {
   useEffect(() => {
     if (!user) return
     const today = new Date().toISOString().split('T')[0]
-    supabase.from('orienta_grids')
-      .select('id')
-      .eq('creator_id', user.id)
-      .is('daily_date', null)
-      .gte('created_at', today + 'T00:00:00')
-      .then(({ data }) => {
-        if (data && data.length > 0) setAlreadyCreatedToday(true)
-      })
+    Promise.all([
+      supabase.from('orienta_grids')
+        .select('id')
+        .eq('creator_id', user.id)
+        .is('daily_date', null)
+        .gte('created_at', today + 'T00:00:00'),
+      supabase.from('orienta_grids')
+        .select('difficulty')
+        .eq('creator_id', user.id)
+        .is('daily_date', null)
+        .eq('status', 'published'),
+    ]).then(([todayRes, allRes]) => {
+      if (todayRes.data && todayRes.data.length > 0) setAlreadyCreatedToday(true)
+      const allCreated = allRes.data ?? []
+      const hasFacile = allCreated.some(g => g.difficulty === 'facile')
+      const hasMoyen = allCreated.some(g => g.difficulty === 'moyen')
+      const unlocked = ['facile']
+      if (hasFacile) unlocked.push('moyen')
+      if (hasMoyen) unlocked.push('difficile')
+      setUnlockedDifficulties(unlocked)
+    })
   }, [user])
 
   useEffect(() => {
-    if (phase === 'difficulty' || difficulty === 'facile') {
+    if (phase === 'difficulty' || difficulty === 'facile' || !tourFinished) {
       if (timerRef.current) clearInterval(timerRef.current)
       return
     }
@@ -123,7 +138,7 @@ export default function CreatePage() {
       }
     }, 500)
     return () => clearInterval(timerRef.current)
-  }, [phase, difficulty])
+  }, [phase, difficulty, tourFinished])
 
   useEffect(() => {
     if (phase !== 'placement' || !difficulty) return
@@ -254,8 +269,11 @@ export default function CreatePage() {
   function handleSelectDifficulty(chosen) {
     setDifficulty(chosen)
     setShowDifficultyModal(false)
+    setTourFinished(false)
     if (user && !localStorage.getItem(`orienta_tour_create_placement_${user.id}`)) {
       setShowPlacementTour(true)
+    } else {
+      setTourFinished(true)
     }
   }
 
@@ -263,6 +281,9 @@ export default function CreatePage() {
     if (phase !== 'clues' || !user) return
     if (!localStorage.getItem(`orienta_tour_create_clues_${user.id}`)) {
       setShowCluesTour(true)
+      setTourFinished(false)
+    } else {
+      setTourFinished(true)
     }
   }, [phase, user])
 
@@ -315,14 +336,17 @@ export default function CreatePage() {
                 <div className="difficulty-options">
                   {[
                     { id: 'facile',    name: 'Facile',    desc: 'Temps illimité — 4 cartes' },
-                    { id: 'moyen',     name: 'Moyen',     desc: '90 secondes — 4 cartes' },
-                    { id: 'difficile', name: 'Difficile', desc: '90 secondes — 5 cartes (1 leurre)' },
-                  ].map(d => (
-                    <button key={d.id} className="difficulty-card" onClick={() => handleSelectDifficulty(d.id)} type="button">
-                      <div className="difficulty-name">{d.name}</div>
-                      <div className="difficulty-desc">{d.desc}</div>
-                    </button>
-                  ))}
+                    { id: 'moyen',     name: 'Moyen',     desc: '90 secondes — 4 cartes', lockMsg: 'Crée une grille Facile pour débloquer' },
+                    { id: 'difficile', name: 'Difficile', desc: '90 secondes — 5 cartes (1 leurre)', lockMsg: 'Crée une grille Moyen pour débloquer' },
+                  ].map(d => {
+                    const isLocked = !unlockedDifficulties.includes(d.id)
+                    return (
+                      <button key={d.id} className={`difficulty-card ${isLocked ? 'difficulty-card--locked' : ''}`} onClick={() => !isLocked && handleSelectDifficulty(d.id)} disabled={isLocked} type="button">
+                        <div className="difficulty-name">{d.name}</div>
+                        <div className="difficulty-desc">{isLocked ? d.lockMsg : d.desc}</div>
+                      </button>
+                    )
+                  })}
                 </div>
               </>
             )}
@@ -516,6 +540,7 @@ export default function CreatePage() {
           onDone={() => {
             localStorage.setItem(`orienta_tour_create_placement_${user.id}`, '1')
             setShowPlacementTour(false)
+            setTourFinished(true)
           }}
         />
       )}
@@ -525,6 +550,7 @@ export default function CreatePage() {
           onDone={() => {
             localStorage.setItem(`orienta_tour_create_clues_${user.id}`, '1')
             setShowCluesTour(false)
+            setTourFinished(true)
           }}
         />
       )}

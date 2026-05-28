@@ -1400,6 +1400,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   font-family: var(--display); text-align: center; outline: none;
 }
 .difficulty-card:hover { border-color: var(--accent); background: var(--accent-dim); transform: translateY(-2px); }
+.difficulty-card--locked { opacity: 0.5; cursor: not-allowed; }
+.difficulty-card--locked:hover { border-color: var(--border); background: var(--bg-card); transform: none; }
 .difficulty-name { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
 .difficulty-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
 .create-phase-label { font-family: var(--display); font-size: 17px; font-weight: 700; margin-bottom: 16px; }
