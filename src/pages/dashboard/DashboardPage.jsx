@@ -54,7 +54,7 @@ export default function DashboardPage() {
     <div className="dashboard-page">
       <Header />
       <main className="dashboard-main">
-        <h1 className="dashboard-title">Dashboard — "{grid.clue_top}"</h1>
+        <h1 className="dashboard-title">Dashboard — {[grid.clue_top, grid.clue_right, grid.clue_bottom, grid.clue_left].filter(Boolean).join(' · ')}</h1>
 
         <div className="dashboard-stats">
           {[

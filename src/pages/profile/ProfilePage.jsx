@@ -7,7 +7,6 @@ import { LEVELS, getLevelProgress } from '../../lib/levels'
 import { getCreature } from '../../lib/creatures'
 import { MARINE_ITEMS, getMarineItem } from '../../lib/marineItems'
 import Header from '../../components/ui/Header'
-import ReplayModal from '../../components/ui/ReplayModal'
 
 export default function ProfilePage() {
   const { user, logout, refreshUser } = useAuthStore()
@@ -16,7 +15,6 @@ export default function ProfilePage() {
   const [createdGrids, setCreatedGrids] = useState([])
   const [collectiveLevel, setCollectiveLevel] = useState(1)
   const [selectedSkin, setSelectedSkin] = useState(user?.selected_skin ?? 1)
-  const [replayPlay, setReplayPlay] = useState(null)
 
   useEffect(() => {
     if (user?.selected_skin != null) setSelectedSkin(user.selected_skin)
@@ -25,11 +23,11 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) return
     Promise.all([
-      supabase.from('orienta_plays').select('score, success, completed_at, orienta_grids(clue_top)')
+      supabase.from('orienta_plays').select('id, grid_id, score, success, completed_at, attempts_count, time_seconds, orienta_grids(clue_top, clue_right, clue_bottom, clue_left, difficulty)')
         .eq('player_id', user.id).not('completed_at', 'is', null)
         .order('completed_at', { ascending: false }).limit(20),
 
-      supabase.from('orienta_grids').select('id, clue_top, created_at, status')
+      supabase.from('orienta_grids').select('id, clue_top, created_at, status, difficulty, orienta_plays(success)')
         .eq('creator_id', user.id).order('created_at', { ascending: false }).limit(20),
 
       supabase.from('orienta_collective_progress').select('*').eq('id', 1).single(),
@@ -61,6 +59,21 @@ export default function ProfilePage() {
   }
 
   const userLevelProgress = getLevelProgress(user.xp)
+
+  const DIFF_LABEL = { facile: 'Facile', moyen: 'Moyen', difficile: 'Difficile' }
+  const DIFF_COLOR = { facile: '#00A889', moyen: '#E89010', difficile: '#F0440A' }
+
+  function relativeDate(dateStr) {
+    const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000)
+    if (days === 0) return "Aujourd'hui"
+    if (days === 1) return 'Hier'
+    return `Il y a ${days} jours`
+  }
+
+  function formatTime(secs) {
+    if (!secs) return null
+    return secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}m${secs % 60 > 0 ? String(secs % 60).padStart(2, '0') : ''}`
+  }
 
   return (
     <div className="profile-page">
@@ -165,16 +178,33 @@ export default function ProfilePage() {
           <h2>Grilles jouées</h2>
           {playHistory.length === 0 ? <p className="profile-empty">Aucune partie jouée encore.</p> : (
             <ul className="history-list">
-              {playHistory.map((p, i) => (
-                <li key={i} className="history-item">
-                  <button className="history-item-btn" onClick={() => setReplayPlay(p)} type="button">
-                    <span className="history-clue">{p.orienta_grids?.clue_top ?? '—'}</span>
-                    <span className={`history-result ${p.success ? 'success' : 'fail'}`}>
-                      {p.success ? '✓' : '✗'} {p.score} pts
-                    </span>
-                  </button>
-                </li>
-              ))}
+              {playHistory.map((p, i) => {
+                const diff = p.orienta_grids?.difficulty
+                const time = formatTime(p.time_seconds)
+                return (
+                  <li key={i} className="history-item history-item--rich">
+                    <div className="history-item-main">
+                      <div className="history-item-top">
+                        <span className="history-clue">
+                          {[p.orienta_grids?.clue_top, p.orienta_grids?.clue_right, p.orienta_grids?.clue_bottom, p.orienta_grids?.clue_left].filter(Boolean).join(' · ')}
+                        </span>
+                        {diff && <span className="history-diff-badge" style={{ color: DIFF_COLOR[diff] }}>{DIFF_LABEL[diff]}</span>}
+                      </div>
+                      <div className="history-item-meta">
+                        <span>{p.attempts_count} essai{p.attempts_count > 1 ? 's' : ''}</span>
+                        {time && <span>{time}</span>}
+                        <span className="history-date">{relativeDate(p.completed_at)}</span>
+                      </div>
+                    </div>
+                    <div className="history-item-right">
+                      <span className={`history-result ${p.success ? 'success' : 'fail'}`}>
+                        {p.success ? '✓' : '✗'} {p.score} pts
+                      </span>
+                      <Link to={`/result/${p.grid_id}`} className="history-replay-btn">Voir les essais →</Link>
+                    </div>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </section>
@@ -183,23 +213,35 @@ export default function ProfilePage() {
           <h2>Grilles créées</h2>
           {createdGrids.length === 0 ? <p className="profile-empty">Aucune grille créée encore.</p> : (
             <ul className="history-list">
-              {createdGrids.map(g => (
-                <li key={g.id} className="history-item">
-                  <span className="history-clue">{g.clue_top ?? '—'}</span>
-                  <Link to={`/dashboard/${g.id}`} className="history-link">Dashboard →</Link>
-                </li>
-              ))}
+              {createdGrids.map(g => {
+                const plays = g.orienta_plays ?? []
+                const completedPlays = plays.filter(p => p.success !== null)
+                const successRate = completedPlays.length > 0
+                  ? Math.round((completedPlays.filter(p => p.success).length / completedPlays.length) * 100)
+                  : null
+                return (
+                  <li key={g.id} className="history-item history-item--rich">
+                    <div className="history-item-main">
+                      <div className="history-item-top">
+                        <span className="history-clue">{g.clue_top ?? '—'}</span>
+                        {g.difficulty && <span className="history-diff-badge" style={{ color: DIFF_COLOR[g.difficulty] }}>{DIFF_LABEL[g.difficulty]}</span>}
+                      </div>
+                      <div className="history-item-meta">
+                        <span>{completedPlays.length} joueur{completedPlays.length !== 1 ? 's' : ''}</span>
+                        {successRate !== null && <span>{successRate}% réussite</span>}
+                        <span className="history-date">{relativeDate(g.created_at)}</span>
+                      </div>
+                    </div>
+                    <div className="history-item-right">
+                      <Link to={`/dashboard/${g.id}`} className="history-link">Dashboard →</Link>
+                    </div>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </section>
       </main>
-      {replayPlay && (
-        <ReplayModal
-          playId={replayPlay.id}
-          gridId={replayPlay.grid_id}
-          onClose={() => setReplayPlay(null)}
-        />
-      )}
     </div>
   )
 }
