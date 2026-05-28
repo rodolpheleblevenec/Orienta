@@ -385,10 +385,10 @@ export default function PlayPage() {
                 <div className="play-feedback-rows">
                   {[
                     { cls: 'play-feedback-dot--correct', label: 'bien placé et orienté' },
-                    { cls: 'play-feedback-dot--rotation', label: 'partiellement correct' },
+                    { cls: 'play-feedback-dot--rotation', label: 'partiellement correct', title: 'Position correcte + orientation incorrecte, OU position incorrecte + orientation correcte' },
                     { cls: 'play-feedback-dot--wrong', label: 'mal placé' },
-                  ].map(({ cls, label }) => (
-                    <div key={label} className="play-feedback-row play-feedback-row--ghost">
+                  ].map(({ cls, label, title }) => (
+                    <div key={label} className="play-feedback-row play-feedback-row--ghost" title={title}>
                       <div className={`play-feedback-dot ${cls}`} />
                       <span className="play-ghost-count" />
                       <span className="play-ghost-label" />

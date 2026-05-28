@@ -285,7 +285,7 @@ export default function ResultPage() {
                         <span className="play-feedback-count">{currentAttempt.correct_full}</span>
                         <span>bien placé et orienté</span>
                       </div>
-                      <div className="play-feedback-row">
+                      <div className="play-feedback-row" title="Position correcte + orientation incorrecte, OU position incorrecte + orientation correcte">
                         <div className="play-feedback-dot play-feedback-dot--rotation" />
                         <span className="play-feedback-count">{currentAttempt.correct_rotation}</span>
                         <span>partiellement correct</span>
