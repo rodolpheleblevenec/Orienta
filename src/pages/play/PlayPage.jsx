@@ -425,10 +425,10 @@ export default function PlayPage() {
                     <span className="play-feedback-count">{attemptHistory[activeHistoryTab].correctFull}</span>
                     <span>bien placé et orienté</span>
                   </div>
-                  <div className="play-feedback-row">
+                  <div className="play-feedback-row" title="Position correcte + orientation incorrecte, OU position incorrecte + orientation correcte">
                     <div className="play-feedback-dot play-feedback-dot--rotation" />
                     <span className="play-feedback-count">{attemptHistory[activeHistoryTab].correctRotation}</span>
-                    <span>bien placé, mal orienté</span>
+                    <span>partiellement correct</span>
                   </div>
                   <div className="play-feedback-row">
                     <div className="play-feedback-dot play-feedback-dot--wrong" />
