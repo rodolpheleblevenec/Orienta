@@ -5,17 +5,28 @@ import { getMarineItem } from '../../lib/marineItems'
 import StreakModal from './StreakModal'
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 
+const ADMIN_PSEUDO = 'Rodolphe LE BLEVENEC'
+
 export default function Header() {
   const { user, openTutorial, logout } = useAuthStore()
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [showStreakModal, setShowStreakModal] = useState(false)
   useBodyScrollLock(showLogoutConfirm)
   const streak = user?.streak_current ?? 0
+  const isAdmin = user?.pseudo === ADMIN_PSEUDO
 
   return (
     <header className="app-header">
       <Link to="/hub" className="header-logo">Orienta</Link>
       <div className="header-right">
+        {isAdmin && (
+          <Link to="/admin/daily" className="header-item header-item--admin" title="Administration">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </Link>
+        )}
         <button
           className="header-item"
           onClick={() => setShowStreakModal(true)}
