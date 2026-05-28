@@ -1,114 +1,114 @@
 # Orienta — Mini-jeu de Rotation Quotidienne
 
-Orienta est un mini-jeu collaboratif où les joueurs résolvent des grilles d'énigmes basées sur la rotation et la reconnaissance de mots. Le jeu combine une progression **collective** (où toute la communauté progresse ensemble) avec une progression **individuelle** (où chaque joueur obtient des récompenses personnelles).
+Orienta est un mini-jeu collaboratif où les joueurs résolvent des grilles d'énigmes basées sur la rotation et la reconnaissance de mots. Le jeu combine une progression **collective** (toute la communauté progresse ensemble) avec une progression **individuelle** (XP, niveaux, skins).
 
 ---
 
-## 🎮 Gameplay
+## Gameplay
 
 Une grille Orienta est un plateau 2×2 où :
 - **4 cartes** contiennent chacune 4 mots (haut, bas, gauche, droite)
-- **4 indices** donnent des pistes pour chaque côté du plateau
-- **Objectif** : Placer et orienter les cartes correctement
+- **4 indices** donnent une piste pour chaque côté du plateau
+- **Objectif** : placer les bonnes cartes aux bons emplacements, bien orientées
+- **3 essais** maximum — feedback après chaque essai (bien placé / mal orienté / mauvais)
 
-Scoring basé sur la vitesse et la précision.
-
----
-
-## 🏗️ Tech Stack
-
-- **Frontend** : React 18, React Router, Framer Motion, Zustand
-- **Backend** : Supabase (PostgreSQL), RPC Functions
-- **Styling** : CSS vanilla
+Scoring basé sur la vitesse et le nombre d'essais.
 
 ---
 
-## 📊 Système de Progression
+## Tech Stack
 
-### Progression Collective 🌍
-- Jauge partagée par tous les joueurs
-- Débloque 10 créatures marines (🥚🐟🐠🔭🗺️🦈🐢🐋🦑🐉)
-- Affiche le top 10 des contributeurs
-
-### Progression Individuelle 👤
-- XP personnel de chaque joueur
-- Débloque 10 skins marins
-- Personnalise l'avatar du profil
-
-Pour plus de détails, voir [docs/PROGRESSION_SYSTEM.md](docs/PROGRESSION_SYSTEM.md).
+- **Frontend** : React 18, React Router v6, Framer Motion, Zustand, @dnd-kit
+- **Backend** : Supabase (PostgreSQL, RPC, Edge Functions)
+- **Styling** : CSS vanilla (`src/index.css`)
 
 ---
 
-## 🚀 Mise en Place
+## Mise en Place
 
 ```bash
-# Installation
 npm install
 
-# Configurer .env.local
-VITE_SUPABASE_URL=https://xxx.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGc...
+# Configurer .env
+VITE_SUPABASE_URL=https://baqvosadoijsvvelugmp.supabase.co
+VITE_SUPABASE_ANON_KEY=<anon key>
 
-# Dev server
 npm run dev
 ```
 
 ---
 
-## 📁 Structure du Projet
+## Structure du Projet
 
 ```
 src/
-├── pages/           (LoginPage, HubPage, PlayPage, CreatePage, etc.)
-├── components/      (Header, LevelsModal, CollectiveGauge, etc.)
-├── lib/             (supabase, levels, creatures, marineItems, scoring, etc.)
-├── stores/          (authStore.js — Zustand)
-├── App.jsx
-└── index.css
+├── pages/           LoginPage, HubPage, PlayPage, CreatePage,
+│                    ResultPage, DashboardPage, ProfilePage, AdminDailyPage
+├── components/
+│   ├── game/        WordCard, CloverGrid, CloverWithInputs
+│   └── ui/          Header, GridCard, StaticMiniGrid, TourOverlay,
+│                    TutorialModal, CollectiveGauge, ...
+├── lib/             supabase, cardColors, scoring, levels, creatures,
+│                    marineItems, useBodyScrollLock
+├── stores/          authStore (Zustand)
+└── index.css        Tous les styles
+supabase/
+├── functions/
+│   └── check-attempt/  Validation server-side des essais
+└── migrations/
 ```
 
 ---
 
-## 📚 Documentation
+## Fonctionnalités
 
-- **[PROGRESSION_SYSTEM.md](docs/PROGRESSION_SYSTEM.md)** — Système d'XP et progressions
-- **[DATABASE.md](docs/DATABASE.md)** — Schéma Supabase et requêtes SQL
+**Jeu**
+- Drag-and-drop des cartes vers la grille
+- Rotation des cartes (↻)
+- 3 essais avec feedback détaillé
+- Persistance des essais en cours (retour possible en cours de partie)
+- Tour guidé première visite
 
----
+**Création**
+- 3 niveaux de difficulté (Facile / Moyen / Difficile)
+- Chrono en Moyen/Difficile avec auto-publish ou forfait
+- Validation : les indices ne peuvent pas être des mots des cartes
+- Swap de cartes en mode Difficile
 
-## 🎯 Fonctionnalités
+**Hub**
+- Grille du jour + archives 7 jours
+- Grilles communautaires
+- Statut des parties (Non joué / En cours / Joué) avec code couleur
 
-✅ Authentification par pseudo  
-✅ Création de grilles (3 difficultés)  
-✅ Résolution avec drag-drop  
-✅ Progression individuelle (10 niveaux)  
-✅ Progression collective (10 niveaux)  
-✅ Bestiaire déverrouillable  
-✅ Skins d'avatar personnalisables  
-✅ Leaderboard + top 10  
-✅ Historique et dashboard  
-✅ Streak system  
-✅ Responsive design  
+**Progression**
+- XP individuel → 10 niveaux → skins SVG marins
+- XP collectif → 10 niveaux → créatures emoji partagées
+- Streak journalier avec bonus XP
+- Leaderboard contributeurs
 
----
-
-## 🔐 Sécurité
-
-### Développement
-- RLS actuellement **désactivé** sur Supabase (pour itérer rapidement)
-
-### Production
-1. Activer RLS sur toutes les tables `orienta_*`
-2. Ajouter des policies (user data isolation, public grids, etc.)
-3. Activer HTTPS
-4. Audit régulier
+**Profil & Dashboard**
+- Historique jouées/créées avec stats détaillées
+- Lien vers /result pour revoir ses essais
+- Solution complète de la grille
 
 ---
 
-## 📞 Support
+## Documentation
 
-Pour les bugs ou questions : rodolphe.le.blevenec@gmail.com
+| Fichier | Contenu |
+|---|---|
+| `AGENTS.md` | Guide pour agents IA et contributeurs (stack, DB, conventions) |
+| `DESIGN.md` | Système de design (couleurs, typo, composants, animations) |
+| `DECISIONS.md` | Décisions architecturales avec leurs trade-offs |
+| `ROADMAP.md` | État d'avancement et prochaines étapes |
 
 ---
 
-**Bon jeu ! 🎮✨**
+## Sécurité
+
+RLS actuellement **désactivé** sur toutes les tables `orienta_*` (développement).  
+À activer avec policies appropriées avant tout lancement public.
+
+---
+
+Contact : rodolphe.le.blevenec@gmail.com

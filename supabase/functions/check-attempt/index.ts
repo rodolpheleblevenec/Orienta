@@ -33,8 +33,8 @@ serve(async (req) => {
 
   // Load play and grid
   const { data: play } = await supabase
-    .from('plays')
-    .select('*, grids(id)')
+    .from('orienta_plays')
+    .select('*, orienta_grids(id)')
     .eq('id', play_id)
     .single()
 
@@ -47,9 +47,9 @@ serve(async (req) => {
 
   // Load the official solution (server-side only)
   const { data: solution } = await supabase
-    .from('grid_cards')
+    .from('orienta_grid_cards')
     .select('card_id, position, rotation')
-    .eq('grid_id', play.grids.id)
+    .eq('grid_id', play.orienta_grids.id)
 
   if (!solution) {
     return new Response(JSON.stringify({ error: 'Solution not found' }), {
@@ -96,7 +96,7 @@ serve(async (req) => {
     const xpGained = success ? Math.max(10, Math.round(play.xp_earned ?? 50)) : 5
 
     const { data: collective } = await supabase
-      .from('collective_progress')
+      .from('orienta_collective_progress')
       .select('total_xp')
       .eq('id', 1)
       .single()
@@ -106,7 +106,7 @@ serve(async (req) => {
       const newLevelData = [...LEVEL_THRESHOLDS].reverse().find(l => newXp >= l.xp) ?? LEVEL_THRESHOLDS[0]
 
       await supabase
-        .from('collective_progress')
+        .from('orienta_collective_progress')
         .update({ total_xp: newXp, level: newLevelData.level, level_name: newLevelData.name, updated_at: new Date().toISOString() })
         .eq('id', 1)
     }
@@ -114,7 +114,7 @@ serve(async (req) => {
     // Update user streak
     const today = new Date().toDateString()
     const { data: user } = await supabase
-      .from('users')
+      .from('orienta_users')
       .select('streak_current, streak_best, last_played_at')
       .eq('id', play.player_id)
       .single()
@@ -129,7 +129,7 @@ serve(async (req) => {
       }
 
       await supabase
-        .from('users')
+        .from('orienta_users')
         .update({
           streak_current: newStreak,
           streak_best: Math.max(user.streak_best, newStreak),

@@ -15,6 +15,9 @@ Defined as CSS variables in `:root` in `src/index.css`.
 | `--accent` | `#00B899` | Primary CTA, active states, XP bars, highlights |
 | `--accent-dim` | `rgba(0,184,153,0.10)` | Hover backgrounds, accent cards |
 | `--accent-border` | `rgba(0,184,153,0.25)` | Borders on accent elements |
+| `--success` | `#00A889` | Correct placements, "joué" status |
+| `--warning` | `#E89010` | Partial match (rotation only), "en cours" status |
+| `--error` | `#F0440A` | Wrong answers |
 | `--text-primary` | `#111827` | Body text, headings |
 | `--text-secondary` | `#4B5563` | Supporting text |
 | `--text-muted` | `#9CA3AF` | Labels, hints, meta |
@@ -22,13 +25,43 @@ Defined as CSS variables in `:root` in `src/index.css`.
 | `--bg-secondary` | `#F7F6F3` | App shell / section background |
 | `--bg-card` | `#FFFFFF` | Card background |
 | `--bg-surface` | `#F2F1EE` | Input fields, track bars |
-| `--coral` | `#FF6B6B` | Error, wrong answers |
-| `--coral-dim` | `rgba(255,107,107,0.10)` | Error backgrounds |
-| `--warning` | `#F59E0B` | Partial match (rotation only) |
 | `--border` | `rgba(0,0,0,0.08)` | Default border |
-| `--border-subtle` | `rgba(0,0,0,0.04)` | Dividers |
 
 **Never** hardcode colors in JSX or CSS — always use variables.
+
+---
+
+## Card Colors
+
+Game cards use a separate vivid palette defined in `src/lib/cardColors.js`. Always `white` background with colored border and text:
+
+| Index | Border / Text | Name |
+|---|---|---|
+| 0 | `#00A889` | Teal vif |
+| 1 | `#F0440A` | Orange-rouge |
+| 2 | `#1472E8` | Bleu électrique |
+| 3 | `#E89010` | Ambre vif |
+| 4 | `#7030E0` | Violet intense |
+
+Use `getCardColor(colorIndex)` — never hardcode card colors directly.
+
+---
+
+## Status & Difficulty Color Coding
+
+### Play status (GridCard)
+| Status | Class | Color |
+|---|---|---|
+| Non joué | (default) | `--text-muted` |
+| En cours | `.card-v2-status--inprogress` | `#E89010` (warning) |
+| Joué | `.card-v2-status--done` | `#00A889` (success) |
+
+### Difficulty
+| Difficulty | Class | Color |
+|---|---|---|
+| Facile | `.card-v2-difficulty--easy` | `#00A889` |
+| Moyen | `.card-v2-difficulty--medium` | `#E89010` |
+| Difficile | `.card-v2-difficulty--hard` | `#F0440A` |
 
 ---
 
@@ -55,9 +88,7 @@ Defined as CSS variables in `:root` in `src/index.css`.
 | `--radius-lg` | 20px |
 | `--radius-xl` | 28px |
 
-Cards and modals use `--radius-md` to `--radius-xl`.
-Buttons use `--radius-md`.
-Pills/badges use `--radius-sm` or `6px`.
+Cards and modals use `--radius-md` to `--radius-xl`. Buttons use `--radius-md`. Pills/badges use `--radius-sm` or `6px`.
 
 ---
 
@@ -77,9 +108,11 @@ box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 ## Layout Principles
 
 - **Max widths**: Pages use `max-width: 600–680px` centered with `margin: 0 auto`
+- **Play/Create layout**: 3-column fixed — left drawer (tray), center (grid), right drawer (feedback)
 - **Padding**: `28px 20px` on main content areas, `24px` on modals
 - **Gaps**: `24px` between sections, `10–12px` between cards, `8px` within card content
 - **Sticky header**: `position: sticky; top: 0; z-index: 100`
+- **Sticky footer** (PlayPage): `position: fixed; bottom: 0; z-index: 50`
 
 ---
 
@@ -88,11 +121,9 @@ box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 ### Buttons
 
 ```css
-/* Primary */
 .btn-primary    → accent bg, white text, 12px 24px padding, radius-md
 .btn-primary:hover → translateY(-1px) + accent glow shadow
 
-/* Secondary */
 .btn-secondary  → transparent, border, accent on hover
 ```
 
@@ -114,8 +145,6 @@ Only two button variants. Never create a third without adding it here.
 }
 ```
 
-Hover: subtle lift (`translateY(-1px)`) + accent border.
-
 ### Badges / Pills
 
 ```css
@@ -131,22 +160,30 @@ color: var(--accent);
 
 - Backdrop: `position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000`
 - Panel: `max-width: 520px; max-height: 80dvh; overflow-y: auto`
+- Always use `useBodyScrollLock()` to prevent background scroll
 - Click backdrop to close, ✕ button in header
+
+### Tour Overlay Bubbles
+
+CSS anchor classes for `TourOverlay`:
+| Class | Position | Arrow |
+|---|---|---|
+| `tour-card--center` | Centered | None |
+| `tour-card--center-right` | Right edge, middle | ← (left) |
+| `tour-card--center-left` | After left tray, middle | → (right) |
+| `tour-card--tray-right` | Just right of tray | ← (left, toward tray) |
+| `tour-card--top-center` | Top, centered | ↓ (down) |
+| `tour-card--bottom-center` | Bottom, centered | ↑ (up) |
+| `tour-card--footer-center` | Above sticky footer | ↓ (down, toward footer) |
+
+Mobile: all non-center positions collapse to bottom-centered, arrows hidden.
 
 ### XP / Progress Bars
 
 ```css
-.track { height: 6–8px; background: var(--bg-surface); border-radius: 4px; overflow: hidden; }
+.track { height: 6–8px; background: var(--bg-surface); border-radius: 4px; }
 .fill  { background: linear-gradient(90deg, var(--accent), #00E8B8); }
 ```
-
-Animate with Framer Motion: `initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 1, ease: 'easeOut' }}`
-
-### Skin Cards (Bestiaire)
-
-- Grid: 5 cols desktop → 4 at 600px → 3 at 480px
-- Active: `border-color: var(--accent); border-width: 2px; background: var(--accent-dim)`
-- Locked: `opacity: 0.6; cursor: default`
 
 ---
 
@@ -157,18 +194,18 @@ Animate with Framer Motion: `initial={{ width: 0 }} animate={{ width: `${pct}%` 
 ```
 
 - Logo: `--display` font, accent color, left-aligned
-- Right cluster: gap `10px`, all items show text label + icon
+- Right cluster: gap `10px`, icon + text label per item
 - Avatar: 36px circle, accent border, shows skin emoji or pseudo initial
-- Tutorial button: surface bg, border, hover → accent tint + translateY(-2px) + glow
 
 ---
 
 ## Icons / Emojis
 
-- **Collective creatures** (10 levels): pure emoji (`🥚🐟🐠🔭🗺️🦈🐢🐋🦑🐉`)
+- **Collective creatures** (10 levels): emoji (`🥚🐟🐠🔭🗺️🦈🐢🐋🦑🐉`)
 - **Individual skins** (10 levels): SVG components in `src/lib/marineItems.jsx`
-- **UI icons**: emoji for streak 🔥, tutorial 🎓, lock 🔒, medal 🥇🥈🥉
-- Never use an icon library or import SVGs as assets — inline SVGs or emoji only
+- **UI icons**: emoji for streak 🔥, tutorial 🎓, lock 🔒
+- **GridCard icons**: inline SVG only (IconClock, IconPlay, IconCheckmark, etc.)
+- Never import SVGs as assets — inline SVGs or emoji only
 
 ---
 
@@ -176,8 +213,8 @@ Animate with Framer Motion: `initial={{ width: 0 }} animate={{ width: `${pct}%` 
 
 - **Framer Motion** for entrance animations and XP bar fills
 - Default entrance: `initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}`
-- Stagger children with `transition={{ delay: i * 0.05 }}`
-- Hover states: CSS `transition: all 0.18s` (not Framer Motion for hover)
+- Stagger: `transition={{ delay: i * 0.05 }}`
+- Hover states: CSS `transition: all 0.18s` (not Framer Motion)
 - Keep animations subtle — no bouncing, no spinning, no color flash
 
 ---
@@ -186,9 +223,10 @@ Animate with Framer Motion: `initial={{ width: 0 }} animate={{ width: `${pct}%` 
 
 | Breakpoint | Notes |
 |---|---|
-| `max-width: 768px` | Play page switches to column layout |
-| `max-width: 600px` | Word cards shrink (170→140px), skin grid 5→4 cols |
+| `max-width: 768px` | Play/Create: drawers become inline flow |
+| `max-width: 600px` | Word cards shrink, skin grid 5→4 cols |
 | `max-width: 480px` | Skin grid 4→3 cols |
+| `max-width: 640px` | Tour bubbles collapse to bottom |
 
 Mobile-first adjustments live in `@media (max-width: X)` blocks **after** the default rule.
 
@@ -198,7 +236,8 @@ Mobile-first adjustments live in `@media (max-width: X)` blocks **after** the de
 
 - No dark mode theming (not in scope)
 - No CSS frameworks (Tailwind, Bootstrap, etc.)
-- No inline styles except for Framer Motion `animate` props
-- No emoji in button labels (stick to icon + text pattern from header)
+- No inline styles except Framer Motion `animate` props
+- No emoji in button labels (icon + text pattern)
 - No shadows on text
 - No `!important` unless overriding a library
+- No hardcoded card colors — always `getCardColor(index)` from `cardColors.js`

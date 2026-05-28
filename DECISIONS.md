@@ -1,124 +1,128 @@
 # DECISIONS.md — Orienta
 
-Architectural and product decisions that are non-obvious, that have trade-offs, or that future contributors might question.
+Décisions architecturales et produit non-évidentes, avec leurs trade-offs.
 
 ---
 
 ## 2026-05-27 — Pseudo-only authentication (no Supabase Auth)
 
-**Decision**: Use a pseudo (username) as the only identity. No password, no email, no OAuth. The UUID is stored in `localStorage` and used to look up or create a row in `orienta_users`.
+**Décision** : Identité = pseudo (username) stocké en `localStorage` comme UUID. Pas de mot de passe, email, ni OAuth.
 
-**Why**: Orienta is a casual mini-game. Sign-up friction kills adoption. Pseudo-only is frictionless and aligns with the "play in 2 minutes" positioning. A returning user types their pseudo and is back in.
+**Pourquoi** : Jeu casual, friction zéro à l'entrée. Un utilisateur qui revient retape son pseudo et reprend là où il était.
 
-**Trade-offs**:
-- No account recovery — if localStorage is cleared, the pseudo can be reclaimed by anyone.
-- No real access control — RLS is disabled for now.
-- Acceptable for a game where losing state is annoying but not critical.
+**Trade-offs** :
+- Pas de récupération de compte si localStorage effacé
+- Pas de contrôle d'accès réel (RLS désactivé)
+- Acceptable pour un jeu public sans données sensibles
 
-**Revisit when**: Adding paid features, private grids, or social identity.
-
----
-
-## 2026-05-27 — RLS disabled in development
-
-**Decision**: Row Level Security is off on all `orienta_*` tables.
-
-**Why**: Speed of iteration. RLS without policies blocks all access; setting up correct policies requires knowing the final auth model first.
-
-**Risk**: The anon key is exposed client-side (standard for Supabase). Any user can read and modify any row.
-
-**Mitigation**: Acceptable for a public game at this stage. All XP mutations go through a server-side RPC, so client-side XP inflation would require calling the RPC directly.
-
-**Must fix before**: Any paid feature, private data, or public launch.
+**Réviser si** : Fonctionnalités payantes, grilles privées, identité sociale.
 
 ---
 
-## 2026-05-27 — Dual XP progression (collective + individual, strictly separated)
+## 2026-05-27 — RLS désactivé en développement
 
-**Decision**: Two completely separate XP tracks:
-- **Collective** (`orienta_collective_progress.total_xp`) → unlocks emoji creatures shown in the shared modal
-- **Individual** (`orienta_users.xp`) → unlocks marine item skins on the player's profile
+**Décision** : Row Level Security off sur toutes les tables `orienta_*`.
 
-**Why**: Encourages both individual play (personal progression) and community contribution (collective gauge moves faster when more players play). Separating the tracks avoids "I unlocked it for everyone vs. I unlocked it for me" confusion.
+**Pourquoi** : Vitesse d'itération. Les policies nécessitent de connaître le modèle auth final.
 
-**Alternative considered**: A single XP feeding both — simpler but loses the social dimension.
+**Risque** : La clé anon est exposée côté client. N'importe quel user peut lire/modifier n'importe quelle ligne.
 
-**Unlock rule**: A skin is available to the player if `user.level >= item.level` (individual) OR `collectiveLevel >= item.level` (community gift). This means early players benefit from the community's progress.
+**Mitigation** : Les mutations XP passent par un RPC server-side. Acceptable pour un jeu public à ce stade.
 
----
-
-## 2026-05-27 — `add_user_xp` RPC for all XP mutations
-
-**Decision**: Never UPDATE `orienta_users.xp` directly from the client. All XP changes go through `supabase.rpc('add_user_xp', { uid, amount })`.
-
-**Why**: The RPC atomically updates four fields in one transaction:
-1. `orienta_users.xp` (individual)
-2. `orienta_users.level` (recalculated from thresholds)
-3. `orienta_users.xp_contributed` (for the leaderboard)
-4. `orienta_collective_progress.total_xp` (for the collective gauge)
-
-Doing this client-side would require 4 separate requests with race conditions.
-
-**Side effect**: XP can't be awarded without also contributing to the collective, which is intentional.
+**Must fix avant** : Tout lancement public, fonctionnalité payante, ou données privées.
 
 ---
 
-## 2026-05-27 — Emoji creatures for collective levels, SVG marine items for individual skins
+## 2026-05-27 — Double progression XP (collectif + individuel, strictement séparés)
 
-**Decision**: Collective level creatures use emoji (🥚🐟🐠…). Individual profile skins use inline SVG components.
+**Décision** : Deux tracks XP indépendants :
+- **Collectif** (`orienta_collective_progress.total_xp`) → créatures emoji partagées
+- **Individuel** (`orienta_users.xp`) → skins marins personnels
 
-**Why**: SVG creatures were built first but the user found them visually unsatisfying. Switching collective creatures to emoji solved the aesthetic issue without losing expressiveness. Individual skins remain SVG because they are more design-intentional (profile identity vs. collective mascot).
+**Pourquoi** : Encourage la contribution communautaire (jauge collective) ET la progression personnelle. Séparer les tracks évite la confusion "j'ai débloqué pour tout le monde vs. pour moi".
 
-**Alternative**: Both emoji — simpler, but individual skins benefit from the custom SVG look at small sizes.
-
----
-
-## 2026-05-27 — Scoring formula client-side, XP commit server-side
-
-**Decision**: `computeXp(score, success)` and `xpStreakBonus(streak)` run on the client to show the result immediately. The resulting `amount` is then sent to `add_user_xp` on the server.
-
-**Why**: The score is already computed client-side (it drives the result page). Recomputing on the server would require sending the full game state (score, streak, success). Since this is not a competitive/ranked game, client-side formula trust is acceptable.
-
-**Risk**: A player could call `add_user_xp` with an inflated amount. Not a priority for a casual game.
-
-**Revisit when**: Adding ranked modes or monetary rewards.
+**Règle de déblocage** : Un skin est disponible si `user.level >= item.level` **OU** `collectiveLevel >= item.level` (cadeau communautaire).
 
 ---
 
-## 2026-05-27 — CSS vanilla, no framework
+## 2026-05-27 — `add_user_xp` RPC pour toutes les mutations XP
 
-**Decision**: All styles live in `src/index.css` with CSS custom properties. No Tailwind, no CSS-in-JS, no component libraries.
+**Décision** : Jamais de `UPDATE orienta_users SET xp = ...` direct. Toujours via `supabase.rpc('add_user_xp', { uid, amount })`.
 
-**Why**: The design vocabulary is narrow and stable. A single CSS file with consistent naming is easier to audit and maintain for a small project than a utility class system.
-
-**Trade-offs**: No tree-shaking of unused styles. Acceptable at current scale (CSS file is ~29 KB gzipped ~5 KB).
+**Pourquoi** : Le RPC met à jour atomiquement `xp`, `level`, `xp_contributed` et `orienta_collective_progress.total_xp` en une transaction. Côté client ce serait 4 requêtes avec race conditions.
 
 ---
 
-## 2026-05-27 — No `localStorage` for game state
+## 2026-05-27 — Scoring client-side, commit XP server-side
 
-**Decision**: Game state (current play, selected cards, rotation) lives in React component state only. It is not persisted to localStorage or a backend until the game ends.
+**Décision** : `computeScore()`, `computeXp()`, `xpStreakBonus()` s'exécutent côté client. Le `amount` résultant est envoyé au RPC.
 
-**Why**: Simpler. An interrupted game just restarts. The grid is fetched fresh on page load.
+**Pourquoi** : Le score est déjà calculé client-side pour la page résultat. Recalculer server-side nécessiterait d'envoyer tout l'état de la partie.
 
-**Trade-offs**: Refreshing mid-game loses progress. Acceptable for a short-form game (typical play < 3 minutes).
-
----
-
-## 2026-05-27 — Leaderboard uses `xp_contributed`, not `xp`
-
-**Decision**: The collective leaderboard sorts by `xp_contributed`, not the player's total `xp`.
-
-**Why**: `xp` is individual progression (could be reset or adjusted separately in the future). `xp_contributed` is a monotonically increasing counter of how much that player has put into the collective pool. It is the right metric for a "who helped the community most" leaderboard.
-
-**Note**: Currently both values are incremented together by `add_user_xp`. They will diverge only if individual XP is awarded without contributing to collective (e.g., a bonus or correction).
+**Risque** : Un joueur pourrait appeler le RPC avec un montant gonflé. Non prioritaire pour un jeu casual.
 
 ---
 
-## 2026-05-27 — Documentation structure
+## 2026-05-27 — CSS vanilla, pas de framework
 
-**Decision**: Use `AGENTS.md` + `DESIGN.md` + `DECISIONS.md` at root, plus `plans/<feature>/PLAN.md` and `PROGRESS.md` for active feature work.
+**Décision** : Tous les styles dans `src/index.css` avec CSS custom properties. Pas de Tailwind, pas de CSS-in-JS.
 
-**Why**: Standardized structure from [agents.md](https://agents.md) convention. `AGENTS.md` gives AI coding agents and contributors a quick orientation. `DESIGN.md` prevents drift in visual language. `DECISIONS.md` captures the "why" that code alone can't convey.
+**Pourquoi** : Vocabulaire design étroit et stable. Un seul fichier CSS est plus facile à auditer pour un projet de cette taille.
 
-**What NOT to put here**: Implementation details that are obvious from reading the code, temporary workarounds, or decisions that are already reversed.
+---
+
+## 2026-05-28 — Cartes : fond blanc + stroke coloré + texte coloré (pas de fill)
+
+**Décision** : Les cartes de jeu ont `background: #ffffff`, `border: 2px solid <couleur>`, et les 4 mots en `color: <couleur>`. Pas de fond coloré.
+
+**Pourquoi** : Meilleure lisibilité, esthétique plus épurée. Le fond coloré entrait en compétition visuelle avec la grille.
+
+**Implémentation** : Centralisé dans `src/lib/cardColors.js` — 5 couleurs vives (teal, orange-rouge, bleu électrique, ambre, violet). `getCardColor(index)` retourne `{ bg, border, text }`. Consommé par `WordCard` et `StaticMiniGrid`.
+
+---
+
+## 2026-05-28 — Orientation des mots dans StaticMiniGrid = même logique que WordCard
+
+**Décision** : `StaticMiniGrid` applique la même formule de counter-rotation que `WordCard` (pas de `writing-mode` CSS).
+
+**Pourquoi** : La grille de feedback doit être lisible de la même façon que la grille principale. Utiliser `writing-mode` en CSS et la rotation JS simultanément causait des conflits.
+
+**Règle** : `physIdx = (originalPos + rotation/90) % 4`. Si `physIdx % 2 === 1` (bord vertical) : `deg = -90 - rotation`. Sinon : `deg = -rotation`.
+
+---
+
+## 2026-05-28 — Persistance des essais en cours via `orienta_play_attempts`
+
+**Décision** : Quand un joueur retourne sur une grille non terminée, `fetchGrid` restaure l'historique des tentatives depuis `orienta_play_attempts`.
+
+**Pourquoi** : Un joueur doit pouvoir interrompre une partie et reprendre à l'essai suivant. Ne pas persister forçait à recommencer depuis l'essai 1 à chaque retour.
+
+**Implémentation** : Le client insère dans `orienta_play_attempts` après chaque soumission. `fetchGrid` query les tentatives et reconstruit `attemptHistory` + `attemptNumber` + `attemptsFailed`.
+
+**Note** : La `trayCards` est toujours remise à zéro (toutes les cartes dans le plateau) — le joueur doit replacer ses cartes pour le nouvel essai.
+
+---
+
+## 2026-05-28 — Tour guidé via localStorage par user + par page
+
+**Décision** : `TourOverlay` s'affiche une seule fois, clé `orienta_tour_play_{uid}` / `orienta_tour_create_{uid}` dans `localStorage`.
+
+**Pourquoi** : Pas besoin de stocker en DB pour une préférence UI aussi légère. La clé est per-user pour éviter qu'un user sur un appareil partagé voit le tour d'un autre.
+
+---
+
+## 2026-05-28 — Forfait de création via localStorage (par user, expirant à minuit)
+
+**Décision** : Si un user abandonne une création chronométrée, on écrit `localStorage.setItem('orienta_create_forfeit_{uid}', DATE_STRING)`. La valeur est comparée à `new Date().toISOString().split('T')[0]` (date du jour). Si égale → bouton "Créer ma grille" désactivé.
+
+**Pourquoi** : Enjeu de la contrainte temps. Pas besoin de stocker en DB — le forfait expire naturellement le lendemain. Per-user pour ne pas pénaliser d'autres accounts sur le même appareil.
+
+---
+
+## 2026-05-28 — Edge function `check-attempt` utilise les tables `orienta_*`
+
+**Décision** : La fonction edge utilise `orienta_plays`, `orienta_grids`, `orienta_grid_cards`, `orienta_collective_progress`, `orienta_users`.
+
+**Contexte** : La version initiale utilisait les anciens noms (`plays`, `grids`, etc.) qui n'existent plus. Cela causait une 404 à chaque soumission → le client faisait un early return → aucun enregistrement des tentatives → bug de persistance.
+
+**Fix appliqué** : 2026-05-28, version 2 déployée via Supabase MCP.
