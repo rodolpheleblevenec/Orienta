@@ -116,9 +116,15 @@ export default function PlayPage() {
         .select('card_id, orienta_word_cards(*)')
         .eq('grid_id', gridId)
 
-      const shuffled = [...(gridCards ?? [])].sort(() => Math.random() - 0.5).map((gc, i) => ({
+      const arr = [...(gridCards ?? [])]
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]]
+      }
+      const ROTATIONS = [0, 90, 180, 270]
+      const shuffled = arr.map((gc, i) => ({
         card: gc.orienta_word_cards,
-        rotation: [0, 90, 180, 270][Math.floor(Math.random() * 4)],
+        rotation: ROTATIONS[Math.floor(Math.random() * 4)],
         colorIndex: i,
       }))
       setTrayCards(shuffled)

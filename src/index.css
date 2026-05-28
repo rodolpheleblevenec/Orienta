@@ -536,6 +536,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 30px;
+  margin-top: 44px;
   margin-bottom: 60px;
 }
 
@@ -549,7 +550,55 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   font-weight: 700;
   margin-bottom: 24px;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
+
+.section-tip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-muted);
+  cursor: default;
+  flex-shrink: 0;
+}
+.section-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  background: var(--text-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  font-family: var(--sans);
+  line-height: 1.4;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  width: 220px;
+  white-space: normal;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 200;
+}
+.section-tip::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 3px);
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top: 5px solid var(--text-primary);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 200;
+}
+.section-tip:hover::after,
+.section-tip:hover::before { opacity: 1; }
 
 .my-grid-section {
   display: flex;

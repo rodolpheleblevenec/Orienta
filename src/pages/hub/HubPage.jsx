@@ -15,6 +15,21 @@ function formatDayLabel(dateStr) {
   return new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })
 }
 
+function SectionTitle({ children, tip }) {
+  return (
+    <h2 className="section-title">
+      {children}
+      <span className="section-tip" data-tip={tip}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </span>
+    </h2>
+  )
+}
+
 export default function HubPage() {
   const { user } = useAuthStore()
   const today = new Date().toISOString().split('T')[0]
@@ -130,46 +145,10 @@ export default function HubPage() {
       <Header />
       <main className="hub-main">
 
-        {/* Top Sections: Collective Gauge + My Grid */}
-        <div className="top-sections">
-          {/* Collective Gauge */}
-          <section>
-            <h2 className="section-title">Progression Collective</h2>
-            <CollectiveGauge />
-          </section>
-
-          {/* My Grid Section */}
-          <section>
-            <h2 className="section-title">Ma grille</h2>
-            {createdGrid ? (
-              <div className="my-grid-card-container">
-                <CreatedGridCard grid={createdGrid} index={0} />
-              </div>
-            ) : hasForfeited ? (
-              <div className="my-grid-section">
-                <div className="my-grid-empty">
-                  <h3>Tu as loupé la création du jour</h3>
-                  <p className="my-grid-forfeit-hint">Tu as abandonné une grille chronométrée. Reviens demain pour une nouvelle chance !</p>
-                  <span className="create-grid-btn create-grid-btn--disabled">+ Créer ma grille</span>
-                </div>
-              </div>
-            ) : (
-              <div className="my-grid-section">
-                <div className="my-grid-empty">
-                  <h3>Vous n'avez pas encore créé votre grille du jour</h3>
-                  <Link to="/create" className="create-grid-btn">
-                    + Créer ma grille
-                  </Link>
-                </div>
-              </div>
-            )}
-          </section>
-        </div>
-
-        {/* Challenge journalier */}
+        {/* Ligne 1 — Challenge journalier */}
         {(todayDaily || loading) && (
           <section>
-            <h2 className="section-title">Challenge journalier</h2>
+            <SectionTitle tip="La grille du jour, commune à tous les joueurs. Résous-la pour marquer des points et grimper au classement.">Challenge journalier</SectionTitle>
             {loading ? (
               <div className="hub-loading"><div className="grid-card-skeleton" /></div>
             ) : todayDaily ? (
@@ -249,7 +228,7 @@ export default function HubPage() {
         {/* Archives — grilles des 7 derniers jours */}
         {archiveDailies.length > 0 && (
           <section id="daily-archives">
-            <h2 className="section-title">Grilles précédentes</h2>
+            <SectionTitle tip="Les 7 derniers challenges journaliers. Tu peux encore les jouer si tu les as ratés.">Grilles précédentes</SectionTitle>
             <div className="cards-grid">
               {archiveDailies.map((grid, i) => (
                 <div key={grid.id} className="daily-archive-item">
@@ -266,9 +245,43 @@ export default function HubPage() {
           </section>
         )}
 
-        {/* Grilles des autres joueurs */}
+        {/* Ligne 2 — Progression Collective + Ma grille */}
+        <div className="top-sections">
+          <section>
+            <SectionTitle tip="Chaque partie jouée fait avancer toute la communauté. Montez ensemble pour débloquer de nouvelles créatures !">Progression Collective</SectionTitle>
+            <CollectiveGauge />
+          </section>
+
+          <section>
+            <SectionTitle tip="Crée une grille par jour pour faire jouer la communauté et gagner de l'XP à chaque réussite.">Ma grille</SectionTitle>
+            {createdGrid ? (
+              <div className="my-grid-card-container">
+                <CreatedGridCard grid={createdGrid} index={0} />
+              </div>
+            ) : hasForfeited ? (
+              <div className="my-grid-section">
+                <div className="my-grid-empty">
+                  <h3>Tu as loupé la création du jour</h3>
+                  <p className="my-grid-forfeit-hint">Tu as abandonné une grille chronométrée. Reviens demain pour une nouvelle chance !</p>
+                  <span className="create-grid-btn create-grid-btn--disabled">+ Créer ma grille</span>
+                </div>
+              </div>
+            ) : (
+              <div className="my-grid-section">
+                <div className="my-grid-empty">
+                  <h3>Vous n'avez pas encore créé votre grille du jour</h3>
+                  <Link to="/create" className="create-grid-btn">
+                    + Créer ma grille
+                  </Link>
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* Ligne 3 — Grilles des autres joueurs */}
         <section className="hub-section--spaced">
-          <h2 className="section-title">Grilles des autres joueurs</h2>
+          <SectionTitle tip="Les grilles créées par la communauté ces 7 derniers jours. Joue-les pour marquer de l'XP et faire progresser leur créateur.">Grilles des autres joueurs</SectionTitle>
 
           {loading ? (
             <div className="hub-loading">
