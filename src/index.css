@@ -992,11 +992,12 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   display: flex;
   flex-direction: column;
   background: var(--bg-secondary);
-  --slot-size: min(calc((100dvh - 290px) / 2), calc(100vw / 3 - 198px), 320px);
+  /* overhead = header(64) + footer(70) + clue rows(116) + grid internals(26) + padding(40) */
+  --slot-size: min(calc((100dvh - 316px) / 2), calc(100vw / 3 - 198px), 320px);
   --tray-w: 230px;
   --feedback-w: calc(100vw / 3);
   --header-h: 64px;
-  --footer-h: 64px;
+  --footer-h: 70px;
 }
 @media (max-width: 768px) {
   .play-page,
@@ -1052,7 +1053,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   justify-content: center;
   margin-left: var(--tray-w);
   margin-right: var(--feedback-w);
-  padding-bottom: var(--footer-h);
+  padding: 20px 0 calc(var(--footer-h) + 20px);
   overflow: hidden;
 }
 .play-grid-area {
@@ -1060,7 +1061,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  margin-top: -40px;
 }
 .btn-reset {
   position: absolute;
@@ -1168,7 +1168,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   .card-tray-item { transform: scale(0.65) !important; margin: 0 -24px !important; }
   .tray-cards:has(> .card-tray-item:nth-child(5)) .card-tray-item { transform: scale(0.55) !important; margin: 0 -28px !important; }
   .play-main { margin: 0; padding: 16px 16px 90px; }
-  .play-grid-area { margin-top: 0; }
   .btn-reset { position: static; margin-bottom: 12px; width: auto; }
   .play-feedback-drawer {
     position: relative; right: auto; top: auto; bottom: auto; width: 100%;

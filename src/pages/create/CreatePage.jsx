@@ -99,6 +99,7 @@ export default function CreatePage() {
     supabase.from('orienta_grids')
       .select('id')
       .eq('creator_id', user.id)
+      .is('daily_date', null)
       .gte('created_at', today + 'T00:00:00')
       .then(({ data }) => {
         if (data && data.length > 0) setAlreadyCreatedToday(true)
