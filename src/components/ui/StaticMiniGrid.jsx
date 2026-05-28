@@ -1,14 +1,24 @@
 import { getCardColor } from '../../lib/cardColors'
 
+const POSITIONS = ['top', 'right', 'bottom', 'left']
+
 function StaticMiniCard({ card, rotation, colorIndex }) {
   if (!card) return <div className="mini-slot-empty" />
   const { bg, border, text } = getCardColor(colorIndex)
+
+  function wordStyle(originalPos) {
+    const physIdx = (POSITIONS.indexOf(originalPos) + rotation / 90) % 4
+    const isVertical = physIdx % 2 === 1
+    const deg = isVertical ? -90 - rotation : -rotation
+    return { transform: `rotate(${deg}deg)`, whiteSpace: 'nowrap', color: text }
+  }
+
   return (
     <div className="mini-card" style={{ transform: `rotate(${rotation}deg)`, backgroundColor: bg, borderColor: border }}>
-      <span className="mini-card-word mini-card-word--top"    style={{ color: text }}>{card.word_top}</span>
-      <span className="mini-card-word mini-card-word--right"  style={{ color: text }}>{card.word_right}</span>
-      <span className="mini-card-word mini-card-word--bottom" style={{ color: text }}>{card.word_bottom}</span>
-      <span className="mini-card-word mini-card-word--left"   style={{ color: text }}>{card.word_left}</span>
+      <span className="mini-card-word mini-card-word--top"    style={wordStyle('top')}   >{card.word_top}</span>
+      <span className="mini-card-word mini-card-word--right"  style={wordStyle('right')} >{card.word_right}</span>
+      <span className="mini-card-word mini-card-word--bottom" style={wordStyle('bottom')}>{card.word_bottom}</span>
+      <span className="mini-card-word mini-card-word--left"   style={wordStyle('left')}  >{card.word_left}</span>
     </div>
   )
 }

@@ -51,7 +51,7 @@ const ChevronIcon = () => (
   </svg>
 )
 
-export default function GridCard({ grid, playInfo, index }) {
+export default function GridCard({ grid, playInfo, index, isDaily = false }) {
   const { user } = useAuthStore()
 
   const plays = (grid.orienta_plays ?? []).filter(p => p.success !== null)
@@ -70,11 +70,11 @@ export default function GridCard({ grid, playInfo, index }) {
       transition={{ delay: index * 0.06 }}
     >
       <Link to={`/play/${grid.id}`} className="card-v2">
-        <div className="card-v2-header" style={{ backgroundColor: '#33B69A' }}>
+        <div className="card-v2-header" style={{ backgroundColor: isDaily ? '#6C63FF' : '#33B69A' }}>
           <div className="card-v2-avatar">
-            {creatorInitial}
+            {isDaily ? '★' : creatorInitial}
           </div>
-          <div className="card-v2-name">{grid.orienta_users?.pseudo ?? 'Inconnu'}</div>
+          <div className="card-v2-name">{isDaily ? 'Grille du jour' : (grid.orienta_users?.pseudo ?? 'Inconnu')}</div>
           <div className="card-v2-icon">
             <ChevronIcon />
           </div>

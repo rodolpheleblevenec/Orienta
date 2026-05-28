@@ -9,6 +9,39 @@ import { useAuthStore } from '../../stores/authStore'
 import { computeScore, computeXp, xpStreakBonus } from '../../lib/scoring'
 import Header from '../../components/ui/Header'
 import StaticMiniGrid from '../../components/ui/StaticMiniGrid'
+import TourOverlay from '../../components/ui/TourOverlay'
+
+const PLAY_TOUR_STEPS = [
+  {
+    anchor: 'center',
+    title: 'Bienvenue dans le jeu !',
+    description: "Tu dois placer 4 cartes dans les bons emplacements de la grille, bien orientées. Les indices autour de la grille sont tes seuls repères.",
+  },
+  {
+    anchor: 'tray-right',
+    zone: '← Plateau de cartes',
+    title: 'Tes cartes à jouer',
+    description: "Glisse les cartes depuis le plateau gauche vers les emplacements de la grille. Chaque carte a 4 mots.",
+  },
+  {
+    anchor: 'center-right',
+    zone: '← Grille centrale',
+    title: 'Lis les indices',
+    description: "Les 4 mots autour de la grille sont les indices du créateur. Ils t'indiquent quelle carte va dans quel emplacement — et dans quel sens !",
+  },
+  {
+    anchor: 'center',
+    zone: 'Bouton ↻',
+    title: 'Oriente les cartes',
+    description: "Appuie sur ↻ pour tourner une carte. Le mot de la carte doit pointer dans la bonne direction pour correspondre à l'indice de ce côté.",
+  },
+  {
+    anchor: 'footer-center',
+    zone: '↓ Bouton Soumettre',
+    title: 'Soumets et observe',
+    description: "Une fois tes 4 cartes placées, soumets ta réponse. Tu as 3 essais. Après chaque essai : ✓ bien placée, ↻ mal orientée, ✗ mauvaise carte.",
+  },
+]
 import CloverGrid from '../../components/game/CloverGrid'
 import WordCard from '../../components/game/WordCard'
 
@@ -19,6 +52,7 @@ export default function PlayPage() {
   const navigate = useNavigate()
   const { user, refreshUser } = useAuthStore()
 
+  const [showTour, setShowTour] = useState(false)
   const [grid, setGrid] = useState(null)
   const [placements, setPlacements] = useState({ 0: null, 1: null, 2: null, 3: null })
   const [trayCards, setTrayCards] = useState([])
@@ -89,8 +123,36 @@ export default function PlayPage() {
       }))
       setTrayCards(shuffled)
 
+      const cardMap = new Map(shuffled.map(({ card, colorIndex }) => [card.id, { card, colorIndex }]))
+
       if (existingPlay) {
         setPlayId(existingPlay.id)
+
+        const { data: prevAttempts } = await supabase
+          .from('orienta_play_attempts')
+          .select('attempt_number, answer, correct_full, correct_rotation, neither')
+          .eq('play_id', existingPlay.id)
+          .order('attempt_number', { ascending: true })
+
+        if (prevAttempts?.length > 0) {
+          const history = prevAttempts.map(attempt => {
+            const placements = {}
+            attempt.answer.forEach(({ card_id, position, rotation }) => {
+              const entry = cardMap.get(card_id)
+              if (entry) placements[position] = { ...entry, rotation }
+            })
+            return {
+              correctFull: attempt.correct_full,
+              correctRotation: attempt.correct_rotation,
+              neither: attempt.neither,
+              placements,
+            }
+          })
+          setAttemptHistory(history)
+          setActiveHistoryTab(history.length - 1)
+          setAttemptNumber(prevAttempts.length + 1)
+          setAttemptsFailed(prevAttempts.length)
+        }
       } else {
         const { data: play } = await supabase
           .from('orienta_plays')
@@ -102,6 +164,12 @@ export default function PlayPage() {
     }
     fetchGrid()
   }, [gridId, user, navigate])
+
+  useEffect(() => {
+    if (!user) return
+    const key = `orienta_tour_play_${user.id}`
+    if (!localStorage.getItem(key)) setShowTour(true)
+  }, [user])
 
   useEffect(() => {
     if (gameOver) return
@@ -303,8 +371,30 @@ export default function PlayPage() {
         {/* ── Drawer droit — feedback ── */}
         <aside className="play-feedback-drawer">
           {attemptHistory.length === 0 ? (
-            <div className="play-hint">
-              <p>Placez vos 4 cartes dans la grille et soumettez — votre feedback apparaîtra ici.</p>
+            <div className="play-history">
+              <div className="play-history-tabs">
+                <div className="play-tab-ghost" />
+              </div>
+              <div className="play-history-panel play-history-panel--ghost">
+                <div className="play-feedback-rows">
+                  {[
+                    { cls: 'play-feedback-dot--correct', label: 'bien placé et orienté' },
+                    { cls: 'play-feedback-dot--rotation', label: 'bien placé, mal orienté' },
+                    { cls: 'play-feedback-dot--wrong', label: 'mal placé' },
+                  ].map(({ cls, label }) => (
+                    <div key={label} className="play-feedback-row play-feedback-row--ghost">
+                      <div className={`play-feedback-dot ${cls}`} />
+                      <span className="play-ghost-count" />
+                      <span className="play-ghost-label" />
+                    </div>
+                  ))}
+                </div>
+                <div className="play-feedback-divider" />
+                <div className="play-mini-grid-center">
+                  <div className="play-ghost-minigrid" />
+                </div>
+              </div>
+              <p className="play-ghost-caption">Soumets pour voir ton résultat</p>
             </div>
           ) : (
             <div className="play-history">
@@ -372,6 +462,16 @@ export default function PlayPage() {
         </button>
         <Link to="/hub" className="btn-secondary play-footer-hub">Retour au Hub</Link>
       </footer>
+
+      {showTour && (
+        <TourOverlay
+          steps={PLAY_TOUR_STEPS}
+          onDone={() => {
+            localStorage.setItem(`orienta_tour_play_${user.id}`, '1')
+            setShowTour(false)
+          }}
+        />
+      )}
     </div>
   )
 }

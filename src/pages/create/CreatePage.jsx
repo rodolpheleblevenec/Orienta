@@ -10,6 +10,48 @@ import { useAuthStore } from '../../stores/authStore'
 import { XP_CREATE } from '../../lib/scoring'
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 import Header from '../../components/ui/Header'
+import TourOverlay from '../../components/ui/TourOverlay'
+
+const CREATE_PLACEMENT_STEPS = [
+  {
+    anchor: 'center',
+    title: 'Crée ta grille',
+    description: "Tu vas placer des cartes dans une grille en trèfle, puis écrire 4 indices pour que d'autres joueurs la résolvent.",
+  },
+  {
+    anchor: 'center-right',
+    zone: '← Plateau de cartes',
+    title: 'Tes cartes disponibles',
+    description: "Glisse les cartes depuis le plateau gauche vers les 4 emplacements. En mode Difficile, une 5e carte reste en réserve — c'est le leurre pour les joueurs !",
+  },
+  {
+    anchor: 'center-right',
+    zone: '← Bouton ↻ sur la carte',
+    title: 'Oriente les cartes',
+    description: "Utilise ↻ pour tourner chaque carte. La position d'un mot dans la carte correspond au côté de la grille — et donc à l'indice que tu vas écrire.",
+  },
+]
+
+const CREATE_CLUES_STEPS = [
+  {
+    anchor: 'center-right',
+    zone: '← Champs d\'indices',
+    title: 'Écris tes 4 indices',
+    description: "Un indice par côté de la grille. Chaque indice doit évoquer la carte placée de ce côté — sans être trop évident pour les joueurs !",
+  },
+  {
+    anchor: 'center',
+    zone: '⚠ Règle importante',
+    title: 'Mots interdits',
+    description: "Ton indice ne peut pas être l'un des mots présents sur les cartes. Trop facile ! Le jeu te préviendra si tu essaies.",
+  },
+  {
+    anchor: 'top-center',
+    zone: '↓ Bouton Publier',
+    title: 'Publie ta grille',
+    description: "Quand tes 4 indices sont validés, publie ! Ta grille sera visible 48h et tu gagneras de l'XP pour chaque joueur qui la réussit.",
+  },
+]
 import CloverGrid from '../../components/game/CloverGrid'
 import CloverWithInputs from '../../components/game/CloverWithInputs'
 import WordCard from '../../components/game/WordCard'
@@ -30,6 +72,8 @@ export default function CreatePage() {
   const [showDifficultyModal, setShowDifficultyModal] = useState(true)
   const [showExitWarning, setShowExitWarning] = useState(false)
   const [missedCreation, setMissedCreation] = useState(false)
+  const [showPlacementTour, setShowPlacementTour] = useState(false)
+  const [showCluesTour, setShowCluesTour] = useState(false)
   useBodyScrollLock(showDifficultyModal || showExitWarning)
   const [alreadyCreatedToday, setAlreadyCreatedToday] = useState(false)
   const [phase, setPhase] = useState('placement')
@@ -209,7 +253,17 @@ export default function CreatePage() {
   function handleSelectDifficulty(chosen) {
     setDifficulty(chosen)
     setShowDifficultyModal(false)
+    if (user && !localStorage.getItem(`orienta_tour_create_placement_${user.id}`)) {
+      setShowPlacementTour(true)
+    }
   }
+
+  useEffect(() => {
+    if (phase !== 'clues' || !user) return
+    if (!localStorage.getItem(`orienta_tour_create_clues_${user.id}`)) {
+      setShowCluesTour(true)
+    }
+  }, [phase, user])
 
   const allCardWords = useMemo(() => {
     const fields = ['word_top', 'word_right', 'word_bottom', 'word_left']
@@ -454,6 +508,25 @@ export default function CreatePage() {
           : <Link to="/hub" className="btn-secondary play-footer-hub">Retour au Hub</Link>
         }
       </footer>
+
+      {showPlacementTour && (
+        <TourOverlay
+          steps={CREATE_PLACEMENT_STEPS}
+          onDone={() => {
+            localStorage.setItem(`orienta_tour_create_placement_${user.id}`, '1')
+            setShowPlacementTour(false)
+          }}
+        />
+      )}
+      {showCluesTour && (
+        <TourOverlay
+          steps={CREATE_CLUES_STEPS}
+          onDone={() => {
+            localStorage.setItem(`orienta_tour_create_clues_${user.id}`, '1')
+            setShowCluesTour(false)
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -8,6 +8,7 @@ import PlayPage from './pages/play/PlayPage'
 import ResultPage from './pages/result/ResultPage'
 import ProfilePage from './pages/profile/ProfilePage'
 import DashboardPage from './pages/dashboard/DashboardPage'
+import DailyAdminPage from './pages/admin/DailyAdminPage'
 import './index.css'
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/result/:gridId"    element={<RequireAuth><ResultPage /></RequireAuth>} />
         <Route path="/profile"           element={<RequireAuth><ProfilePage /></RequireAuth>} />
         <Route path="/dashboard/:gridId" element={<RequireAuth><DashboardPage /></RequireAuth>} />
+        <Route path="/admin/daily"       element={<RequireAuth><DailyAdminPage /></RequireAuth>} />
         <Route path="*"                  element={<Navigate to="/hub" replace />} />
       </Routes>
       <TutorialModal />
