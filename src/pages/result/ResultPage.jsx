@@ -26,21 +26,31 @@ export default function ResultPage() {
   } = location.state ?? {}
 
   const [leaderboard, setLeaderboard] = useState([])
+  const [playerRank, setPlayerRank] = useState(null)
+  const [comments, setComments] = useState([])
   const [comment, setComment] = useState('')
   const [commentSent, setCommentSent] = useState(false)
   const [play, setPlay] = useState(null)
   const [grid, setGrid] = useState(null)
   const [attempts, setAttempts] = useState([])
-  const [solTab, setSolTab] = useState('solution')
+  const [activeTab, setActiveTab] = useState('solution')
 
   useEffect(() => {
-    if (success) {
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } })
-    }
+    if (success) confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } })
   }, [success])
 
   useEffect(() => {
     if (!user) return
+
+    const rankQuery = success
+      ? supabase
+          .from('orienta_plays')
+          .select('*', { count: 'exact', head: true })
+          .eq('grid_id', gridId)
+          .eq('success', true)
+          .gt('score', score)
+      : Promise.resolve({ count: null })
+
     Promise.all([
       supabase
         .from('orienta_plays')
@@ -48,7 +58,7 @@ export default function ResultPage() {
         .eq('grid_id', gridId)
         .eq('success', true)
         .order('score', { ascending: false })
-        .limit(10),
+        .limit(5),
       supabase
         .from('orienta_plays')
         .select('*')
@@ -63,10 +73,19 @@ export default function ResultPage() {
         .select('*, orienta_grid_cards(*, orienta_word_cards(*))')
         .eq('id', gridId)
         .single(),
-    ]).then(([leaderRes, playRes, gridRes]) => {
+      supabase
+        .from('orienta_plays')
+        .select('comment, completed_at, orienta_users(pseudo)')
+        .eq('grid_id', gridId)
+        .not('comment', 'is', null)
+        .order('completed_at', { ascending: false }),
+      rankQuery,
+    ]).then(([leaderRes, playRes, gridRes, commentsRes, rankRes]) => {
       setLeaderboard(leaderRes.data ?? [])
       setPlay(playRes.data)
       setGrid(gridRes.data)
+      setComments(commentsRes.data ?? [])
+      if (rankRes.count !== null) setPlayerRank(rankRes.count + 1)
       if (playRes.data?.id) {
         supabase
           .from('orienta_play_attempts')
@@ -76,32 +95,92 @@ export default function ResultPage() {
           .then(({ data }) => setAttempts(data ?? []))
       }
     })
-  }, [gridId, user])
+  }, [gridId, user, score, success])
 
   async function handleCommentSubmit() {
     if (!play || !comment.trim()) return
     await supabase.from('orienta_plays').update({ comment: comment.trim() }).eq('id', play.id)
     setCommentSent(true)
+    setComments(prev => [
+      { comment: comment.trim(), orienta_users: { pseudo: user?.pseudo ?? 'Moi' } },
+      ...prev,
+    ])
   }
 
+  // Solution correcte
   const solutionPlacements = {}
   for (const gc of grid?.orienta_grid_cards ?? []) {
     if (gc.position >= 0 && gc.position <= 3) {
-      solutionPlacements[gc.position] = { card: gc.orienta_word_cards, rotation: gc.rotation ?? 0 }
+      solutionPlacements[gc.position] = { card: gc.orienta_word_cards, rotation: gc.rotation ?? 0, colorIndex: gc.position }
     }
+  }
+
+  // Lookup carte par id pour reconstruire les placements d'un essai
+  const cardById = {}
+  for (const gc of grid?.orienta_grid_cards ?? []) {
+    if (gc.orienta_word_cards) cardById[gc.card_id] = gc.orienta_word_cards
+  }
+
+  function buildAttemptPlacements(attempt) {
+    const p = {}
+    for (const ans of attempt?.answer ?? []) {
+      if (ans.position >= 0 && ans.position <= 3 && cardById[ans.card_id]) {
+        p[ans.position] = { card: cardById[ans.card_id], rotation: ans.rotation ?? 0, colorIndex: ans.position }
+      }
+    }
+    return p
   }
 
   const clues = grid
     ? { top: grid.clue_top, right: grid.clue_right, bottom: grid.clue_bottom, left: grid.clue_left }
     : { top: '', right: '', bottom: '', left: '' }
 
+  const currentAttempt = typeof activeTab === 'number' ? attempts[activeTab] : null
+
+  // Est-ce que le joueur est déjà dans le top 5 affiché ?
+  const playerInTop5 = leaderboard.some(row => row.orienta_users?.pseudo === user?.pseudo)
+
   return (
     <div className="result-page">
       <Header />
       <main className="result-main">
 
-        {/* ── Colonne gauche ── */}
-        <div className="result-col-left">
+        {/* ── Colonne 1 — Messages & Commentaires ── */}
+        <div className="result-col result-col--messages">
+          <div className="result-section-title">💬 Messages</div>
+
+          {!commentSent && play ? (
+            <div className="result-comment">
+              <textarea className="comment-input"
+                placeholder="Laisser un message aux autres joueurs…"
+                value={comment} onChange={e => setComment(e.target.value)}
+                rows={3} maxLength={280} />
+              <button className="btn-secondary" onClick={handleCommentSubmit} disabled={!comment.trim()}>
+                Envoyer
+              </button>
+            </div>
+          ) : commentSent ? (
+            <p className="result-comment-sent">Message envoyé ✓</p>
+          ) : null}
+
+          {comments.length > 0 ? (
+            <ul className="comments-list">
+              {comments.map((c, i) => (
+                <motion.li key={i} className="comment-item"
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}>
+                  <span className="comment-pseudo">{c.orienta_users?.pseudo ?? '?'}</span>
+                  <p className="comment-text">{c.comment}</p>
+                </motion.li>
+              ))}
+            </ul>
+          ) : (
+            <p className="result-empty-state">Sois le premier à laisser un message !</p>
+          )}
+        </div>
+
+        {/* ── Colonne 2 — Score & Classement ── */}
+        <div className="result-col result-col--score">
           <motion.div className="result-card"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -119,12 +198,12 @@ export default function ResultPage() {
               <div className="result-xp-block">
                 <div className="result-xp-title">✨ XP gagnée</div>
                 <div className="result-xp-row">
-                  <span className="result-xp-label">🕐 Score {score} pts</span>
+                  <span>🕐 Score {score} pts</span>
                   <span className="result-xp-value">+{baseXp} XP</span>
                 </div>
                 {bonusXp > 0 && (
                   <div className="result-xp-row">
-                    <span className="result-xp-label">🔥 Streak {streakCurrent}j</span>
+                    <span>🔥 Streak {streakCurrent}j</span>
                     <span className="result-xp-value">+{bonusXp} XP</span>
                   </div>
                 )}
@@ -139,94 +218,102 @@ export default function ResultPage() {
             )}
           </motion.div>
 
-          {/* Classement */}
           {leaderboard.length > 0 && (
             <div className="result-leaderboard">
-              <h2>Classement de cette grille</h2>
+              <h2>Top 5</h2>
               <ol className="leaderboard-list">
-                {leaderboard.map((row, i) => (
-                  <motion.li key={i} className="leaderboard-row"
-                    initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 + i * 0.06 }}>
-                    <span className="leaderboard-rank">#{i + 1}</span>
-                    <span className="leaderboard-name">{row.orienta_users?.pseudo ?? '?'}</span>
-                    <span className="leaderboard-score">{row.score} pts</span>
-                  </motion.li>
-                ))}
+                {leaderboard.map((row, i) => {
+                  const isMe = row.orienta_users?.pseudo === user?.pseudo
+                  return (
+                    <motion.li key={i}
+                      className={`leaderboard-row ${isMe ? 'leaderboard-row--me' : ''}`}
+                      initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 + i * 0.06 }}>
+                      <span className="leaderboard-rank">#{i + 1}</span>
+                      <span className="leaderboard-name">{row.orienta_users?.pseudo ?? '?'}</span>
+                      <span className="leaderboard-score">{row.score} pts</span>
+                    </motion.li>
+                  )
+                })}
               </ol>
+
+              {success && playerRank && !playerInTop5 && (
+                <>
+                  <div className="leaderboard-separator">···</div>
+                  <div className="leaderboard-row leaderboard-row--me">
+                    <span className="leaderboard-rank">#{playerRank}</span>
+                    <span className="leaderboard-name">{user?.pseudo}</span>
+                    <span className="leaderboard-score">{score} pts</span>
+                  </div>
+                </>
+              )}
             </div>
           )}
-
-          {/* Commentaire */}
-          {!commentSent && play && (
-            <div className="result-comment">
-              <textarea className="comment-input" placeholder="Laisser un commentaire au créateur…"
-                value={comment} onChange={e => setComment(e.target.value)} rows={3} maxLength={280} />
-              <button className="btn-secondary" onClick={handleCommentSubmit} disabled={!comment.trim()}>
-                Envoyer
-              </button>
-            </div>
-          )}
-          {commentSent && <p className="result-comment-sent">Commentaire envoyé ✓</p>}
-
-          <Link to="/hub" className="btn-primary result-cta">Retour au Hub</Link>
         </div>
 
-        {/* ── Colonne droite — Solution ── */}
-        <div className="result-col-right">
-          {!success && grid && (
-            <div className="result-solution">
-              <h2>La solution était</h2>
-
-              <div className="result-sol-tabs">
-                <button
-                  className={`result-sol-tab ${solTab === 'solution' ? 'result-sol-tab--active' : ''}`}
-                  onClick={() => setSolTab('solution')}
-                  type="button"
-                >
-                  Solution
-                </button>
+        {/* ── Colonne 3 — Feedback & Solution ── */}
+        <div className="result-col result-col--feedback">
+          {grid && (
+            <div className="result-feedback-panel">
+              <div className="result-feedback-tabs">
                 {attempts.map((att, i) => (
-                  <button
-                    key={i}
-                    className={`result-sol-tab ${solTab === `attempt-${i}` ? 'result-sol-tab--active' : ''}`}
-                    onClick={() => setSolTab(`attempt-${i}`)}
-                    type="button"
-                  >
+                  <button key={i}
+                    className={`result-feedback-tab ${activeTab === i ? 'result-feedback-tab--active' : ''}`}
+                    onClick={() => setActiveTab(i)}
+                    type="button">
                     Essai {att.attempt_number}
                   </button>
                 ))}
+                <button
+                  className={`result-feedback-tab result-feedback-tab--solution ${activeTab === 'solution' ? 'result-feedback-tab--active' : ''}`}
+                  onClick={() => setActiveTab('solution')}
+                  type="button">
+                  ✓ Solution
+                </button>
               </div>
 
-              <div className="result-sol-body">
-                {solTab === 'solution' && (
-                  <StaticMiniGrid placements={solutionPlacements} clues={clues} />
-                )}
-                {attempts.map((att, i) => solTab === `attempt-${i}` && (
-                  <div key={i} className="result-attempt-detail">
-                    <div className="play-feedback-row">
-                      <div className="play-feedback-dot play-feedback-dot--correct" />
-                      <span className="play-feedback-count">{att.correct_full}</span>
-                      <span>bien placé et orienté</span>
-                    </div>
-                    <div className="play-feedback-row">
-                      <div className="play-feedback-dot play-feedback-dot--rotation" />
-                      <span className="play-feedback-count">{att.correct_rotation}</span>
-                      <span>bien placé, mal orienté</span>
-                    </div>
-                    <div className="play-feedback-row">
-                      <div className="play-feedback-dot play-feedback-dot--wrong" />
-                      <span className="play-feedback-count">{att.neither}</span>
-                      <span>mal placé</span>
-                    </div>
+              <div className="result-feedback-body">
+                {activeTab === 'solution' ? (
+                  <div className="result-feedback-grid-wrap">
+                    <StaticMiniGrid placements={solutionPlacements} clues={clues} />
                   </div>
-                ))}
+                ) : currentAttempt ? (
+                  <>
+                    <div className="result-feedback-dots">
+                      <div className="play-feedback-row">
+                        <div className="play-feedback-dot play-feedback-dot--correct" />
+                        <span className="play-feedback-count">{currentAttempt.correct_full}</span>
+                        <span>bien placé et orienté</span>
+                      </div>
+                      <div className="play-feedback-row">
+                        <div className="play-feedback-dot play-feedback-dot--rotation" />
+                        <span className="play-feedback-count">{currentAttempt.correct_rotation}</span>
+                        <span>bien placé, mal orienté</span>
+                      </div>
+                      <div className="play-feedback-row">
+                        <div className="play-feedback-dot play-feedback-dot--wrong" />
+                        <span className="play-feedback-count">{currentAttempt.neither}</span>
+                        <span>mal placé</span>
+                      </div>
+                    </div>
+                    <div className="result-feedback-divider" />
+                    <div className="result-feedback-grid-wrap">
+                      <StaticMiniGrid placements={buildAttemptPlacements(currentAttempt)} clues={clues} />
+                    </div>
+                  </>
+                ) : (
+                  <div className="result-feedback-loading">Chargement…</div>
+                )}
               </div>
             </div>
           )}
         </div>
 
       </main>
+
+      <footer className="result-footer">
+        <Link to="/hub" className="btn-primary result-footer-cta">Retour au Hub</Link>
+      </footer>
     </div>
   )
 }

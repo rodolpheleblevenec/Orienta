@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   DndContext, DragOverlay, closestCorners,
   PointerSensor, TouchSensor, useSensor, useSensors,
@@ -8,27 +8,39 @@ import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import { XP_CREATE } from '../../lib/scoring'
+import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 import Header from '../../components/ui/Header'
 import CloverGrid from '../../components/game/CloverGrid'
-import CardTray from '../../components/game/CardTray'
+import CloverWithInputs from '../../components/game/CloverWithInputs'
 import WordCard from '../../components/game/WordCard'
 
-const TIMER_DURATION = 90 // chrono pour moyen/difficile
+const TIMER_DURATION = 90
+
+const CLUE_SIDES = [
+  { key: 'top',    label: 'Haut' },
+  { key: 'right',  label: 'Droite' },
+  { key: 'bottom', label: 'Bas' },
+  { key: 'left',   label: 'Gauche' },
+]
 
 export default function CreatePage() {
   const navigate = useNavigate()
   const { user, refreshUser } = useAuthStore()
 
   const [showDifficultyModal, setShowDifficultyModal] = useState(true)
+  const [showExitWarning, setShowExitWarning] = useState(false)
+  const [missedCreation, setMissedCreation] = useState(false)
+  useBodyScrollLock(showDifficultyModal || showExitWarning)
   const [alreadyCreatedToday, setAlreadyCreatedToday] = useState(false)
-  const [phase, setPhase] = useState('placement') // 'placement' | 'clues'
-  const [difficulty, setDifficulty] = useState(null) // 'facile' | 'moyen' | 'difficile'
+  const [phase, setPhase] = useState('placement')
+  const [difficulty, setDifficulty] = useState(null)
   const [placements, setPlacements] = useState({ 0: null, 1: null, 2: null, 3: null })
   const [trayCards, setTrayCards] = useState([])
   const [activeCard, setActiveCard] = useState(null)
   const [clues, setClues] = useState({ top: '', right: '', bottom: '', left: '' })
   const [timeLeft, setTimeLeft] = useState(TIMER_DURATION)
   const [expired, setExpired] = useState(false)
+  const [isSwappingSlots, setIsSwappingSlots] = useState(false)
   const startTimeRef = useRef(null)
   const timerRef = useRef(null)
 
@@ -37,7 +49,6 @@ export default function CreatePage() {
     useSensor(TouchSensor,   { activationConstraint: { delay: 120, tolerance: 8 } }),
   )
 
-  // Check if user already created a grid today
   useEffect(() => {
     if (!user) return
     const today = new Date().toISOString().split('T')[0]
@@ -50,17 +61,14 @@ export default function CreatePage() {
       })
   }, [user])
 
-  // Chrono démarre seulement si pas en phase 'difficulty' et si la difficulté n'est pas 'facile'
   useEffect(() => {
     if (phase === 'difficulty' || difficulty === 'facile') {
       if (timerRef.current) clearInterval(timerRef.current)
       return
     }
-
     if (phase === 'placement' && !startTimeRef.current) {
       startTimeRef.current = Date.now()
     }
-
     timerRef.current = setInterval(() => {
       const remaining = TIMER_DURATION - Math.floor((Date.now() - startTimeRef.current) / 1000)
       if (remaining <= 0) {
@@ -74,23 +82,27 @@ export default function CreatePage() {
 
   useEffect(() => {
     if (phase !== 'placement' || !difficulty) return
-
     supabase.from('orienta_word_cards').select('*').limit(200)
       .then(({ data }) => {
         if (!data) return
         const cardCount = difficulty === 'difficile' ? 5 : 4
         const shuffled = [...data].sort(() => Math.random() - 0.5).slice(0, cardCount)
-        setTrayCards(shuffled.map(card => ({ card, rotation: 0 })))
+        setTrayCards(shuffled.map((card, i) => ({ card, rotation: 0, colorIndex: i })))
       })
   }, [phase, difficulty])
 
-  // Auto-switch to clues phase when all 4 slots are occupied
   useEffect(() => {
     const allSlotsOccupied = Object.values(placements).every(v => v !== null)
-    if (phase === 'placement' && allSlotsOccupied) {
-      setPhase('clues')
-    }
+    if (phase === 'placement' && allSlotsOccupied) setPhase('clues')
   }, [placements, phase])
+
+  function handleReset() {
+    const placed = Object.values(placements).filter(Boolean)
+    if (!placed.length) return
+    setTrayCards(prev => [...prev, ...placed])
+    setPlacements({ 0: null, 1: null, 2: null, 3: null })
+    if (phase === 'clues') setPhase('placement')
+  }
 
   function handleDragStart({ active }) {
     const fromTray = trayCards.find(c => `tray-${c.card.id}` === active.id)
@@ -105,11 +117,9 @@ export default function CreatePage() {
   function handleDragEnd({ active, over }) {
     setActiveCard(null)
     if (!over || expired) return
-
     const targetSlot = parseInt(over.id.replace('slot-', ''), 10)
     if (isNaN(targetSlot)) return
 
-    // From tray
     const trayIdx = trayCards.findIndex(c => `tray-${c.card.id}` === active.id)
     if (trayIdx !== -1) {
       const cardItem = trayCards[trayIdx]
@@ -123,17 +133,14 @@ export default function CreatePage() {
       return
     }
 
-    // From slot → slot
     for (const [pos, item] of Object.entries(placements)) {
       if (item && `placed-${item.card.id}-${pos}` === active.id) {
         const sourceSlot = parseInt(pos)
         if (sourceSlot === targetSlot) return
         const existing = placements[targetSlot]
-        setPlacements(prev => ({
-          ...prev,
-          [targetSlot]: item,
-          [sourceSlot]: existing ?? null,
-        }))
+        setIsSwappingSlots(true)
+        setPlacements(prev => ({ ...prev, [targetSlot]: item, [sourceSlot]: existing ?? null }))
+        setTimeout(() => setIsSwappingSlots(false), 50)
         return
       }
     }
@@ -147,17 +154,8 @@ export default function CreatePage() {
     })
   }
 
-  function handleTrayRotate(cardId) {
-    setTrayCards(prev => prev.map(c =>
-      c.card.id === cardId ? { ...c, rotation: (c.rotation + 90) % 360 } : c
-    ))
-  }
-
-  async function handleSubmit() {
-    if (expired || !difficulty) return
-    if (!Object.values(clues).every(c => c.trim())) return
-
-    const creatorTime = difficulty === 'facile' ? null : TIMER_DURATION - timeLeft
+  async function publishGrid(usedTime) {
+    const creatorTime = difficulty === 'facile' ? null : usedTime ?? (TIMER_DURATION - timeLeft)
 
     const { data: grid, error: gridError } = await supabase.from('orienta_grids').insert({
       creator_id: user.id,
@@ -180,23 +178,32 @@ export default function CreatePage() {
         position: parseInt(pos), rotation,
       }))
 
-    // Add the decoy card in hard mode (the one left in tray)
     if (difficulty === 'difficile' && trayCards.length === 1) {
-      gridCardInserts.push({
-        grid_id: grid.id,
-        card_id: trayCards[0].card.id,
-        position: -1,
-        rotation: 0,
-      })
+      gridCardInserts.push({ grid_id: grid.id, card_id: trayCards[0].card.id, position: -1, rotation: 0 })
     }
 
     await supabase.from('orienta_grid_cards').insert(gridCardInserts)
-
-    const xpEarned = XP_CREATE[difficulty]
-    await supabase.rpc('add_user_xp', { uid: user.id, amount: xpEarned })
+    await supabase.rpc('add_user_xp', { uid: user.id, amount: XP_CREATE[difficulty] })
     await refreshUser()
-
     navigate('/hub')
+  }
+
+  useEffect(() => {
+    if (!expired || difficulty === 'facile') return
+    if (allCluesFilled && !hasClueConflict) {
+      publishGrid(TIMER_DURATION)
+    } else {
+      localStorage.setItem(`orienta_create_forfeit_${user?.id}`, new Date().toISOString().split('T')[0])
+      setMissedCreation(true)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expired])
+
+  async function handleSubmit() {
+    if (expired || !difficulty) return
+    if (!Object.values(clues).every(c => c.trim())) return
+    if (hasClueConflict) return
+    await publishGrid()
   }
 
   function handleSelectDifficulty(chosen) {
@@ -204,16 +211,36 @@ export default function CreatePage() {
     setShowDifficultyModal(false)
   }
 
+  const allCardWords = useMemo(() => {
+    const fields = ['word_top', 'word_right', 'word_bottom', 'word_left']
+    const cards = [
+      ...trayCards.map(t => t.card),
+      ...Object.values(placements).filter(Boolean).map(p => p.card),
+    ]
+    return new Set(cards.flatMap(card => fields.map(f => card[f]?.toLowerCase().trim()).filter(Boolean)))
+  }, [trayCards, placements])
+
+  const clueConflicts = Object.fromEntries(
+    Object.entries(clues).map(([side, val]) => [
+      side,
+      val.trim() !== '' && allCardWords.has(val.toLowerCase().trim()),
+    ])
+  )
+  const hasClueConflict = Object.values(clueConflicts).some(Boolean)
+
+  const placedCount = Object.values(placements).filter(Boolean).length
   const allPlaced = trayCards.length === (difficulty === 'difficile' ? 1 : 0)
+  const allCluesFilled = Object.values(clues).every(c => c.trim())
   const showTimer = difficulty && difficulty !== 'facile'
   const timerPct = showTimer ? (timeLeft / TIMER_DURATION) * 100 : 100
   const timerColor = timeLeft < 20 ? 'var(--coral)' : timeLeft < 45 ? 'var(--warning)' : 'var(--accent)'
+  const dummyClues = { top: '—', right: '—', bottom: '—', left: '—' }
 
   return (
     <div className="create-page">
       <Header />
 
-      {/* Modal de sélection de difficulté ou message limite quotidienne */}
+      {/* ── Modal de difficulté ── */}
       {showDifficultyModal && (
         <div className="difficulty-modal-backdrop">
           <div className="difficulty-modal">
@@ -221,7 +248,7 @@ export default function CreatePage() {
               <>
                 <h2 className="difficulty-modal-title">Limite quotidienne atteinte</h2>
                 <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-                  Tu as déjà créé une grille aujourd'hui. Reviens demain pour en créer une nouvelle ! 🎯
+                  Tu as déjà créé une grille aujourd'hui. Reviens demain pour en créer une nouvelle !
                 </p>
                 <button className="btn-primary" onClick={() => navigate('/hub')} style={{ width: '100%' }}>
                   Retour au Hub
@@ -231,30 +258,16 @@ export default function CreatePage() {
               <>
                 <h2 className="difficulty-modal-title">Quel niveau de difficulté ?</h2>
                 <div className="difficulty-options">
-                  <button
-                    className="difficulty-card"
-                    onClick={() => handleSelectDifficulty('facile')}
-                    type="button"
-                  >
-                    <div className="difficulty-name">Facile</div>
-                    <div className="difficulty-desc">Temps illimité<br />4 cartes</div>
-                  </button>
-                  <button
-                    className="difficulty-card"
-                    onClick={() => handleSelectDifficulty('moyen')}
-                    type="button"
-                  >
-                    <div className="difficulty-name">Moyen</div>
-                    <div className="difficulty-desc">90 secondes<br />4 cartes</div>
-                  </button>
-                  <button
-                    className="difficulty-card"
-                    onClick={() => handleSelectDifficulty('difficile')}
-                    type="button"
-                  >
-                    <div className="difficulty-name">Difficile</div>
-                    <div className="difficulty-desc">90 secondes<br />5 cartes (1 leurre)</div>
-                  </button>
+                  {[
+                    { id: 'facile',    name: 'Facile',    desc: 'Temps illimité — 4 cartes' },
+                    { id: 'moyen',     name: 'Moyen',     desc: '90 secondes — 4 cartes' },
+                    { id: 'difficile', name: 'Difficile', desc: '90 secondes — 5 cartes (1 leurre)' },
+                  ].map(d => (
+                    <button key={d.id} className="difficulty-card" onClick={() => handleSelectDifficulty(d.id)} type="button">
+                      <div className="difficulty-name">{d.name}</div>
+                      <div className="difficulty-desc">{d.desc}</div>
+                    </button>
+                  ))}
                 </div>
               </>
             )}
@@ -262,113 +275,185 @@ export default function CreatePage() {
         </div>
       )}
 
-      <main className="create-main">
-
-        {/* Chrono seulement si timer actif */}
-        {showTimer && (
-          <div className="create-timer">
-            <div className="timer-bar-track">
-              <motion.div
-                className="timer-bar-fill"
-                animate={{ width: `${timerPct}%`, backgroundColor: timerColor }}
-                transition={{ duration: 0.5 }}
-              />
-            </div>
-            <span className="timer-value" style={{ color: timerColor }}>
-              {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
-            </span>
-          </div>
-        )}
-
-        {!showDifficultyModal && (
-          <div className="create-phase-label">
-            {phase === 'placement'
-              ? `Étape 1 — Place et oriente tes ${difficulty === 'difficile' ? '5' : '4'} cartes`
-              : 'Étape 2 — Écris tes 4 indices'}
-          </div>
-        )}
-
-        {expired && (
-          <div className="create-expired">
-            <div className="create-expired-icon">⏰</div>
-            <p className="create-expired-title">Le temps est écoulé !</p>
-            <p className="create-expired-text">Ta grille n'a pas été sauvegardée. Pas de panique, réessaie !</p>
-            <div className="create-expired-actions">
-              <button className="btn-primary" onClick={() => window.location.reload()}>Réessayer</button>
-              <button className="btn-secondary" onClick={() => navigate('/hub')}>Retour au Hub</button>
+      {showExitWarning && (
+        <div className="logout-modal-backdrop" onClick={() => setShowExitWarning(false)}>
+          <div className="logout-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 380 }}>
+            <h3>Abandonner la grille ?</h3>
+            <p>Tu as choisi le mode <strong>{difficulty === 'moyen' ? 'Moyen' : 'Difficile'}</strong> avec chrono. Si tu quittes maintenant, ta grille est perdue et tu ne pourras plus en créer une autre aujourd'hui.</p>
+            <div className="logout-modal-buttons">
+              <button className="btn-secondary" onClick={() => setShowExitWarning(false)} type="button">Continuer</button>
+              <button className="btn-primary" style={{ background: '#F0440A' }} onClick={() => { localStorage.setItem(`orienta_create_forfeit_${user?.id}`, new Date().toISOString().split('T')[0]); navigate('/hub') }} type="button">Quitter quand même</button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {!expired && (
-          <DndContext sensors={sensors} collisionDetection={closestCorners}
-            onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCorners}
+        onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
 
-            {phase === 'clues' ? (
+        {/* ── Drawer gauche — réserve ── */}
+        <aside className="play-tray-drawer">
+          <div className="tray-cards">
+            {trayCards.map(({ card, rotation, colorIndex }) => (
+              <div key={card.id} className="card-tray-item">
+                <WordCard
+                  id={`tray-${card.id}`}
+                  card={card}
+                  rotation={rotation ?? 0}
+                  colorIndex={colorIndex ?? 0}
+                  draggable
+                />
+              </div>
+            ))}
+          </div>
+        </aside>
+
+        {/* ── Centre — grille ── */}
+        <main className="play-main">
+          {!expired && phase === 'placement' && (
+            <button
+              className="btn-reset"
+              onClick={handleReset}
+              type="button"
+              title="Remettre toutes les cartes dans la réserve"
+              disabled={Object.values(placements).every(v => v === null)}
+            >
+              ↺ <span>Reset</span>
+            </button>
+          )}
+          <div className="play-grid-area">
+            {missedCreation ? (
+              <div className="create-expired">
+                <div className="create-expired-icon">⌛</div>
+                <p className="create-expired-title">Grille non publiée</p>
+                <p className="create-expired-text">Tu n'as pas rempli tous les indices à temps. Tu ne pourras plus créer de grille aujourd'hui — reviens demain !</p>
+                <button className="btn-secondary" onClick={() => navigate('/hub')}>Retour au Hub</button>
+              </div>
+            ) : expired ? (
+              <div className="create-expired">
+                <div className="create-expired-icon">⏰</div>
+                <p className="create-expired-title">Le temps est écoulé !</p>
+                <p className="create-expired-text">Ta grille n'a pas été sauvegardée. Pas de panique, réessaie !</p>
+                <div className="create-expired-actions">
+                  <button className="btn-primary" onClick={() => window.location.reload()}>Réessayer</button>
+                  <button className="btn-secondary" onClick={() => navigate('/hub')}>Retour au Hub</button>
+                </div>
+              </div>
+            ) : phase === 'clues' ? (
               <CloverWithInputs
-                placements={placements} clues={clues} setClues={setClues} onRotate={handleRotate}
+                placements={placements}
+                clues={clues}
+                setClues={setClues}
+                onRotate={handleRotate}
+                draggable={difficulty === 'difficile'}
               />
             ) : (
               <CloverGrid
                 placements={placements}
-                clues={{ top: '—', right: '—', bottom: '—', left: '—' }}
+                clues={dummyClues}
                 onRotate={handleRotate}
+                disableTransition={isSwappingSlots}
               />
             )}
+          </div>
+        </main>
 
-            {(phase === 'placement' || phase === 'clues') && (
-              <CardTray cards={trayCards} onRotate={handleTrayRotate} />
-            )}
-
-            <DragOverlay dropAnimation={null}>
-              {activeCard && (
-                <WordCard id="overlay" card={activeCard.card} rotation={activeCard.rotation} draggable={false} />
+        {/* ── Drawer droit — info création ── */}
+        <aside className="play-feedback-drawer create-info-drawer">
+          {!showDifficultyModal && !expired && (
+            <div className="create-phase-panel">
+              {showTimer && (
+                <div className="create-timer-block">
+                  <div className="timer-bar-track">
+                    <motion.div
+                      className="timer-bar-fill"
+                      animate={{ width: `${timerPct}%`, backgroundColor: timerColor }}
+                      transition={{ duration: 0.5 }}
+                    />
+                  </div>
+                  <span className="timer-value" style={{ color: timerColor }}>
+                    {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+                  </span>
+                </div>
               )}
-            </DragOverlay>
-          </DndContext>
-        )}
 
-        {!expired && allPlaced && (
-          <button className="btn-primary create-confirm" onClick={handleSubmit}
-            disabled={!Object.values(clues).every(c => c.trim())}>
-            {phase === 'clues' ? 'Publier la grille' : `Remplissez les indices (${phase})`}
+              <div className="create-step-header">
+                <span className="create-step-badge">
+                  {phase === 'placement' ? 'Étape 1' : 'Étape 2'}
+                </span>
+                <p className="create-step-title">
+                  {phase === 'placement'
+                    ? `Place et oriente tes ${difficulty === 'difficile' ? '5' : '4'} cartes`
+                    : 'Écris tes 4 indices'}
+                </p>
+              </div>
+
+              {phase === 'placement' ? (
+                <div className="create-placement-status">
+                  <p className="create-status-hint">
+                    Glisse les cartes dans la grille, oriente-les avec ↻
+                  </p>
+                  <div className="create-progress-dots">
+                    {[0, 1, 2, 3].map(i => (
+                      <div key={i} className={`create-dot ${placements[i] ? 'create-dot--filled' : ''}`} />
+                    ))}
+                    <span className="create-dot-label">{placedCount} / 4</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="create-clues-check">
+                  {CLUE_SIDES.map(({ key, label }) => (
+                    <div key={key} className={`create-clue-item ${clueConflicts[key] ? 'create-clue-item--conflict' : clues[key].trim() ? 'create-clue-item--done' : ''}`}>
+                      <span className="create-clue-icon">{clueConflicts[key] ? '✕' : clues[key].trim() ? '✓' : '○'}</span>
+                      <span className="create-clue-label">{label}</span>
+                      {clues[key].trim() && (
+                        <span className="create-clue-value">« {clues[key]} »</span>
+                      )}
+                      {clueConflicts[key] && (
+                        <span className="create-clue-conflict-hint">mot interdit</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </aside>
+
+        <DragOverlay dropAnimation={null}>
+          {activeCard && (
+            <WordCard
+              id="overlay"
+              card={activeCard.card}
+              rotation={activeCard.rotation}
+              colorIndex={activeCard.colorIndex ?? 0}
+              draggable={false}
+            />
+          )}
+        </DragOverlay>
+      </DndContext>
+
+      {/* ── Footer ── */}
+      <footer className="play-footer">
+        {!expired && phase === 'clues' && (
+          <button
+            className="btn-primary play-footer-submit"
+            onClick={handleSubmit}
+            disabled={!allCluesFilled || hasClueConflict}
+          >
+            {!allCluesFilled ? 'Remplis les 4 indices pour publier' : hasClueConflict ? 'Un indice est un mot des cartes' : 'Publier la grille'}
           </button>
         )}
-      </main>
-    </div>
-  )
-}
-
-function CloverWithInputs({ placements, clues, setClues, onRotate }) {
-  return (
-    <div className="clover-wrapper">
-      <input className="clue-input clue-input--top"    value={clues.top}
-        onChange={e => setClues(p => ({ ...p, top: e.target.value }))}
-        placeholder="Haut" maxLength={24} />
-      <input className="clue-input clue-input--left"   value={clues.left}
-        onChange={e => setClues(p => ({ ...p, left: e.target.value }))}
-        placeholder="Gauche" maxLength={24} />
-      <div className="clover-grid">
-        {[0, 1, 2, 3].map(pos => (
-          <div key={pos} className="clover-slot">
-            {placements[pos] ? (
-              <WordCard
-                id={`create-${placements[pos].card.id}-${pos}`}
-                card={placements[pos].card}
-                rotation={placements[pos].rotation}
-                onRotate={() => onRotate(pos)}
-                draggable={false}
-              />
-            ) : <div className="clover-slot-placeholder" />}
-          </div>
-        ))}
-      </div>
-      <input className="clue-input clue-input--right"  value={clues.right}
-        onChange={e => setClues(p => ({ ...p, right: e.target.value }))}
-        placeholder="Droite" maxLength={24} />
-      <input className="clue-input clue-input--bottom" value={clues.bottom}
-        onChange={e => setClues(p => ({ ...p, bottom: e.target.value }))}
-        placeholder="Bas" maxLength={24} />
+        {!expired && phase === 'placement' && (
+          <span className="play-footer-hint">
+            {allPlaced ? 'Passe aux indices →' : `Place toutes les cartes (${placedCount}/4)`}
+          </span>
+        )}
+        {showTimer && !expired && !missedCreation
+          ? <button className="btn-secondary play-footer-hub" onClick={() => setShowExitWarning(true)} type="button">Retour au Hub</button>
+          : <Link to="/hub" className="btn-secondary play-footer-hub">Retour au Hub</Link>
+        }
+      </footer>
     </div>
   )
 }

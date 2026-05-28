@@ -194,7 +194,7 @@ export default function PlayPage() {
 
     const { correctFull, correctRotation, neither, success: won } = result
 
-    supabase.from('orienta_play_attempts').insert({
+    await supabase.from('orienta_play_attempts').insert({
       play_id: playId,
       attempt_number: attemptNumber,
       answer,

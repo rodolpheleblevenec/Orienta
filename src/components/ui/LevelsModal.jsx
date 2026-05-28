@@ -3,9 +3,11 @@ import { LEVELS, getLevelProgress } from '../../lib/levels'
 import { getCreature } from '../../lib/creatures'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
+import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 
 export default function LevelsModal({ collectiveLevel, collectiveXp, onClose }) {
   const { user } = useAuthStore()
+  useBodyScrollLock()
   const [activeTab, setActiveTab] = useState('paliers')
   const [leaderboard, setLeaderboard] = useState([])
   const [userRank, setUserRank] = useState(null)

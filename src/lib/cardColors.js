@@ -1,9 +1,9 @@
 export const CARD_COLORS = [
-  { bg: '#C8EDE7', border: '#8FCFC6' },  // teal clair — ancre sur l'accent #00B899
-  { bg: '#FAE0D0', border: '#E8BFA8' },  // corail doux — chaleur
-  { bg: '#D0E4FA', border: '#A8C2E8' },  // bleu ciel — fraîcheur
-  { bg: '#FAE8C0', border: '#E8CB80' },  // ambre — contraste chaud
-  { bg: '#E4D0FA', border: '#C4A8E8' },  // violet lavande — complément
+  { bg: '#ffffff', border: '#00A889', text: '#00A889' },  // teal vif
+  { bg: '#ffffff', border: '#F0440A', text: '#F0440A' },  // orange-rouge
+  { bg: '#ffffff', border: '#1472E8', text: '#1472E8' },  // bleu électrique
+  { bg: '#ffffff', border: '#E89010', text: '#E89010' },  // ambre vif
+  { bg: '#ffffff', border: '#7030E0', text: '#7030E0' },  // violet intense
 ]
 
 export function getCardColor(colorIndex) {

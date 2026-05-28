@@ -24,7 +24,7 @@ export default function WordCard({ card, rotation = 0, feedback = 'neutral', onR
     position: 'relative',
   }
 
-  const { bg, border } = getCardColor(colorIndex)
+  const { bg, border, text } = getCardColor(colorIndex)
   const cardInnerStyle = {
     transform: `rotate(${rotation}deg)`,
     transition: (isDragging || isInitialRender.current || disableTransition) ? 'none' : 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
@@ -38,7 +38,7 @@ export default function WordCard({ card, rotation = 0, feedback = 'neutral', onR
     const isVertical = physIdx % 2 === 1  // physically at right(1) or left(3)
     const deg = isVertical ? -90 - rotation : -rotation
     const transition = isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)'
-    return { transform: `rotate(${deg}deg)`, whiteSpace: 'nowrap', transition }
+    return { transform: `rotate(${deg}deg)`, whiteSpace: 'nowrap', transition, color: text }
   }
 
   const feedbackClass = feedback !== 'neutral' ? `word-card--${feedback}` : ''

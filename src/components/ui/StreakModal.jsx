@@ -1,4 +1,8 @@
+import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
+
 export default function StreakModal({ onClose }) {
+  useBodyScrollLock()
+
   return (
     <div className="streak-modal-backdrop" onClick={onClose}>
       <div className="streak-modal" onClick={e => e.stopPropagation()}>

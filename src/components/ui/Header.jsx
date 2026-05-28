@@ -3,11 +3,13 @@ import { Link } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import { getMarineItem } from '../../lib/marineItems'
 import StreakModal from './StreakModal'
+import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 
 export default function Header() {
   const { user, openTutorial, logout } = useAuthStore()
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [showStreakModal, setShowStreakModal] = useState(false)
+  useBodyScrollLock(showLogoutConfirm)
   const streak = user?.streak_current ?? 0
 
   return (

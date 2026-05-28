@@ -2,13 +2,13 @@ import { getCardColor } from '../../lib/cardColors'
 
 function StaticMiniCard({ card, rotation, colorIndex }) {
   if (!card) return <div className="mini-slot-empty" />
-  const { bg, border } = getCardColor(colorIndex)
+  const { bg, border, text } = getCardColor(colorIndex)
   return (
     <div className="mini-card" style={{ transform: `rotate(${rotation}deg)`, backgroundColor: bg, borderColor: border }}>
-      <span className="mini-card-word mini-card-word--top">{card.word_top}</span>
-      <span className="mini-card-word mini-card-word--right">{card.word_right}</span>
-      <span className="mini-card-word mini-card-word--bottom">{card.word_bottom}</span>
-      <span className="mini-card-word mini-card-word--left">{card.word_left}</span>
+      <span className="mini-card-word mini-card-word--top"    style={{ color: text }}>{card.word_top}</span>
+      <span className="mini-card-word mini-card-word--right"  style={{ color: text }}>{card.word_right}</span>
+      <span className="mini-card-word mini-card-word--bottom" style={{ color: text }}>{card.word_bottom}</span>
+      <span className="mini-card-word mini-card-word--left"   style={{ color: text }}>{card.word_left}</span>
     </div>
   )
 }

@@ -9,9 +9,12 @@ import CreatedGridCard from '../../components/ui/CreatedGridCard'
 
 export default function HubPage() {
   const { user } = useAuthStore()
+  const today = new Date().toISOString().split('T')[0]
+  const hasForfeited = localStorage.getItem(`orienta_create_forfeit_${user?.id}`) === today
+
   const [grids, setGrids] = useState([])
   const [createdGrid, setCreatedGrid] = useState(null)
-  const [playedGridIds, setPlayedGridIds] = useState(new Set())
+  const [playsMap, setPlaysMap] = useState(new Map())
   const [hasCreatedToday, setHasCreatedToday] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -33,7 +36,7 @@ export default function HubPage() {
 
         supabase
           .from('orienta_plays')
-          .select('grid_id')
+          .select('grid_id, completed_at, attempts_count')
           .eq('player_id', user.id),
 
         supabase
@@ -46,7 +49,7 @@ export default function HubPage() {
       ])
 
       setGrids(activeGrids ?? [])
-      setPlayedGridIds(new Set((plays ?? []).map(p => p.grid_id)))
+      setPlaysMap(new Map((plays ?? []).map(p => [p.grid_id, { completed: !!p.completed_at, attemptsCount: p.attempts_count ?? 0 }])))
       if (todayGrid && todayGrid.id) {
         setCreatedGrid(todayGrid)
         setHasCreatedToday(true)
@@ -71,22 +74,26 @@ export default function HubPage() {
           {/* My Grid Section */}
           <section>
             <h2 className="section-title">Ma grille</h2>
-            {!createdGrid ? (
+            {createdGrid ? (
+              <div className="my-grid-card-container">
+                <CreatedGridCard grid={createdGrid} index={0} />
+              </div>
+            ) : hasForfeited ? (
               <div className="my-grid-section">
                 <div className="my-grid-empty">
-                  <h3>Vous n'avez pas encore créé votre grille du jour</h3>
-                  <Link
-                    to="/create"
-                    className="create-grid-btn"
-                    onClick={e => hasCreatedToday && e.preventDefault()}
-                  >
-                    + Créer ma grille
-                  </Link>
+                  <h3>Tu as loupé la création du jour</h3>
+                  <p className="my-grid-forfeit-hint">Tu as abandonné une grille chronométrée. Reviens demain pour une nouvelle chance !</p>
+                  <span className="create-grid-btn create-grid-btn--disabled">+ Créer ma grille</span>
                 </div>
               </div>
             ) : (
-              <div className="my-grid-card-container">
-                <CreatedGridCard grid={createdGrid} index={0} />
+              <div className="my-grid-section">
+                <div className="my-grid-empty">
+                  <h3>Vous n'avez pas encore créé votre grille du jour</h3>
+                  <Link to="/create" className="create-grid-btn">
+                    + Créer ma grille
+                  </Link>
+                </div>
               </div>
             )}
           </section>
@@ -110,7 +117,7 @@ export default function HubPage() {
                 <GridCard
                   key={grid.id}
                   grid={grid}
-                  played={playedGridIds.has(grid.id)}
+                  playInfo={playsMap.get(grid.id) ?? null}
                   index={i}
                 />
               ))}

@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core'
 import WordCard from './WordCard'
 
-function DroppableSlot({ pos, card, rotation, colorIndex, feedback, onRotate, disableTransition }) {
+export function DroppableSlot({ pos, card, rotation, colorIndex, feedback, onRotate, disableTransition }) {
   const { isOver, setNodeRef } = useDroppable({ id: `slot-${pos}` })
 
   return (

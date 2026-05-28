@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useAuthStore } from '../../stores/authStore'
+import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 
 export default function TutorialModal() {
   const { tutorialOpen, closeTutorial } = useAuthStore()
   const [tab, setTab] = useState('creator')
+  useBodyScrollLock(tutorialOpen)
 
   if (!tutorialOpen) return null
 
@@ -82,9 +84,10 @@ export default function TutorialModal() {
           )}
         </div>
 
-        <button className="tutorial-close-btn btn-primary" onClick={closeTutorial} type="button">
-          Fermer
-        </button>
+        {tab === 'creator'
+          ? <button className="tutorial-close-btn btn-secondary" onClick={() => setTab('player')} type="button">Suivant →</button>
+          : <button className="tutorial-close-btn btn-primary" onClick={closeTutorial} type="button">Fermer</button>
+        }
       </div>
     </div>
   )

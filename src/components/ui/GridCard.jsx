@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useAuthStore } from '../../stores/authStore'
 
 const DIFFICULTY_LABEL = { facile: 'Facile', moyen: 'Moyen', difficile: 'Difficile' }
+const DIFFICULTY_CLASS = { facile: 'card-v2-difficulty--easy', moyen: 'card-v2-difficulty--medium', difficile: 'card-v2-difficulty--hard' }
 
 const IconClock = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -14,6 +15,12 @@ const IconClock = () => (
 const IconCheckmark = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <polyline points="20 6 9 17 4 12"></polyline>
+  </svg>
+)
+
+const IconPlay = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="5 3 19 12 5 21 5 3"></polygon>
   </svg>
 )
 
@@ -44,7 +51,7 @@ const ChevronIcon = () => (
   </svg>
 )
 
-export default function GridCard({ grid, played, index }) {
+export default function GridCard({ grid, playInfo, index }) {
   const { user } = useAuthStore()
 
   const plays = (grid.orienta_plays ?? []).filter(p => p.success !== null)
@@ -52,6 +59,9 @@ export default function GridCard({ grid, played, index }) {
   const successPlays = plays.filter(p => p.success).length
   const successRate = totalPlays > 0 ? Math.round((successPlays / totalPlays) * 100) : 0
   const creatorInitial = grid.orienta_users?.pseudo?.[0]?.toUpperCase() ?? '?'
+
+  const inProgress = playInfo && !playInfo.completed
+  const completed = playInfo?.completed === true
 
   return (
     <motion.div
@@ -72,11 +82,11 @@ export default function GridCard({ grid, played, index }) {
         <div className="card-v2-body">
           <div className="card-v2-cell">
             <div className="card-v2-cell-label">
-              {played ? <IconCheckmark /> : <IconClock />}
+              {completed ? <IconCheckmark /> : inProgress ? <IconPlay /> : <IconClock />}
               Statut
             </div>
-            <div className="card-v2-cell-value">
-              {played ? 'Joué' : 'Non joué'}
+            <div className={`card-v2-cell-value${inProgress ? ' card-v2-status--inprogress' : completed ? ' card-v2-status--done' : ''}`}>
+              {completed ? 'Joué' : inProgress ? `${playInfo.attemptsCount} essai${playInfo.attemptsCount > 1 ? 's' : ''}` : 'Non joué'}
             </div>
           </div>
           <div className="card-v2-cell">
@@ -84,7 +94,7 @@ export default function GridCard({ grid, played, index }) {
               <IconStar />
               Niveau
             </div>
-            <div className="card-v2-cell-value">{DIFFICULTY_LABEL[grid.difficulty] || '-'}</div>
+            <div className={`card-v2-cell-value${DIFFICULTY_CLASS[grid.difficulty] ? ` ${DIFFICULTY_CLASS[grid.difficulty]}` : ''}`}>{DIFFICULTY_LABEL[grid.difficulty] || '-'}</div>
           </div>
           <div className="card-v2-cell">
             <div className="card-v2-cell-label">

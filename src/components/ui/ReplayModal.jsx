@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 
 export default function ReplayModal({ playId, gridId, onClose }) {
+  useBodyScrollLock()
   const [grid, setGrid] = useState(null)
   const [attempts, setAttempts] = useState([])
   const [play, setPlay] = useState(null)

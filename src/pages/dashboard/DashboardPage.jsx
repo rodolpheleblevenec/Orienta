@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import Header from '../../components/ui/Header'
+import StaticMiniGrid from '../../components/ui/StaticMiniGrid'
 
 export default function DashboardPage() {
   const { gridId } = useParams()
@@ -72,22 +73,17 @@ export default function DashboardPage() {
 
         <section className="dashboard-section">
           <h2>Solution attendue</h2>
-          <div className="dashboard-solution-grid">
-            {[
-              { pos: 0, label: 'Haut', field: 'word_top' },
-              { pos: 1, label: 'Droite', field: 'word_right' },
-              { pos: 2, label: 'Bas', field: 'word_bottom' },
-              { pos: 3, label: 'Gauche', field: 'word_left' },
-            ].map(({ pos, label, field }) => {
-              const card = grid.orienta_grid_cards?.find(c => c.position === pos)
-              const word = card?.orienta_word_cards?.[field] ?? '—'
-              return (
-                <div key={pos} className="dashboard-solution-card">
-                  <div className="dashboard-solution-label">{label}</div>
-                  <div className="dashboard-solution-word">{word}</div>
-                </div>
-              )
-            })}
+          <div className="dashboard-solution-wrap">
+            <div className="dashboard-solution-card-bg">
+              <StaticMiniGrid
+                placements={Object.fromEntries(
+                  (grid.orienta_grid_cards ?? [])
+                    .filter(gc => gc.position >= 0 && gc.position <= 3)
+                    .map(gc => [gc.position, { card: gc.orienta_word_cards, rotation: gc.rotation ?? 0, colorIndex: gc.position }])
+                )}
+                clues={{ top: grid.clue_top, right: grid.clue_right, bottom: grid.clue_bottom, left: grid.clue_left }}
+              />
+            </div>
           </div>
         </section>
 
