@@ -57,35 +57,49 @@ export default function NotificationsPanel({ onClose }) {
           ) : (
             <ul className="notif-list">
               <AnimatePresence initial={false}>
-                {notifs.map((n, i) => (
-                  <motion.li
-                    key={n.id}
-                    className={`notif-item${n.read ? ' notif-item--read' : ''}`}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.03 }}
-                  >
-                    <div className="notif-icon">💬</div>
-                    <div className="notif-content">
-                      <p className="notif-text">
-                        <strong>{n.payload?.player_pseudo ?? 'Quelqu\'un'}</strong> a commenté ta grille
-                      </p>
-                      {n.payload?.comment && (
-                        <p className="notif-comment">« {n.payload.comment} »</p>
+                {notifs.map((n, i) => {
+                  const type = n.payload?.type
+                  let icon = '💬'
+                  let text = null
+                  let comment = null
+                  let link = n.payload?.grid_id ? `/dashboard/${n.payload.grid_id}` : null
+
+                  if (type === 'level_up') {
+                    icon = '⭐'
+                    text = <>Tu passes au niveau <strong>{n.payload.level} — {n.payload.level_name}</strong> !</>
+                    link = null
+                  } else if (type === 'play') {
+                    icon = n.payload.success ? '🎉' : '🎮'
+                    text = <><strong>{n.payload.player_pseudo ?? 'Quelqu\'un'}</strong> {n.payload.success ? 'a réussi' : 'a joué'} ta grille</>
+                  } else if (type === 'streak_danger') {
+                    icon = '🔥'
+                    text = <>Ton streak de <strong>{n.payload.streak_current} jour{n.payload.streak_current > 1 ? 's' : ''}</strong> est en danger !</>
+                    link = null
+                  } else {
+                    text = <><strong>{n.payload?.player_pseudo ?? 'Quelqu\'un'}</strong> a commenté ta grille</>
+                    comment = n.payload?.comment
+                  }
+
+                  return (
+                    <motion.li
+                      key={n.id}
+                      className={`notif-item${n.read ? ' notif-item--read' : ''}`}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.03 }}
+                    >
+                      <div className="notif-icon">{icon}</div>
+                      <div className="notif-content">
+                        <p className="notif-text">{text}</p>
+                        {comment && <p className="notif-comment">« {comment} »</p>}
+                        <span className="notif-time">{timeAgo(n.created_at)}</span>
+                      </div>
+                      {link && (
+                        <Link to={link} className="notif-link" onClick={onClose}>→</Link>
                       )}
-                      <span className="notif-time">{timeAgo(n.created_at)}</span>
-                    </div>
-                    {n.payload?.grid_id && (
-                      <Link
-                        to={`/dashboard/${n.payload.grid_id}`}
-                        className="notif-link"
-                        onClick={onClose}
-                      >
-                        →
-                      </Link>
-                    )}
-                  </motion.li>
-                ))}
+                    </motion.li>
+                  )
+                })}
               </AnimatePresence>
             </ul>
           )}
