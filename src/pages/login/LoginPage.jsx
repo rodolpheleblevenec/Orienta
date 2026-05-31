@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '../../stores/authStore'
+import { supabase } from '../../lib/supabase'
+import { getLevelProgressCollective } from '../../lib/levels'
+import { getCreature } from '../../lib/creatures'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -9,6 +12,16 @@ export default function LoginPage() {
   const [pseudo, setPseudo] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [collective, setCollective] = useState(null)
+
+  useEffect(() => {
+    supabase
+      .from('orienta_collective_progress')
+      .select('total_xp, level')
+      .eq('id', 1)
+      .single()
+      .then(({ data }) => data && setCollective(data))
+  }, [])
 
   useEffect(() => { init() }, [])
 
@@ -39,10 +52,16 @@ export default function LoginPage() {
         <h1 className="login-logo">Orienta</h1>
         <p className="login-tagline">Le jeu de mots quotidien de l'équipe WeFiiT</p>
 
-        <div className="login-mascot-preview">
-          <span className="mascot-emoji">🥚</span>
-          <span className="mascot-label">Niveau 1 — Naissance</span>
-        </div>
+        {collective && (() => {
+          const { currentLevel } = getLevelProgressCollective(collective.total_xp)
+          const creature = getCreature(currentLevel.level)
+          return (
+            <div className="login-mascot-preview">
+              <span className="mascot-emoji">{creature.emoji}</span>
+              <span className="mascot-label">Niveau {currentLevel.level} — {currentLevel.name}</span>
+            </div>
+          )
+        })()}
 
         <form onSubmit={handleSubmit} className="login-form">
           <input

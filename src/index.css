@@ -1213,7 +1213,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   flex-direction: column;
   background: var(--bg-secondary);
   --tray-w: 230px;
-  --feedback-w: 260px;
+  --feedback-w: 320px;
   --mini-card-size: clamp(64px, calc((var(--feedback-w) - 76px) / 2), 110px);
   --slot-size: min(
     calc((100dvh - 316px) / 2),
@@ -1941,19 +1941,19 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .tour-next  { padding: 9px 18px; font-size: 14px; }
 
 @media (max-width: 768px) {
-  /* Most anchors: juste au-dessus du footer fixe, pleine largeur */
+  /* Anchors référençant du contenu en milieu de page → centrer verticalement */
   .tour-card--center-right, .tour-card--center-left,
+  .tour-card--tray-right {
+    top: 50%; bottom: auto;
+    left: 16px; right: 16px;
+    transform: translateY(-50%); width: auto;
+  }
+  /* Anchors pointant vers le footer → juste au-dessus du footer fixe */
   .tour-card--top-center, .tour-card--bottom-center,
   .tour-card--footer-center {
     bottom: calc(var(--footer-h, 70px) + 16px);
     top: auto; left: 16px; right: 16px;
     transform: none; width: auto;
-  }
-  /* tray-right: le plateau est horizontal en bas → centrer verticalement */
-  .tour-card--tray-right {
-    top: 50%; bottom: auto;
-    left: 16px; right: 16px;
-    transform: translateY(-50%); width: auto;
   }
   /* Masquer toutes les flèches directionnelles */
   .tour-card--center-right::before,

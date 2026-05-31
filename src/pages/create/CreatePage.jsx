@@ -19,13 +19,13 @@ const CREATE_PLACEMENT_STEPS = [
   },
   {
     anchor: 'center-right',
-    zone: '← Plateau de cartes',
+    zone: 'Plateau de cartes',
     title: 'Tes cartes disponibles',
-    description: "Glisse les cartes depuis le plateau gauche vers les 4 emplacements. En mode Difficile, une 5e carte reste en réserve — c'est le leurre pour les joueurs !",
+    description: "Glisse les cartes depuis le plateau vers les 4 emplacements de la grille. En mode Difficile, une 5e carte reste en réserve — c'est le leurre pour les joueurs !",
   },
   {
     anchor: 'center-right',
-    zone: '← Bouton ↻ sur la carte',
+    zone: 'Bouton ↻',
     title: 'Oriente les cartes',
     description: "Utilise ↻ pour tourner chaque carte. La position d'un mot dans la carte correspond au côté de la grille — et donc à l'indice que tu vas écrire.",
   },
@@ -33,8 +33,8 @@ const CREATE_PLACEMENT_STEPS = [
 
 const CREATE_CLUES_STEPS = [
   {
-    anchor: 'center-right',
-    zone: '← Champs d\'indices',
+    anchor: 'center',
+    zone: 'Indices de grille',
     title: 'Écris tes 4 indices',
     description: "Un indice par côté de la grille. Chaque indice doit évoquer la carte placée de ce côté — sans être trop évident pour les joueurs !",
   },
@@ -45,8 +45,8 @@ const CREATE_CLUES_STEPS = [
     description: "Ton indice ne peut pas être l'un des mots présents sur les cartes. Trop facile ! Le jeu te préviendra si tu essaies.",
   },
   {
-    anchor: 'top-center',
-    zone: '↓ Bouton Publier',
+    anchor: 'footer-center',
+    zone: 'Bouton Publier',
     title: 'Publie ta grille',
     description: "Quand tes 4 indices sont validés, publie ! Ta grille sera visible 48h et tu gagneras de l'XP pour chaque joueur qui la réussit.",
   },
