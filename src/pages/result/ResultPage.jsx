@@ -34,6 +34,20 @@ export default function ResultPage() {
   const [grid, setGrid] = useState(null)
   const [attempts, setAttempts] = useState([])
   const [activeTab, setActiveTab] = useState('solution')
+  const [copied, setCopied] = useState(false)
+
+  function copyChallenge() {
+    const url = success
+      ? `${window.location.origin}/play/${gridId}?from=${encodeURIComponent(user?.pseudo ?? '')}&score=${score}`
+      : `${window.location.origin}/play/${gridId}`
+    const text = success
+      ? `🍀 Orienta — ${user?.pseudo} te défie !\nPeux-tu battre son score de ${score} pts ?\n${url}`
+      : `🍀 J'ai joué une grille Orienta — à ton tour !\n${url}`
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   useEffect(() => {
     if (success) confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } })
@@ -220,6 +234,10 @@ export default function ResultPage() {
             ) : (
               <div className="result-xp">+{xp} XP pour la participation</div>
             )}
+
+            <button className="result-share-btn" onClick={copyChallenge} type="button">
+              {copied ? '✓ Copié !' : success ? '🍀 Défier mes collègues' : '🍀 Partager cette grille'}
+            </button>
           </motion.div>
 
           {leaderboard.length > 0 && (

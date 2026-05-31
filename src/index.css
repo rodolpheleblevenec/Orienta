@@ -2108,6 +2108,79 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   justify-content: center;
 }
 .result-footer-cta { min-width: 200px; }
+
+/* ── Bouton partage / défi ── */
+.result-share-btn {
+  margin-top: 14px;
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.result-share-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+/* ── Bannière défi PlayPage ── */
+.challenge-banner {
+  position: fixed;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 10px 14px 10px 16px;
+  box-shadow: 0 4px 20px rgba(0,184,153,0.2);
+  font-size: 14px;
+  white-space: nowrap;
+  max-width: calc(100vw - 32px);
+}
+.challenge-banner-close {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.challenge-banner-close:hover { color: var(--text-primary); }
+
+/* ── CreatedGridCard partage ── */
+.created-grid-card-wrap { display: flex; flex-direction: column; gap: 8px; }
+.created-grid-share-btn {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.created-grid-share-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
 @media (max-width: 1024px) {
   .result-main { grid-template-columns: 1fr 1fr; }
 }

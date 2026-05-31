@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import {
   DndContext, DragOverlay, closestCorners,
   PointerSensor, TouchSensor, useSensor, useSensors,
@@ -50,7 +50,12 @@ const MAX_ATTEMPTS = 3
 export default function PlayPage() {
   const { gridId } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user, refreshUser, markTourDone } = useAuthStore()
+
+  const challengeFrom = searchParams.get('from')
+  const challengeScore = searchParams.get('score')
+  const [challengeDismissed, setChallengeDismissed] = useState(false)
 
   const [showTour, setShowTour] = useState(false)
   const [grid, setGrid] = useState(null)
@@ -455,6 +460,13 @@ export default function PlayPage() {
         <button className="play-feedback-reopen" onClick={() => setFeedbackOpen(true)} type="button">
           Essai {attemptHistory.length} ›
         </button>
+      )}
+
+      {challengeFrom && challengeScore && !challengeDismissed && (
+        <div className="challenge-banner">
+          <span>🍀 <strong>{challengeFrom}</strong> te défie — bats ses <strong>{parseInt(challengeScore).toLocaleString()} pts</strong> !</span>
+          <button className="challenge-banner-close" onClick={() => setChallengeDismissed(true)} type="button">✕</button>
+        </div>
       )}
 
       <footer className="play-footer">

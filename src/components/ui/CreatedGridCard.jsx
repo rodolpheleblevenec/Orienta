@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useAuthStore } from '../../stores/authStore'
 
 const IconClock = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -36,9 +38,11 @@ const ChevronIcon = () => (
 )
 
 const DIFFICULTY_LABEL = { facile: 'Facile', moyen: 'Moyen', difficile: 'Difficile' }
-const DIFFICULTY_COLOR = { facile: '#2a9d84', moyen: '#81abe7', difficile: '#81abe7' }
 
 export default function CreatedGridCard({ grid, index }) {
+  const { user } = useAuthStore()
+  const [copied, setCopied] = useState(false)
+
   const plays = (grid.orienta_plays ?? []).filter(p => p.success !== null)
   const totalPlays = plays.length
   const successPlays = plays.filter(p => p.success).length
@@ -47,11 +51,22 @@ export default function CreatedGridCard({ grid, index }) {
     ? (plays.reduce((sum, p) => sum + (p.attempts_count ?? 0), 0) / totalPlays).toFixed(1)
     : 0
 
+  function copyShareLink(e) {
+    e.preventDefault()
+    const url = `${window.location.origin}/play/${grid.id}`
+    const text = `🍀 ${user?.pseudo ?? 'Quelqu\'un'} t'invite à jouer une grille Orienta !\n${url}`
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
+      className="created-grid-card-wrap"
     >
       <Link to={`/dashboard/${grid.id}`} className="card-v2">
         <div className="card-v2-header" style={{ backgroundColor: '#287162' }}>
@@ -91,6 +106,9 @@ export default function CreatedGridCard({ grid, index }) {
           </div>
         </div>
       </Link>
+      <button className="created-grid-share-btn" onClick={copyShareLink} type="button">
+        {copied ? '✓ Lien copié !' : '🍀 Partager ma grille'}
+      </button>
     </motion.div>
   )
 }
