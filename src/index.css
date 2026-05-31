@@ -516,7 +516,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .hub-main { flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 40px 20px; }
 .hub-section--spaced { margin-top: 44px; }
 
-.community-groups { display: flex; flex-direction: column; gap: 28px; }
+.community-groups { display: flex; flex-direction: column; gap: 16px; }
 .community-group-date {
   font-size: 13px; font-weight: 700; color: var(--text-muted);
   text-transform: capitalize; letter-spacing: 0.04em;
@@ -673,7 +673,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   display: grid;
   grid-template-columns: repeat(4, 280px);
   gap: 16px;
-  margin-bottom: 60px;
+  margin-bottom: 0;
   justify-items: start;
 }
 
@@ -701,7 +701,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   .cards-grid {
     grid-template-columns: 1fr;
     gap: 14px;
-    margin-bottom: 40px;
+    margin-bottom: 0;
     justify-items: stretch;
   }
   .cards-grid .card-v2 { width: 100%; height: auto; min-height: 180px; }
@@ -1416,8 +1416,33 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 /* ── Create Page — drawer droit info ─────────────── */
 .create-info-drawer {
   justify-content: flex-start;
-  padding: 28px 20px 20px;
+  padding: 20px 20px 20px;
   gap: 0;
+}
+
+/* Zone B : overlay toujours ouvert (pas de --collapsed ni --hidden sur cet élément) */
+@media (min-width: 769px) and (max-width: 1100px) {
+  .create-info-drawer {
+    padding: 20px 20px 20px !important;
+  }
+}
+
+/* Zone C/D : inline sous la grille, pas en bottom-sheet fixe */
+@media (max-width: 768px) {
+  .play-feedback-drawer.create-info-drawer {
+    position: relative !important;
+    top: auto !important; bottom: auto !important;
+    left: auto !important; right: auto !important;
+    width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border-top: 1px solid var(--border) !important;
+    border-left: none !important;
+    z-index: auto !important;
+    padding: 14px 16px 100px !important;
+  }
 }
 .create-phase-panel {
   display: flex;
@@ -1855,6 +1880,34 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   .result-card { padding: 24px 18px; }
   .result-icon { font-size: 36px; }
   .result-title { font-size: 22px; margin-bottom: 12px; }
+  .result-feedback-body { padding: 12px; }
+
+  /* Mini grilles responsives — cellules calculées sur la largeur dispo */
+  .result-feedback-grid-wrap .mini-clover-grid,
+  .result-col-right .mini-clover-grid {
+    grid-template-columns: clamp(80px, calc((100vw - 160px) / 2), 130px) clamp(80px, calc((100vw - 160px) / 2), 130px);
+    grid-template-rows:    clamp(80px, calc((100vw - 160px) / 2), 130px) clamp(80px, calc((100vw - 160px) / 2), 130px);
+    gap: 6px; padding: 6px;
+  }
+  .result-feedback-grid-wrap .mini-card,
+  .result-col-right .mini-card {
+    width:  clamp(80px, calc((100vw - 160px) / 2), 130px);
+    height: clamp(80px, calc((100vw - 160px) / 2), 130px);
+    grid-template-columns: 20px 1fr 20px;
+    grid-template-rows:    20px 1fr 20px;
+    border-radius: 8px;
+  }
+  .result-feedback-grid-wrap .mini-slot-empty,
+  .result-col-right .mini-slot-empty {
+    width:  clamp(74px, calc((100vw - 160px) / 2 - 6px), 124px);
+    height: clamp(74px, calc((100vw - 160px) / 2 - 6px), 124px);
+  }
+  .result-feedback-grid-wrap .mini-card-word,
+  .result-col-right .mini-card-word { font-size: 9px; }
+  .result-feedback-grid-wrap .mini-clue,
+  .result-col-right .mini-clue { font-size: 10px; padding: 3px 5px; }
+  .result-feedback-grid-wrap .mini-clover-wrapper,
+  .result-col-right .mini-clover-wrapper { grid-template-columns: 30px 1fr 30px; }
 }
 .result-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 36px 28px; text-align: center; box-shadow: var(--card-shadow); }
 .result-icon  { font-size: 44px; margin-bottom: 10px; }

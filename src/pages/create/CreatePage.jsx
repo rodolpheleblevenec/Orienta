@@ -369,7 +369,7 @@ export default function CreatePage() {
         onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
 
         {/* ── Drawer gauche — réserve ── */}
-        <aside className="play-tray-drawer">
+        <aside className={`play-tray-drawer${allPlaced ? ' play-tray-drawer--empty' : ''}`}>
           <div className="tray-cards">
             {trayCards.map(({ card, rotation, colorIndex }) => (
               <div key={card.id} className="card-tray-item">
