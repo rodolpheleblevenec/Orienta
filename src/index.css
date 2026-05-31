@@ -1712,13 +1712,22 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .tour-skip:hover { color: var(--text-secondary); }
 .tour-next  { padding: 9px 18px; font-size: 14px; }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  /* Most anchors: juste au-dessus du footer fixe, pleine largeur */
   .tour-card--center-right, .tour-card--center-left,
   .tour-card--top-center, .tour-card--bottom-center,
-  .tour-card--tray-right, .tour-card--footer-center {
-    bottom: 24px; top: auto; left: 50%; right: auto;
-    transform: translateX(-50%); width: calc(100vw - 48px);
+  .tour-card--footer-center {
+    bottom: calc(var(--footer-h, 70px) + 16px);
+    top: auto; left: 16px; right: 16px;
+    transform: none; width: auto;
   }
+  /* tray-right: le plateau est horizontal en bas → centrer verticalement */
+  .tour-card--tray-right {
+    top: 50%; bottom: auto;
+    left: 16px; right: 16px;
+    transform: translateY(-50%); width: auto;
+  }
+  /* Masquer toutes les flèches directionnelles */
   .tour-card--center-right::before,
   .tour-card--center-left::before,
   .tour-card--top-center::after,
@@ -1882,32 +1891,42 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   .result-title { font-size: 22px; margin-bottom: 12px; }
   .result-feedback-body { padding: 12px; }
 
-  /* Mini grilles responsives — cellules calculées sur la largeur dispo */
+  /* Mini grilles responsives — cellules calculées sur la largeur dispo.
+     Déductions: result-main pad(32) + panel border(2) + feedback-body margin(32) + padding(24) + clues(60) + grid-gap/pad(18) = 168px
+     On utilise 190px pour avoir une marge de sécurité sur toutes tailles d'écrans. */
   .result-feedback-grid-wrap .mini-clover-grid,
   .result-col-right .mini-clover-grid {
-    grid-template-columns: clamp(80px, calc((100vw - 160px) / 2), 130px) clamp(80px, calc((100vw - 160px) / 2), 130px);
-    grid-template-rows:    clamp(80px, calc((100vw - 160px) / 2), 130px) clamp(80px, calc((100vw - 160px) / 2), 130px);
+    grid-template-columns: clamp(70px, calc((100vw - 190px) / 2), 130px) clamp(70px, calc((100vw - 190px) / 2), 130px);
+    grid-template-rows:    clamp(70px, calc((100vw - 190px) / 2), 130px) clamp(70px, calc((100vw - 190px) / 2), 130px);
     gap: 6px; padding: 6px;
   }
   .result-feedback-grid-wrap .mini-card,
   .result-col-right .mini-card {
-    width:  clamp(80px, calc((100vw - 160px) / 2), 130px);
-    height: clamp(80px, calc((100vw - 160px) / 2), 130px);
-    grid-template-columns: 20px 1fr 20px;
-    grid-template-rows:    20px 1fr 20px;
+    width:  clamp(70px, calc((100vw - 190px) / 2), 130px);
+    height: clamp(70px, calc((100vw - 190px) / 2), 130px);
+    grid-template-columns: 18px 1fr 18px;
+    grid-template-rows:    18px 1fr 18px;
     border-radius: 8px;
   }
   .result-feedback-grid-wrap .mini-slot-empty,
   .result-col-right .mini-slot-empty {
-    width:  clamp(74px, calc((100vw - 160px) / 2 - 6px), 124px);
-    height: clamp(74px, calc((100vw - 160px) / 2 - 6px), 124px);
+    width:  clamp(64px, calc((100vw - 190px) / 2 - 6px), 124px);
+    height: clamp(64px, calc((100vw - 190px) / 2 - 6px), 124px);
   }
   .result-feedback-grid-wrap .mini-card-word,
   .result-col-right .mini-card-word { font-size: 9px; }
   .result-feedback-grid-wrap .mini-clue,
   .result-col-right .mini-clue { font-size: 10px; padding: 3px 5px; }
   .result-feedback-grid-wrap .mini-clover-wrapper,
-  .result-col-right .mini-clover-wrapper { grid-template-columns: 30px 1fr 30px; }
+  .result-col-right .mini-clover-wrapper {
+    grid-template-columns: 30px 1fr 30px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .result-feedback-grid-wrap,
+  .result-col-right { overflow: hidden; width: 100%; }
 }
 .result-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 36px 28px; text-align: center; box-shadow: var(--card-shadow); }
 .result-icon  { font-size: 44px; margin-bottom: 10px; }
