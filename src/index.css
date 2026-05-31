@@ -922,6 +922,21 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
     margin: 16px auto;
   }
 }
+/* Inputs latéraux en mode vertical sur petit écran pour ne pas déborder */
+@media (max-width: 768px) {
+  .clue-input--left,
+  .clue-input--right {
+    writing-mode: vertical-rl;
+    width: 28px;
+    height: calc(var(--slot-size, 150px) * 2 + 24px);
+    padding: 6px 3px;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .clue-input--left { transform: rotate(180deg); }
+  .clover-wrapper { grid-template-columns: 28px 1fr 28px; gap: 4px; max-width: calc(100vw - 24px); overflow: hidden; }
+}
 .clue {
   font-family: var(--display);
   font-size: 23px;
