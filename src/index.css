@@ -681,7 +681,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   line-height: 1.4;
   padding: 7px 10px;
   border-radius: var(--radius-sm);
-  width: 220px;
+  width: min(220px, calc(100vw - 40px));
   white-space: normal;
   pointer-events: none;
   opacity: 0;
@@ -775,11 +775,11 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(4, 280px);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 16px;
   margin-bottom: 0;
-  justify-items: start;
 }
+.cards-grid .card-v2 { width: 100%; height: auto; min-height: 200px; }
 
 .empty-state {
   background: var(--bg-card);
@@ -806,9 +806,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
     grid-template-columns: 1fr;
     gap: 14px;
     margin-bottom: 0;
-    justify-items: stretch;
   }
-  .cards-grid .card-v2 { width: 100%; height: auto; min-height: 180px; }
 }
 
 @media (max-width: 600px) {
@@ -1819,6 +1817,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   border-radius: var(--radius-xl);
   padding: 24px;
   width: 300px;
+  max-width: calc(100vw - 24px);
   box-shadow: 0 20px 60px rgba(0,0,0,0.3);
   z-index: 1501;
   display: flex;
@@ -2747,6 +2746,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   .archives-title { font-size: 22px; }
   .archives-header { margin-bottom: 24px; }
 
+  /* Login */
+  .login-card { padding: 32px 20px; }
+
   /* Dashboard */
   .dashboard-main { padding: 20px 14px; }
   .dashboard-stats { gap: 8px; }
@@ -2761,8 +2763,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 }
 
 @media (max-width: 400px) {
-  /* Profile stats: 4 → 2 colonnes */
+  /* Stats grids : 4/3 → 2 colonnes */
   .profile-stats { grid-template-columns: repeat(2, 1fr); }
+  .dashboard-stats { grid-template-columns: repeat(2, 1fr); }
   .stat-value { font-size: 26px; }
 
   /* Hub top sections */
@@ -2771,4 +2774,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 
   /* Cards grid full width */
   .cards-grid { grid-template-columns: 1fr; }
+
+  /* Paddings réduits */
+  .result-card { padding: 20px 14px; }
+  .section-title { font-size: 16px; }
 }
