@@ -5,7 +5,7 @@ const EmojiCreature = ({ emoji, size = 40, ...props }) => (
 )
 
 const CREATURES = [
-  { level: 1, name: 'Naissance', emoji: '🥚', Component: (props) => <EmojiCreature emoji="🥚" {...props} /> },
+  { level: 1, name: 'Naissance', emoji: '🐣', Component: (props) => <EmojiCreature emoji="🐣" {...props} /> },
   { level: 2, name: 'Alevin', emoji: '🐟', Component: (props) => <EmojiCreature emoji="🐟" {...props} /> },
   { level: 3, name: 'Banc', emoji: '🐠', Component: (props) => <EmojiCreature emoji="🐠" {...props} /> },
   { level: 4, name: 'Explorateur', emoji: '🔭', Component: (props) => <EmojiCreature emoji="🔭" {...props} /> },
