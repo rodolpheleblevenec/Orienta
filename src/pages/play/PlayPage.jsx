@@ -63,6 +63,7 @@ export default function PlayPage() {
   const [attemptsFailed, setAttemptsFailed] = useState(0)
   const [attemptHistory, setAttemptHistory] = useState([])
   const [activeHistoryTab, setActiveHistoryTab] = useState(0)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [gameOver, setGameOver] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isSwappingSlots, setIsSwappingSlots] = useState(false)
@@ -280,6 +281,7 @@ export default function PlayPage() {
     setAttemptHistory(prev => {
       const next = [...prev, { correctFull, correctRotation, neither, placements: placementsSnapshot }]
       setActiveHistoryTab(next.length - 1)
+      setFeedbackOpen(true)
       return next
     })
 
@@ -376,21 +378,28 @@ export default function PlayPage() {
         </main>
 
         {/* ── Drawer droit — feedback ── */}
-        <aside className={`play-feedback-drawer${attemptHistory.length === 0 ? ' play-feedback-drawer--collapsed' : ''}`}>
+        <aside className={[
+          'play-feedback-drawer',
+          attemptHistory.length === 0 ? 'play-feedback-drawer--collapsed' : '',
+          attemptHistory.length > 0 && !feedbackOpen ? 'play-feedback-drawer--hidden' : '',
+        ].filter(Boolean).join(' ')}>
           {attemptHistory.length > 0 && (
             <div className="play-history">
-              {/* Onglets en haut — englobent résultat + aperçu */}
-              <div className="play-history-tabs">
-                {attemptHistory.map((_, idx) => (
-                  <button
-                    key={idx}
-                    className={`play-history-tab ${activeHistoryTab === idx ? 'play-history-tab--active' : ''}`}
-                    onClick={() => setActiveHistoryTab(idx)}
-                    type="button"
-                  >
-                    Essai {idx + 1}
-                  </button>
-                ))}
+              {/* Header avec onglets + bouton fermer */}
+              <div className="play-history-header">
+                <div className="play-history-tabs">
+                  {attemptHistory.map((_, idx) => (
+                    <button
+                      key={idx}
+                      className={`play-history-tab ${activeHistoryTab === idx ? 'play-history-tab--active' : ''}`}
+                      onClick={() => setActiveHistoryTab(idx)}
+                      type="button"
+                    >
+                      Essai {idx + 1}
+                    </button>
+                  ))}
+                </div>
+                <button className="play-feedback-close" onClick={() => setFeedbackOpen(false)} type="button" aria-label="Fermer">✕</button>
               </div>
               {/* Panneau unifié */}
               <div className="play-history-panel">
@@ -433,6 +442,12 @@ export default function PlayPage() {
           )}
         </DragOverlay>
       </DndContext>
+
+      {attemptHistory.length > 0 && !feedbackOpen && (
+        <button className="play-feedback-reopen" onClick={() => setFeedbackOpen(true)} type="button">
+          Essai {attemptHistory.length} ›
+        </button>
+      )}
 
       <footer className="play-footer">
         <button
