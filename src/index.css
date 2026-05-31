@@ -1606,8 +1606,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 }
 .play-feedback-dot { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; }
 .play-feedback-count { font-family: var(--sans); font-size: 28px; font-weight: 800; min-width: 36px; color: var(--text-primary); }
-.feedback-info-icon { font-size: 12px; color: var(--text-muted); cursor: help; margin-left: auto; opacity: 0.6; transition: opacity 0.2s; }
-.feedback-info-icon:hover { opacity: 1; color: var(--warning); }
+.feedback-info-icon { font-size: 15px; color: var(--warning); cursor: help; opacity: 0.8; transition: opacity 0.15s; }
+.feedback-info-icon:hover { opacity: 1; }
 .play-feedback-dot--correct { background: var(--success); }
 .play-feedback-dot--rotation { background: var(--warning); }
 .play-feedback-dot--wrong { background: var(--error); }

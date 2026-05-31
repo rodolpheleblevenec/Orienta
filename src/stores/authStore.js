@@ -20,7 +20,10 @@ export const useAuthStore = create((set, get) => ({
       .single()
 
     set({ user: data ?? null, loading: false })
-    if (data) get().fetchNotifCount(data.id)
+    if (data) {
+      get().fetchNotifCount(data.id)
+      get().checkStreakDanger()
+    }
   },
 
   loginWithPseudo: async (pseudo) => {
@@ -37,6 +40,7 @@ export const useAuthStore = create((set, get) => ({
       localStorage.setItem(STORAGE_KEY, existing.id)
       set({ user: existing })
       get().fetchNotifCount(existing.id)
+      get().checkStreakDanger()
       return { user: existing, isNew: false }
     }
 

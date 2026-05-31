@@ -7,6 +7,7 @@ import {
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import { computeScore, computeXp, xpStreakBonus } from '../../lib/scoring'
+import { getLevelFromXp } from '../../lib/levels'
 import Header from '../../components/ui/Header'
 import StaticMiniGrid from '../../components/ui/StaticMiniGrid'
 import TourOverlay from '../../components/ui/TourOverlay'
@@ -301,6 +302,7 @@ export default function PlayPage() {
       const baseXp = computeXp(finalScore, true)
       const bonusXp = xpStreakBonus(user.streak_current)
       const totalXp = baseXp + bonusXp
+      const oldLevel = getLevelFromXp(user.xp || 0).level
       await supabase.from('orienta_plays').update({
         completed_at: new Date().toISOString(),
         time_seconds: elapsed,
@@ -309,9 +311,23 @@ export default function PlayPage() {
         score: finalScore,
         xp_earned: totalXp,
       }).eq('id', playId)
-      // Award XP to creator, player, and update collective progress (with streak bonus)
       await supabase.rpc('award_xp_on_play', { p_grid_id: gridId, p_player_id: user.id, p_success: true, p_streak_bonus: bonusXp })
       await refreshUser()
+      const freshUser = useAuthStore.getState().user
+      const newLevelData = getLevelFromXp(freshUser?.xp || 0)
+      if (newLevelData.level > oldLevel) {
+        await supabase.from('orienta_notifications').insert({
+          user_id: user.id,
+          payload: { type: 'level_up', level: newLevelData.level, level_name: newLevelData.name },
+        })
+        useAuthStore.getState().fetchNotifCount()
+      }
+      if (grid.creator_id !== user.id) {
+        supabase.from('orienta_notifications').insert({
+          user_id: grid.creator_id,
+          payload: { type: 'play', player_pseudo: user.pseudo, grid_id: gridId, success: true },
+        })
+      }
       setGameOver(true)
       navigate(`/result/${gridId}`, { state: { score: finalScore, xp: totalXp, success: true, baseXp, bonusXp, timeSeconds: elapsed, attemptCount: attemptNumber, streakCurrent: user.streak_current } })
     } else {
@@ -331,6 +347,12 @@ export default function PlayPage() {
         }).eq('id', playId)
         await supabase.rpc('award_xp_on_play', { p_grid_id: gridId, p_player_id: user.id, p_success: false, p_streak_bonus: 0 })
         await refreshUser()
+        if (grid.creator_id !== user.id) {
+          supabase.from('orienta_notifications').insert({
+            user_id: grid.creator_id,
+            payload: { type: 'play', player_pseudo: user.pseudo, grid_id: gridId, success: false },
+          })
+        }
         setGameOver(true)
         navigate(`/result/${gridId}`, { state: { score: 0, xp: participationXp, success: false } })
       } else {
