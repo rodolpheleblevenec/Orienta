@@ -914,6 +914,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   margin: 0 auto;
   width: fit-content;
   align-self: center;
+  position: relative;
 }
 @media (max-width: 600px) {
   .clover-wrapper {
@@ -921,21 +922,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
     gap: 4px;
     margin: 16px auto;
   }
-}
-/* Inputs latéraux en mode vertical sur petit écran pour ne pas déborder */
-@media (max-width: 768px) {
-  .clue-input--left,
-  .clue-input--right {
-    writing-mode: vertical-rl;
-    width: 28px;
-    height: calc(var(--slot-size, 150px) * 2 + 24px);
-    padding: 6px 3px;
-    font-size: 12px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .clue-input--left { transform: rotate(180deg); }
-  .clover-wrapper { grid-template-columns: 28px 1fr 28px; gap: 4px; max-width: calc(100vw - 24px); overflow: hidden; }
 }
 .clue {
   font-family: var(--display);
@@ -979,6 +965,101 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .clue-input--bottom      { grid-area: bottom; width: 100%; justify-self: stretch; }
 .clue-input--left        { grid-area: left; width: 110px; }
 .clue-input--right       { grid-area: right; width: 110px; }
+
+/* ── Boutons latéraux cliquables (remplacent les inputs left/right) ── */
+.clue-side-btn {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  writing-mode: vertical-rl;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 6px;
+  white-space: nowrap;
+  align-self: stretch;
+  transition: border-color 0.15s, background 0.15s;
+  min-width: 36px;
+  overflow: hidden;
+}
+.clue-side-btn--left  { grid-area: left;  transform: rotate(180deg); }
+.clue-side-btn--right { grid-area: right; }
+.clue-side-btn--active { border-color: var(--accent); background: var(--bg-card); outline: 2px solid var(--accent); outline-offset: 1px; }
+.clue-side-btn--empty { color: var(--text-muted); font-weight: 400; font-size: 17px; }
+
+/* Desktop (>680px) : inputs horizontaux visibles, boutons cachés */
+.clue-lateral--desktop { display: block; }
+.clue-lateral--mobile  { display: none; }
+
+/* Mobile (≤680px) : boutons verticaux visibles, inputs cachés, colonnes étroites */
+@media (max-width: 680px) {
+  .clue-lateral--desktop { display: none; }
+  .clue-lateral--mobile  { display: flex; }
+  .clover-wrapper { grid-template-columns: 30px 1fr 30px; }
+  .clue-side-btn { min-width: 28px; }
+}
+
+/* ── Overlay de saisie centré (pour les indices gauche/droite) ── */
+.clue-lateral-editor {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-card);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 20;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
+  min-width: 260px;
+  max-width: calc(100% - 16px);
+  box-sizing: border-box;
+}
+.clue-lateral-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.clue-lateral-input {
+  flex: 1;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 700;
+  outline: none;
+  padding: 8px 12px;
+  text-align: center;
+  transition: border-color 0.18s;
+  min-width: 0;
+  width: 110px;
+}
+.clue-lateral-input:focus { border-color: var(--accent); background: var(--bg-card); }
+.clue-lateral-input::placeholder { color: var(--text-muted); font-weight: 400; }
+.clue-lateral-confirm {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 7px 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.clue-lateral-confirm:hover { opacity: 0.85; }
 
 .clover-grid {
   grid-area: grid;
@@ -1122,6 +1203,19 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   margin: calc(var(--slot-size, 210px) * -0.27) 0;
 }
 
+/* Compense le scale transform pour que les mots du tray restent lisibles.
+   Taille visuelle ≈ font-size × scale  →  font-size = voulu ÷ scale
+   Desktop 4 cartes (×0.60) → ~12px visible */
+.card-tray-item .word-card-top,
+.card-tray-item .word-card-bottom { font-size: 20px; }
+.card-tray-item .word-card-left,
+.card-tray-item .word-card-right  { font-size: 18px; }
+/* Desktop 5 cartes (×0.46) → ~12px visible */
+.tray-cards:has(> .card-tray-item:nth-child(5)) .card-tray-item .word-card-top,
+.tray-cards:has(> .card-tray-item:nth-child(5)) .card-tray-item .word-card-bottom { font-size: 26px; }
+.tray-cards:has(> .card-tray-item:nth-child(5)) .card-tray-item .word-card-left,
+.tray-cards:has(> .card-tray-item:nth-child(5)) .card-tray-item .word-card-right  { font-size: 22px; }
+
 /* Zone C/D : tray horizontal en haut */
 @media (max-width: 768px) {
   .play-tray-drawer {
@@ -1148,6 +1242,16 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   }
   .card-tray-item { transform: scale(0.62) !important; margin: -16px -22px !important; flex-shrink: 0; }
   .tray-cards:has(> .card-tray-item:nth-child(5)) .card-tray-item { transform: scale(0.50) !important; margin: -18px -26px !important; }
+  /* Mobile 4 cartes (×0.62) → ~10px visible */
+  .card-tray-item .word-card-top,
+  .card-tray-item .word-card-bottom { font-size: 16px; }
+  .card-tray-item .word-card-left,
+  .card-tray-item .word-card-right  { font-size: 14px; }
+  /* Mobile 5 cartes (×0.50) → ~10px visible */
+  .tray-cards:has(> .card-tray-item:nth-child(5)) .card-tray-item .word-card-top,
+  .tray-cards:has(> .card-tray-item:nth-child(5)) .card-tray-item .word-card-bottom { font-size: 20px; }
+  .tray-cards:has(> .card-tray-item:nth-child(5)) .card-tray-item .word-card-left,
+  .tray-cards:has(> .card-tray-item:nth-child(5)) .card-tray-item .word-card-right  { font-size: 18px; }
 }
 
 /* ── Center — grid ── */
@@ -1173,6 +1277,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 /* Zone C/D */
 @media (max-width: 768px) {
   .play-main { margin: 0; padding: 16px 12px calc(var(--footer-h) + 16px); }
+  /* Sur create-page, le create-info-drawer suit en flux normal → pas besoin du padding-bottom footer */
+  .create-page .play-main { padding-bottom: 8px; }
   .btn-reset { position: static; margin-bottom: 10px; align-self: flex-end; width: auto; }
 }
 
