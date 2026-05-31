@@ -41,6 +41,7 @@ export default function ResultPage() {
 
   useEffect(() => {
     if (!user) return
+    let cancelled = false
 
     const rankQuery = success
       ? supabase
@@ -81,6 +82,7 @@ export default function ResultPage() {
         .order('completed_at', { ascending: false }),
       rankQuery,
     ]).then(([leaderRes, playRes, gridRes, commentsRes, rankRes]) => {
+      if (cancelled) return
       setLeaderboard(leaderRes.data ?? [])
       setPlay(playRes.data)
       setGrid(gridRes.data)
@@ -92,9 +94,11 @@ export default function ResultPage() {
           .select('*')
           .eq('play_id', playRes.data.id)
           .order('attempt_number')
-          .then(({ data }) => setAttempts(data ?? []))
+          .then(({ data }) => { if (!cancelled) setAttempts(data ?? []) })
       }
     })
+
+    return () => { cancelled = true }
   }, [gridId, user, score, success])
 
   async function handleCommentSubmit() {

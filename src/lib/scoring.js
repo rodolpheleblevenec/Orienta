@@ -43,7 +43,7 @@ export function evaluateAttempt(answer, solution) {
     const rotMatch = a.rotation === s.rotation
 
     if (posMatch && rotMatch) correctFull++
-    else if (rotMatch && !posMatch) correctRotation++
+    else if (posMatch || rotMatch) correctRotation++
     else neither++
   }
 

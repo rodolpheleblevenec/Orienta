@@ -39,8 +39,9 @@ export default function DashboardPage() {
   if (!grid) return <Navigate to="/hub" replace />
 
   const successPlays = plays.filter(p => p.success)
-  const avgTime = plays.length > 0
-    ? Math.round(plays.reduce((s, p) => s + (p.time_seconds ?? 0), 0) / plays.length) : 0
+  const playsWithTime = plays.filter(p => p.time_seconds != null)
+  const avgTime = playsWithTime.length > 0
+    ? Math.round(playsWithTime.reduce((s, p) => s + p.time_seconds, 0) / playsWithTime.length) : 0
 
   const dist = { 1: 0, 2: 0, 3: 0, fail: 0 }
   for (const p of plays) {

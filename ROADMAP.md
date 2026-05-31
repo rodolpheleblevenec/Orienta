@@ -1,6 +1,6 @@
 # Orienta Roadmap
 
-**Dernière mise à jour**: 2026-05-28
+**Dernière mise à jour**: 2026-06-01
 
 ---
 
@@ -14,14 +14,14 @@
 - ✅ ProfilePage XP bar + historique jouées/créées
 - ✅ DashboardPage créateur (stats + solution)
 - ✅ ResultPage (score + solution tab)
-- ✅ AdminDailyPage (gestion grilles du jour)
+- ✅ DailyAdminPage (gestion grilles du jour)
 
 ---
 
 ## ✅ Phase 1 — UX & Polish (COMPLÉTÉ)
 
 ### Visuel cartes
-- ✅ Cartes fond blanc + stroke coloré + mots colorés (plus de fill) — `cardColors.js`
+- ✅ Cartes fond blanc + stroke coloré + mots colorés — `cardColors.js`
 - ✅ Couleurs flashy/vives (5 teintes : teal, orange-rouge, bleu électrique, ambre, violet)
 - ✅ Orientation des mots dans `StaticMiniGrid` synchronisée avec la grille principale
 
@@ -43,7 +43,6 @@
 - ✅ Restauration des essais en cours au retour sur une grille
 - ✅ Drawer feedback : placeholder structuré avant le 1er essai
 - ✅ Tour guidé 1ère visite sur `/play` et `/create` (`TourOverlay`)
-- ✅ Bulles de tour repositionnées vers les composants cibles
 
 ### Modales & accessibilité
 - ✅ Body scroll lock sur toutes les modales (`useBodyScrollLock`)
@@ -51,21 +50,40 @@
 
 ### Profil & Dashboard
 - ✅ Grilles jouées/créées enrichies (temps, essais, difficulté, lien /result)
-- ✅ Nom de grille = 4 indices joints par `·`
 - ✅ Solution dans `/dashboard` = même layout que l'onglet solution de `/result`
 
 ### Bug critique
-- ✅ Edge function `check-attempt` corrigée (anciens noms de tables → `orienta_*`) et redéployée
+- ✅ Edge function `check-attempt` corrigée et redéployée
 
 ---
 
-## 🔄 Phase 2 — En cours / À faire
+## ✅ Phase 2 — Bug Fixes & Robustesse (COMPLÉTÉ 2026-06-01)
+
+### Bugs critiques / majeurs corrigés
+- ✅ `ReplayModal` — `cardMap` keyed par le mauvais ID → mots tous affichés `—`, fix: `cardMap[gc.card_id]`
+- ✅ `PlayPage` — timer démarrait avant chargement réseau, facturant les secondes de fetch au score
+- ✅ `PlayPage` — fail silencieux si `check-attempt` échoue → message "Erreur réseau — réessaie."
+- ✅ `ResultPage` — inner query `orienta_play_attempts` non-awaited, risque de state update après unmount → guard `cancelled`
+- ✅ `scoring.js` — `evaluateAttempt` (code mort côté client) ignorait "bonne position + mauvaise rotation" comme partiel. Edge Function était déjà correcte.
+
+### Bugs mineurs corrigés
+- ✅ `HubPage` — `dailyPlaysMap` était un état dupliqué inutile (même référence que `playsMap`), supprimé
+- ✅ `DashboardPage` — `avgTime` incluait les parties avec `time_seconds = null` comme 0, biaisait la moyenne
+
+### UX mobile
+- ✅ `/result` — mini-grid plus rognée sur mobile (offset `clamp()` recalculé à 190px)
+- ✅ `/create` — indices latéraux Gauche/Droite : bouton vertical sur mobile → overlay centré à la saisie, input direct sur desktop (≥681px)
+- ✅ Uniformisation couleur/police sur les 4 champs d'indice
+- ✅ Fermeture de l'overlay latéral quand l'utilisateur clique sur Haut ou Bas
+
+---
+
+## 🔄 Phase 3 — En cours / À faire
 
 ### P1 — Important
 
-- [ ] **Notifications** : `orienta_notifications` table + badge Header + modal commentaires sur ses grilles
-- [ ] **Attemptes count sur hub** : afficher le nb réel d'essais depuis `orienta_play_attempts` (actuellement `attempts_count` est null avant completion)
-- [ ] **Win animation** : confetti + animation XP bar + popup "+X XP"
+- [ ] **Notifications** : `orienta_notifications` table + trigger SQL + badge Header + `NotificationsPanel`
+- [ ] **Attemptes count sur hub** : afficher le nb réel d'essais depuis `orienta_play_attempts`
 
 ### P2 — Nice to have
 
@@ -83,3 +101,4 @@
 - [ ] Policies : isolation user data, grids publiques, play attempts own
 - [ ] Audit XP : vérifier que `add_user_xp` ne peut pas être appelé en boucle
 - [ ] Sécuriser `check-attempt` edge function (valider `play_id` appartient à l'user)
+- [ ] Sécuriser `DailyAdminPage` côté serveur (actuellement protection client-side uniquement)

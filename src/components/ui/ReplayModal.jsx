@@ -38,7 +38,7 @@ export default function ReplayModal({ playId, gridId, onClose }) {
 
   const cardMap = {}
   for (const gc of gridCards) {
-    cardMap[gc.id] = gc
+    cardMap[gc.card_id] = gc
   }
 
   const solutionByPos = {}

@@ -42,7 +42,6 @@ export default function HubPage() {
   const [hasCreatedToday, setHasCreatedToday] = useState(false)
   const [loading, setLoading] = useState(true)
   const [dailyGrids, setDailyGrids] = useState([])
-  const [dailyPlaysMap, setDailyPlaysMap] = useState(new Map())
   const [showAllCommunity, setShowAllCommunity] = useState(false)
 
   useEffect(() => {
@@ -91,7 +90,6 @@ export default function HubPage() {
       setGrids(activeGrids ?? [])
       setPlaysMap(playsById)
       setDailyGrids(dailyGridData ?? [])
-      setDailyPlaysMap(playsById)
       if (todayGrid && todayGrid.id) {
         setCreatedGrid(todayGrid)
         setHasCreatedToday(true)
@@ -158,7 +156,7 @@ export default function HubPage() {
               <div className="daily-challenge-card">
                 <GridCard
                   grid={todayDaily}
-                  playInfo={dailyPlaysMap.get(todayDaily.id) ?? null}
+                  playInfo={playsMap.get(todayDaily.id) ?? null}
                   index={0}
                   isDaily
                 />

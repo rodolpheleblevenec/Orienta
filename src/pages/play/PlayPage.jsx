@@ -66,6 +66,7 @@ export default function PlayPage() {
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [gameOver, setGameOver] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState(false)
   const [isSwappingSlots, setIsSwappingSlots] = useState(false)
 
   const sensors = useSensors(
@@ -73,7 +74,7 @@ export default function PlayPage() {
     useSensor(TouchSensor,   { activationConstraint: { delay: 120, tolerance: 8 } }),
   )
 
-  const startTimeRef = useRef(Date.now())
+  const startTimeRef = useRef(null)
   const [elapsed, setElapsed] = useState(0)
 
   useEffect(() => {
@@ -129,6 +130,7 @@ export default function PlayPage() {
         colorIndex: i,
       }))
       setTrayCards(shuffled)
+      startTimeRef.current = Date.now()
 
       const cardMap = new Map(shuffled.map(({ card, colorIndex }) => [card.id, { card, colorIndex }]))
 
@@ -180,7 +182,9 @@ export default function PlayPage() {
   useEffect(() => {
     if (gameOver) return
     const interval = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000))
+      if (startTimeRef.current) {
+        setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000))
+      }
     }, 1000)
     return () => clearInterval(interval)
   }, [gameOver])
@@ -248,6 +252,7 @@ export default function PlayPage() {
 
   async function handleSubmit() {
     setIsSubmitting(true)
+    setSubmitError(false)
 
     const answer = Object.entries(placements)
       .filter(([, v]) => v)
@@ -263,6 +268,7 @@ export default function PlayPage() {
 
     if (error || !result) {
       setIsSubmitting(false)
+      setSubmitError(true)
       return
     }
 
@@ -450,6 +456,9 @@ export default function PlayPage() {
       )}
 
       <footer className="play-footer">
+        {submitError && (
+          <p className="play-submit-error">Erreur réseau — réessaie.</p>
+        )}
         <button
           className="btn-primary play-footer-submit"
           onClick={handleSubmit}

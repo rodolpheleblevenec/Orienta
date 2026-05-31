@@ -18,7 +18,7 @@ Scoring basé sur la vitesse et le nombre d'essais.
 
 ## Tech Stack
 
-- **Frontend** : React 18, React Router v6, Framer Motion, Zustand, @dnd-kit
+- **Frontend** : React 19, React Router v6, Framer Motion, Zustand, @dnd-kit
 - **Backend** : Supabase (PostgreSQL, RPC, Edge Functions)
 - **Styling** : CSS vanilla (`src/index.css`)
 
@@ -43,11 +43,12 @@ npm run dev
 ```
 src/
 ├── pages/           LoginPage, HubPage, PlayPage, CreatePage,
-│                    ResultPage, DashboardPage, ProfilePage, AdminDailyPage
+│                    ResultPage, DashboardPage, ProfilePage, DailyAdminPage
 ├── components/
 │   ├── game/        WordCard, CloverGrid, CloverWithInputs
 │   └── ui/          Header, GridCard, StaticMiniGrid, TourOverlay,
-│                    TutorialModal, CollectiveGauge, ...
+│                    TutorialModal, CollectiveGauge, LevelsModal,
+│                    ReplayModal, StreakModal, ...
 ├── lib/             supabase, cardColors, scoring, levels, creatures,
 │                    marineItems, useBodyScrollLock
 ├── stores/          authStore (Zustand)
@@ -68,28 +69,30 @@ supabase/
 - 3 essais avec feedback détaillé
 - Persistance des essais en cours (retour possible en cours de partie)
 - Tour guidé première visite
+- Message d'erreur réseau si `check-attempt` échoue
 
 **Création**
 - 3 niveaux de difficulté (Facile / Moyen / Difficile)
 - Chrono en Moyen/Difficile avec auto-publish ou forfait
 - Validation : les indices ne peuvent pas être des mots des cartes
-- Swap de cartes en mode Difficile
+- Indices latéraux (Gauche/Droite) : saisie via overlay centré sur mobile, input direct sur desktop
 
 **Hub**
 - Grille du jour + archives 7 jours
-- Grilles communautaires
+- Grilles communautaires groupées par date
 - Statut des parties (Non joué / En cours / Joué) avec code couleur
 
 **Progression**
-- XP individuel → 10 niveaux → skins SVG marins
+- XP individuel → 10 niveaux → skins emojis marins
 - XP collectif → 10 niveaux → créatures emoji partagées
 - Streak journalier avec bonus XP
 - Leaderboard contributeurs
 
 **Profil & Dashboard**
 - Historique jouées/créées avec stats détaillées
-- Lien vers /result pour revoir ses essais
+- Lien vers `/result` pour revoir ses essais
 - Solution complète de la grille
+- Replay des essais via `ReplayModal`
 
 ---
 

@@ -12,6 +12,7 @@ Décisions architecturales et produit non-évidentes, avec leurs trade-offs.
 
 **Trade-offs** :
 - Pas de récupération de compte si localStorage effacé
+- Lookup pseudo case-sensitive : "Alice" et "alice" créent deux comptes différents
 - Pas de contrôle d'accès réel (RLS désactivé)
 - Acceptable pour un jeu public sans données sensibles
 
@@ -61,6 +62,8 @@ Décisions architecturales et produit non-évidentes, avec leurs trade-offs.
 
 **Risque** : Un joueur pourrait appeler le RPC avec un montant gonflé. Non prioritaire pour un jeu casual.
 
+**Note** : `evaluateAttempt()` dans `scoring.js` est du **code mort** — l'évaluation réelle des essais se passe dans l'Edge Function `check-attempt`. Ne pas utiliser `evaluateAttempt()` côté client pour des calculs de score.
+
 ---
 
 ## 2026-05-27 — CSS vanilla, pas de framework
@@ -93,36 +96,60 @@ Décisions architecturales et produit non-évidentes, avec leurs trade-offs.
 
 ## 2026-05-28 — Persistance des essais en cours via `orienta_play_attempts`
 
-**Décision** : Quand un joueur retourne sur une grille non terminée, `fetchGrid` restaure l'historique des tentatives depuis `orienta_play_attempts`.
+**Décision** : Quand un joueur retourne sur une grille non terminée, `fetchGrid` dans `PlayPage` restaure l'historique des tentatives depuis `orienta_play_attempts`.
 
-**Pourquoi** : Un joueur doit pouvoir interrompre une partie et reprendre à l'essai suivant. Ne pas persister forçait à recommencer depuis l'essai 1 à chaque retour.
+**Pourquoi** : Un joueur doit pouvoir interrompre une partie et reprendre à l'essai suivant.
 
 **Implémentation** : Le client insère dans `orienta_play_attempts` après chaque soumission. `fetchGrid` query les tentatives et reconstruit `attemptHistory` + `attemptNumber` + `attemptsFailed`.
 
-**Note** : La `trayCards` est toujours remise à zéro (toutes les cartes dans le plateau) — le joueur doit replacer ses cartes pour le nouvel essai.
+**Note** : La `trayCards` est toujours remise à zéro — le joueur doit replacer ses cartes pour le nouvel essai.
 
 ---
 
-## 2026-05-28 — Tour guidé via localStorage par user + par page
+## 2026-05-28 — Tour guidé via `orienta_users` (colonne booléenne par page)
 
-**Décision** : `TourOverlay` s'affiche une seule fois, clé `orienta_tour_play_{uid}` / `orienta_tour_create_{uid}` dans `localStorage`.
+**Décision** : Les flags de tour (`tour_play_done`, `tour_create_placement_done`, `tour_create_clues_done`) sont stockés dans la table `orienta_users`, pas en localStorage.
 
-**Pourquoi** : Pas besoin de stocker en DB pour une préférence UI aussi légère. La clé est per-user pour éviter qu'un user sur un appareil partagé voit le tour d'un autre.
+**Pourquoi** : Persiste sur tous les appareils du même utilisateur. Un utilisateur qui change de navigateur ne revoit pas le tour.
 
 ---
 
 ## 2026-05-28 — Forfait de création via localStorage (par user, expirant à minuit)
 
-**Décision** : Si un user abandonne une création chronométrée, on écrit `localStorage.setItem('orienta_create_forfeit_{uid}', DATE_STRING)`. La valeur est comparée à `new Date().toISOString().split('T')[0]` (date du jour). Si égale → bouton "Créer ma grille" désactivé.
+**Décision** : Si un user abandonne une création chronométrée, on écrit `localStorage.setItem('orienta_create_forfeit_{uid}', DATE_STRING)`. La valeur est comparée à la date du jour ISO. Si égale → bouton "Créer ma grille" désactivé.
 
-**Pourquoi** : Enjeu de la contrainte temps. Pas besoin de stocker en DB — le forfait expire naturellement le lendemain. Per-user pour ne pas pénaliser d'autres accounts sur le même appareil.
+**Pourquoi** : Enjeu de la contrainte temps. Pas besoin de stocker en DB — le forfait expire naturellement le lendemain.
 
 ---
 
-## 2026-05-28 — Edge function `check-attempt` utilise les tables `orienta_*`
+## 2026-05-28 — Edge function `check-attempt` utilise `SUPABASE_SERVICE_ROLE_KEY`
 
-**Décision** : La fonction edge utilise `orienta_plays`, `orienta_grids`, `orienta_grid_cards`, `orienta_collective_progress`, `orienta_users`.
+**Décision** : La fonction edge lit la solution depuis `orienta_grid_cards` avec la service role key, jamais exposée côté client.
 
-**Contexte** : La version initiale utilisait les anciens noms (`plays`, `grids`, etc.) qui n'existent plus. Cela causait une 404 à chaque soumission → le client faisait un early return → aucun enregistrement des tentatives → bug de persistance.
+**Contexte** : La solution de la grille ne doit pas être accessible au client (triche possible). La fonction ne retourne que les résultats (`correctFull`, `correctRotation`, `neither`, `card_feedbacks`), jamais la solution brute.
 
-**Fix appliqué** : 2026-05-28, version 2 déployée via Supabase MCP.
+**Note partielle correcte** : La fonction compte comme partiellement correct tout placement où `posMatch || rotMatch` (bonne position OU bonne rotation). C'est la définition du jeu — vérifiée et cohérente avec l'UI.
+
+---
+
+## 2026-06-01 — Indices latéraux : double rendu desktop/mobile (CSS switch)
+
+**Décision** : `CloverWithInputs` rend **simultanément** deux éléments pour chaque côté latéral :
+- Un `<input>` avec `.clue-lateral--desktop` (visible ≥681px, caché en mobile via `display: none`)
+- Un `<button>` avec `.clue-lateral--mobile` (caché en desktop, visible en mobile)
+
+Sur mobile, taper sur le bouton ouvre un overlay centré (`.clue-lateral-editor`) pour la saisie.
+
+**Pourquoi** : L'élément `<input>` est un "replaced element" — `writing-mode: vertical-rl` ne fonctionne pas (la largeur physique reste horizontale). La solution `writing-mode` sur un `<div>` wrapper cassait le layout de la grille CSS. Le pattern bouton+overlay est plus simple à maintenir.
+
+**Trade-off** : Les deux éléments sont toujours dans le DOM. Cost négligeable ici (4 éléments supplémentaires).
+
+---
+
+## 2026-06-01 — Timer `PlayPage` démarre après chargement réseau, pas au mount
+
+**Décision** : `startTimeRef` est initialisé à `null` et assigné à `Date.now()` dans `fetchGrid`, juste après `setTrayCards(shuffled)`.
+
+**Pourquoi** : Le temps de chargement Supabase (typiquement 200–800ms) était facturé au joueur dans le calcul du score. Le timer démarre maintenant quand les cartes sont effectivement visibles.
+
+**Guard** : L'interval du timer vérifie `if (startTimeRef.current)` avant de calculer l'écart — évite un NaN si le composant est rendu avant la fin du fetch.
