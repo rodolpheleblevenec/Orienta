@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '../../stores/authStore'
+import { getMarineItem, MARINE_ITEMS } from '../../lib/marineItems'
 
 const DIFFICULTY_LABEL = { facile: 'Facile', moyen: 'Moyen', difficile: 'Difficile' }
 const DIFFICULTY_CLASS = { facile: 'card-v2-difficulty--easy', moyen: 'card-v2-difficulty--medium', difficile: 'card-v2-difficulty--hard' }
@@ -59,7 +60,10 @@ export default function GridCard({ grid, playInfo, index, isDaily = false, isOwn
   const totalPlays = plays.length
   const successPlays = plays.filter(p => p.success).length
   const successRate = totalPlays > 0 ? Math.round((successPlays / totalPlays) * 100) : 0
+
   const creatorInitial = grid.orienta_users?.pseudo?.[0]?.toUpperCase() ?? '?'
+  const creatorSkin = grid.orienta_users?.selected_skin ?? 1
+  const creatorAvatar = creatorSkin > 1 ? getMarineItem(creatorSkin).name.split(' ')[0] : creatorInitial
 
   const inProgress = playInfo && !playInfo.completed
   const completed = playInfo?.completed === true
@@ -73,7 +77,7 @@ export default function GridCard({ grid, playInfo, index, isDaily = false, isOwn
       <Link to={linkTo} className="card-v2">
         <div className="card-v2-header" style={{ backgroundColor: isDaily ? '#6C63FF' : '#33B69A' }}>
           <div className="card-v2-avatar">
-            {isDaily ? '★' : creatorInitial}
+            {isDaily ? '★' : creatorAvatar}
           </div>
           <div className="card-v2-name">{isDaily ? 'Grille du jour' : (grid.orienta_users?.pseudo ?? 'Inconnu')}</div>
           <div className="card-v2-icon">

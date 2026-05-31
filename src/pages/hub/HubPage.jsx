@@ -58,7 +58,7 @@ export default function HubPage() {
     const [{ data: activeGrids }, { data: plays }, { data: todayGrid }, { data: dailyGridData }] = await Promise.all([
         supabase
           .from('orienta_grids')
-          .select('*, orienta_users(pseudo), orienta_plays(success, player_id, completed_at)')
+          .select('*, orienta_users(pseudo, selected_skin), orienta_plays(success, player_id, completed_at)')
           .eq('status', 'published')
           .is('daily_date', null)
           .gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString())

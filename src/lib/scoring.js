@@ -3,7 +3,10 @@ const ATTEMPT_PENALTY = 150
 const SPEED_BONUS = 100
 const SPEED_THRESHOLD_SECONDS = 60
 
-export const XP_CREATE = { facile: 25, moyen: 50, difficile: 75 }
+// XP awards per grid resolution
+export const XP_RESOLVE = 25  // joueur qui résout une grille
+export const XP_CREATE_BASE = 15  // créateur quand quelqu'un joue sa grille
+export const XP_CREATE_BONUS = 30  // créateur bonus quand quelqu'un réussit sa grille
 export const xpStreakBonus = (streak) => Math.min(streak * 2, 30)
 
 // Logarithmic time decay: score never drops below ~200 during normal play
@@ -15,8 +18,8 @@ export function computeScore(elapsedSeconds, attemptsFailed) {
 }
 
 export function computeXp(score, success) {
-  if (!success) return 10   // participation, encourages coming back
-  return Math.round(score * 0.15)  // max ~165 XP per win — progression lente
+  if (!success) return 0  // joueur qui échoue gagne 0 XP
+  return XP_RESOLVE  // joueur qui réussit gagne 25 XP
 }
 
 // Compare player answer vs solution

@@ -7,7 +7,6 @@ import {
 import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
-import { XP_CREATE } from '../../lib/scoring'
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 import Header from '../../components/ui/Header'
 import TourOverlay from '../../components/ui/TourOverlay'
@@ -67,7 +66,7 @@ const CLUE_SIDES = [
 
 export default function CreatePage() {
   const navigate = useNavigate()
-  const { user, refreshUser } = useAuthStore()
+  const { user, refreshUser, markTourDone } = useAuthStore()
 
   const [showDifficultyModal, setShowDifficultyModal] = useState(true)
   const [showExitWarning, setShowExitWarning] = useState(false)
@@ -243,7 +242,6 @@ export default function CreatePage() {
     }
 
     await supabase.from('orienta_grid_cards').insert(gridCardInserts)
-    await supabase.rpc('add_user_xp', { uid: user.id, amount: XP_CREATE[difficulty] })
     await refreshUser()
     navigate('/hub')
   }
@@ -270,7 +268,7 @@ export default function CreatePage() {
     setDifficulty(chosen)
     setShowDifficultyModal(false)
     setTourFinished(false)
-    if (user && !localStorage.getItem(`orienta_tour_create_placement_${user.id}`)) {
+    if (user && !user.tour_create_placement_done) {
       setShowPlacementTour(true)
     } else {
       setTourFinished(true)
@@ -279,7 +277,7 @@ export default function CreatePage() {
 
   useEffect(() => {
     if (phase !== 'clues' || !user?.id) return
-    if (!localStorage.getItem(`orienta_tour_create_clues_${user.id}`)) {
+    if (!user.tour_create_clues_done) {
       setShowCluesTour(true)
       setTourFinished(false)
     } else {
@@ -538,7 +536,7 @@ export default function CreatePage() {
         <TourOverlay
           steps={CREATE_PLACEMENT_STEPS}
           onDone={() => {
-            localStorage.setItem(`orienta_tour_create_placement_${user.id}`, '1')
+            markTourDone('tour_create_placement_done')
             setShowPlacementTour(false)
             setTourFinished(true)
           }}
@@ -548,7 +546,7 @@ export default function CreatePage() {
         <TourOverlay
           steps={CREATE_CLUES_STEPS}
           onDone={() => {
-            localStorage.setItem(`orienta_tour_create_clues_${user.id}`, '1')
+            markTourDone('tour_create_clues_done')
             setShowCluesTour(false)
             setTourFinished(true)
           }}

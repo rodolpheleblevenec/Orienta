@@ -28,7 +28,7 @@ export default function DailyArchivesPage() {
     const fetchData = async () => {
       const { data: dailyGridData } = await supabase
         .from('orienta_grids')
-        .select('*, orienta_users(pseudo), orienta_plays(player_id, success, score, completed_at, orienta_users(pseudo))')
+        .select('*, orienta_users(pseudo, selected_skin), orienta_plays(player_id, success, score, completed_at, orienta_users(pseudo))')
         .eq('status', 'published')
         .gte('daily_date', sevenDaysAgo)
         .lt('daily_date', today)

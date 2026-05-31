@@ -143,6 +143,14 @@ export default function DailyAdminPage() {
     })
   }
 
+  function handleClueChange(key, value) {
+    // Interdire les espaces : un seul mot autorisé
+    if (value.includes(' ')) {
+      return
+    }
+    setClues(p => ({ ...p, [key]: value }))
+  }
+
   async function handleSave() {
     if (!selectedDate || !user) return
     const allFilled = Object.values(placements).every(v => v !== null)
@@ -264,14 +272,14 @@ export default function DailyAdminPage() {
                     <input
                       className="clue-input clue-input--top"
                       value={clues.top}
-                      onChange={e => setClues(p => ({ ...p, top: e.target.value }))}
+                      onChange={e => handleClueChange('top', e.target.value)}
                       placeholder="Haut"
                       maxLength={24}
                     />
                     <input
                       className="clue-input clue-input--left"
                       value={clues.left}
-                      onChange={e => setClues(p => ({ ...p, left: e.target.value }))}
+                      onChange={e => handleClueChange('left', e.target.value)}
                       placeholder="Gauche"
                       maxLength={24}
                     />
@@ -305,14 +313,14 @@ export default function DailyAdminPage() {
                     <input
                       className="clue-input clue-input--right"
                       value={clues.right}
-                      onChange={e => setClues(p => ({ ...p, right: e.target.value }))}
+                      onChange={e => handleClueChange('right', e.target.value)}
                       placeholder="Droite"
                       maxLength={24}
                     />
                     <input
                       className="clue-input clue-input--bottom"
                       value={clues.bottom}
-                      onChange={e => setClues(p => ({ ...p, bottom: e.target.value }))}
+                      onChange={e => handleClueChange('bottom', e.target.value)}
                       placeholder="Bas"
                       maxLength={24}
                     />

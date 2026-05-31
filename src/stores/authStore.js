@@ -70,4 +70,11 @@ export const useAuthStore = create((set, get) => ({
 
   openTutorial: () => set({ tutorialOpen: true }),
   closeTutorial: () => set({ tutorialOpen: false }),
+
+  markTourDone: async (flag) => {
+    const { user } = get()
+    if (!user) return
+    await supabase.from('orienta_users').update({ [flag]: true }).eq('id', user.id)
+    set({ user: { ...user, [flag]: true } })
+  },
 }))
