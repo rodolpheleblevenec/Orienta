@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
-import { LEVELS, getLevelProgress } from '../../lib/levels'
+import { LEVELS, getLevelProgress, getLevelProgressCollective } from '../../lib/levels'
 import { getCreature } from '../../lib/creatures'
 import { MARINE_ITEMS, getMarineItem } from '../../lib/marineItems'
 import Header from '../../components/ui/Header'
@@ -44,7 +44,7 @@ export default function ProfilePage() {
         bestScore: plays.reduce((m, p) => Math.max(m, p.score ?? 0), 0),
       })
       if (collectiveRes.data) {
-        const collectiveProgress = getLevelProgress(collectiveRes.data.total_xp)
+        const collectiveProgress = getLevelProgressCollective(collectiveRes.data.total_xp)
         setCollectiveLevel(collectiveProgress.currentLevel.level)
       }
     })
@@ -82,7 +82,7 @@ export default function ProfilePage() {
         <div className="profile-header-block">
           <div className="profile-avatar">
             {selectedSkin > 1 ? (
-              getMarineItem(selectedSkin).Component({ size: 48 })
+              getMarineItem(selectedSkin).name.split(' ')[0]
             ) : (
               user.pseudo[0].toUpperCase()
             )}
@@ -156,16 +156,17 @@ export default function ProfilePage() {
                 >
                   <div className="skin-creature">
                     {isUnlocked ? (
-                      <item.Component size={40} />
+                      <span style={{ fontSize: '44px', lineHeight: 1 }}>{item.name.split(' ')[0]}</span>
                     ) : (
                       <>
-                        <item.Component size={40} style={{ opacity: 0.3 }} />
+                        <span style={{ fontSize: '44px', lineHeight: 1, opacity: 0.3 }}>{item.name.split(' ')[0]}</span>
                         <div className="skin-lock">🔒</div>
                       </>
                     )}
                   </div>
                   <div className="skin-info">
                     <div className="skin-name">{item.name}</div>
+                    <div className="skin-xp-threshold">{item.xpThreshold.toLocaleString()} XP</div>
                     {isSelected && <div className="skin-badge">✓ Actif</div>}
                   </div>
                 </motion.div>

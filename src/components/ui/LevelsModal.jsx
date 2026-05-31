@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { LEVELS, getLevelProgress } from '../../lib/levels'
+import { LEVELS_COLLECTIVE } from '../../lib/levels'
 import { getCreature } from '../../lib/creatures'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
@@ -82,10 +82,10 @@ export default function LevelsModal({ collectiveLevel, collectiveXp, onClose }) 
         {activeTab === 'paliers' ? (
           <>
             <div className="levels-modal-grid">
-              {LEVELS.map((level) => {
+              {LEVELS_COLLECTIVE.map((level) => {
                 const creature = getCreature(level.level)
                 const isUnlocked = collectiveLevel >= level.level
-                const nextThreshold = LEVELS.find(l => l.level === level.level + 1)
+                const nextThreshold = LEVELS_COLLECTIVE.find(l => l.level === level.level + 1)
                 const nextXp = nextThreshold ? nextThreshold.xp : level.xp + 50000
 
                 return (

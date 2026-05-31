@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
-import { LEVELS, getLevelProgress } from '../../lib/levels'
+import { LEVELS_COLLECTIVE, getLevelProgressCollective } from '../../lib/levels'
 import { getCreature } from '../../lib/creatures'
 import LevelsModal from './LevelsModal'
 
@@ -20,7 +20,7 @@ export default function CollectiveGauge() {
 
   if (!progress) return null
 
-  const levelProgress = getLevelProgress(progress.total_xp)
+  const levelProgress = getLevelProgressCollective(progress.total_xp)
   const { currentLevel, nextLevel, pct } = levelProgress
   const creature = getCreature(currentLevel.level)
 
