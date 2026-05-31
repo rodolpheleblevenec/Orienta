@@ -278,14 +278,14 @@ export default function CreatePage() {
   }
 
   useEffect(() => {
-    if (phase !== 'clues' || !user) return
+    if (phase !== 'clues' || !user?.id) return
     if (!localStorage.getItem(`orienta_tour_create_clues_${user.id}`)) {
       setShowCluesTour(true)
       setTourFinished(false)
     } else {
       setTourFinished(true)
     }
-  }, [phase, user])
+  }, [phase, user?.id])
 
   const allCardWords = useMemo(() => {
     const fields = ['word_top', 'word_right', 'word_bottom', 'word_left']

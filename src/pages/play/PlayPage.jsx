@@ -172,10 +172,13 @@ export default function PlayPage() {
   }, [gridId, user, navigate])
 
   useEffect(() => {
-    if (!user) return
+    if (!user?.id) return
     const key = `orienta_tour_play_${user.id}`
-    if (!localStorage.getItem(key)) setShowTour(true)
-  }, [user])
+    const hasSeenTour = localStorage.getItem(key) === '1'
+    if (!hasSeenTour) {
+      setShowTour(true)
+    }
+  }, [user?.id])
 
   useEffect(() => {
     if (gameOver) return

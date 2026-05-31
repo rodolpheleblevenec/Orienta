@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import Header from '../../components/ui/Header'
@@ -32,6 +32,7 @@ function SectionTitle({ children, tip }) {
 
 export default function HubPage() {
   const { user } = useAuthStore()
+  const navigate = useNavigate()
   const today = new Date().toISOString().split('T')[0]
   const hasForfeited = localStorage.getItem(`orienta_create_forfeit_${user?.id}`) === today
 
@@ -59,7 +60,6 @@ export default function HubPage() {
           .from('orienta_grids')
           .select('*, orienta_users(pseudo), orienta_plays(success, player_id, completed_at)')
           .eq('status', 'published')
-          .neq('creator_id', user.id)
           .is('daily_date', null)
           .gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString())
           .order('created_at', { ascending: false }),
@@ -125,6 +125,9 @@ export default function HubPage() {
   const myInTop3 = dailyTop3.some(p => p.player_id === user?.id)
 
   const twoDaysAgoDate = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0]
+  const todayDate = new Date().toISOString().split('T')[0]
+
+  const todaysCommunityGrids = grids.filter(g => g.created_at.split('T')[0] === todayDate)
 
   const communityGroups = (() => {
     const map = {}
@@ -146,104 +149,106 @@ export default function HubPage() {
       <main className="hub-main">
 
         {/* Ligne 1 — Challenge journalier */}
-        {(todayDaily || loading) && (
-          <section>
-            <SectionTitle tip="La grille du jour, commune à tous les joueurs. Résous-la pour marquer des points et grimper au classement.">Challenge journalier</SectionTitle>
-            {loading ? (
-              <div className="hub-loading"><div className="grid-card-skeleton" /></div>
-            ) : todayDaily ? (
-              <div className="daily-challenge-layout">
-                <div className="daily-challenge-card">
-                  <GridCard
-                    grid={todayDaily}
-                    playInfo={dailyPlaysMap.get(todayDaily.id) ?? null}
-                    index={0}
-                    isDaily
-                  />
-                </div>
-                <div className="daily-challenge-side">
-                  <div className="daily-lb">
-                    <div className="daily-lb-header">
-                      <svg className="daily-lb-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M6 9H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/>
-                        <path d="M18 9h3a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-3"/>
-                        <path d="M6 4h12v8a6 6 0 0 1-12 0V4Z"/>
-                        <path d="M12 18v4"/>
-                        <path d="M8 22h8"/>
-                      </svg>
-                      <span className="daily-lb-title">Classement du jour</span>
-                    </div>
-
-                    {dailyTop3.length === 0 ? (
-                      <div className="daily-lb-empty">
-                        <div className="daily-lb-empty-icon">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M6 9H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/>
-                            <path d="M18 9h3a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-3"/>
-                            <path d="M6 4h12v8a6 6 0 0 1-12 0V4Z"/>
-                            <path d="M12 18v4"/>
-                            <path d="M8 22h8"/>
-                          </svg>
-                        </div>
-                        <p className="daily-lb-empty-text">Aucun joueur n'a encore terminé le challenge aujourd'hui.</p>
-                        <p className="daily-lb-empty-cta">Sois le premier !</p>
-                      </div>
-                    ) : (
-                      <ol className="daily-lb-list">
-                        {dailyTop3.map((p, i) => (
-                          <li key={i} className={`daily-lb-row${p.player_id === user?.id ? ' daily-lb-row--me' : ''}`}>
-                            <span className={`daily-lb-rank daily-lb-rank--${i + 1}`}>
-                              {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
-                            </span>
-                            <span className="daily-lb-name">{p.orienta_users?.pseudo ?? '?'}</span>
-                            <span className="daily-lb-score">{p.score} pts</span>
-                          </li>
-                        ))}
-                      </ol>
-                    )}
-
-                    {myDailyPlay && !myInTop3 && (
-                      <>
-                        <div className="daily-lb-separator">···</div>
-                        <div className="daily-lb-row daily-lb-row--me">
-                          <span className="daily-lb-rank">#{myDailyRank}</span>
-                          <span className="daily-lb-name">{user?.pseudo}</span>
-                          <span className="daily-lb-score">{myDailyPlay.score ?? 0} pts</span>
-                        </div>
-                      </>
-                    )}
+        <section>
+          <SectionTitle tip="La grille du jour, commune à tous les joueurs. Résous-la pour marquer des points et grimper au classement.">Challenge journalier</SectionTitle>
+          {loading ? (
+            <div className="hub-loading"><div className="grid-card-skeleton" /></div>
+          ) : todayDaily ? (
+            <div className="daily-challenge-layout">
+              <div className="daily-challenge-card">
+                <GridCard
+                  grid={todayDaily}
+                  playInfo={dailyPlaysMap.get(todayDaily.id) ?? null}
+                  index={0}
+                  isDaily
+                />
+              </div>
+              <div className="daily-challenge-side">
+                <div className="daily-lb">
+                  <div className="daily-lb-header">
+                    <svg className="daily-lb-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6 9H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/>
+                      <path d="M18 9h3a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-3"/>
+                      <path d="M6 4h12v8a6 6 0 0 1-12 0V4Z"/>
+                      <path d="M12 18v4"/>
+                      <path d="M8 22h8"/>
+                    </svg>
+                    <span className="daily-lb-title">Classement du jour</span>
                   </div>
 
-                  {archiveDailies.length > 0 && (
-                    <a href="#daily-archives" className="daily-archives-link">
-                      Grilles précédentes ({archiveDailies.length}) →
-                    </a>
+                  {dailyTop3.length === 0 ? (
+                    <div className="daily-lb-empty">
+                      <div className="daily-lb-empty-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M6 9H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/>
+                          <path d="M18 9h3a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-3"/>
+                          <path d="M6 4h12v8a6 6 0 0 1-12 0V4Z"/>
+                          <path d="M12 18v4"/>
+                          <path d="M8 22h8"/>
+                        </svg>
+                      </div>
+                      <p className="daily-lb-empty-text">Aucun joueur n'a encore terminé le challenge aujourd'hui.</p>
+                      <p className="daily-lb-empty-cta">Sois le premier !</p>
+                    </div>
+                  ) : (
+                    <ol className="daily-lb-list">
+                      {dailyTop3.map((p, i) => (
+                        <li key={i} className={`daily-lb-row${p.player_id === user?.id ? ' daily-lb-row--me' : ''}`}>
+                          <span className={`daily-lb-rank daily-lb-rank--${i + 1}`}>
+                            {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
+                          </span>
+                          <span className="daily-lb-name">{p.orienta_users?.pseudo ?? '?'}</span>
+                          <span className="daily-lb-score">{p.score} pts</span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+
+                  {myDailyPlay && !myInTop3 && (
+                    <>
+                      <div className="daily-lb-separator">···</div>
+                      <div className="daily-lb-row daily-lb-row--me">
+                        <span className="daily-lb-rank">#{myDailyRank}</span>
+                        <span className="daily-lb-name">{user?.pseudo}</span>
+                        <span className="daily-lb-score">{myDailyPlay.score ?? 0} pts</span>
+                      </div>
+                    </>
                   )}
                 </div>
-              </div>
-            ) : null}
-          </section>
-        )}
 
-        {/* Archives — grilles des 7 derniers jours */}
-        {archiveDailies.length > 0 && (
-          <section id="daily-archives">
-            <SectionTitle tip="Les 7 derniers challenges journaliers. Tu peux encore les jouer si tu les as ratés.">Grilles précédentes</SectionTitle>
-            <div className="cards-grid">
-              {archiveDailies.map((grid, i) => (
-                <div key={grid.id} className="daily-archive-item">
-                  <span className="daily-archive-label">{formatDayLabel(grid.daily_date)}</span>
-                  <GridCard
-                    grid={grid}
-                    playInfo={dailyPlaysMap.get(grid.id) ?? null}
-                    index={i}
-                    isDaily
-                  />
-                </div>
-              ))}
+                {archiveDailies.length > 0 && (
+                  <button
+                    className="daily-archives-link"
+                    onClick={() => navigate('/daily-archives')}
+                    type="button"
+                  >
+                    Grilles précédentes ({archiveDailies.length}) →
+                  </button>
+                )}
+              </div>
             </div>
-          </section>
-        )}
+          ) : (
+            <div className="daily-empty-state">
+              <div className="daily-empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 6v6l4 2"/>
+                </svg>
+              </div>
+              <h3 className="daily-empty-title">Pas de challenge aujourd'hui</h3>
+              <p className="daily-empty-text">En attente du prochain défi. Reviens plus tard ou rejoue les challenges précédents !</p>
+              {archiveDailies.length > 0 && (
+                <button
+                  className="btn-secondary"
+                  onClick={() => navigate('/daily-archives')}
+                  type="button"
+                >
+                  Voir les challenges précédents
+                </button>
+              )}
+            </div>
+          )}
+        </section>
 
         {/* Ligne 2 — Progression Collective + Ma grille */}
         <div className="top-sections">
@@ -288,11 +293,28 @@ export default function HubPage() {
               {[1, 2, 3].map(i => <div key={i} className="grid-card-skeleton" />)}
             </div>
           ) : grids.length === 0 ? (
-            <div className="empty-state">
-              <p>Aucune grille cette semaine — sois le premier à en créer une !</p>
+            <div className="community-empty-state">
+              <div className="community-empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 16v-4"/>
+                  <path d="M12 8h.01"/>
+                </svg>
+              </div>
+              <h3 className="community-empty-title">Aucune grille cette semaine</h3>
+              <p className="community-empty-text">La communauté attend tes créations ! Sois le premier à proposer une grille.</p>
+              <Link to="/create" className="btn-primary">
+                Créer ma grille
+              </Link>
             </div>
           ) : (
-            <div className="community-groups">
+            <>
+              {todaysCommunityGrids.length === 0 && (
+                <div className="community-no-today">
+                  <p>Aucune grille créée aujourd'hui</p>
+                </div>
+              )}
+              <div className="community-groups">
               {visibleGroups.map(([date, dateGrids]) => (
                 <div key={date} className="community-group">
                   <h3 className="community-group-date">{formatDayLabel(date)}</h3>
@@ -303,6 +325,7 @@ export default function HubPage() {
                         grid={grid}
                         playInfo={playsMap.get(grid.id) ?? null}
                         index={i}
+                        isOwnGrid={grid.creator_id === user?.id}
                       />
                     ))}
                   </div>
@@ -318,6 +341,7 @@ export default function HubPage() {
                 </button>
               )}
             </div>
+            </>
           )}
         </section>
       </main>

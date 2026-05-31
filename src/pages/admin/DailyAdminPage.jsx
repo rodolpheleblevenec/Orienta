@@ -120,6 +120,7 @@ export default function DailyAdminPage() {
     const p = {}
     shuffled.slice(0, 4).forEach((card, i) => { p[i] = { card, rotation: 0, colorIndex: i } })
     setPlacements(p)
+    setClues({ top: '', right: '', bottom: '', left: '' })
     setIsRefreshing(false)
   }
 

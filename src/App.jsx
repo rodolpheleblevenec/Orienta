@@ -3,6 +3,7 @@ import RequireAuth from './components/ui/RequireAuth'
 import TutorialModal from './components/ui/TutorialModal'
 import LoginPage from './pages/login/LoginPage'
 import HubPage from './pages/hub/HubPage'
+import DailyArchivesPage from './pages/archives/DailyArchivesPage'
 import CreatePage from './pages/create/CreatePage'
 import PlayPage from './pages/play/PlayPage'
 import ResultPage from './pages/result/ResultPage'
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<Navigate to="/hub" replace />} />
         <Route path="/hub"               element={<RequireAuth><HubPage /></RequireAuth>} />
+        <Route path="/daily-archives"    element={<RequireAuth><DailyArchivesPage /></RequireAuth>} />
         <Route path="/create"            element={<RequireAuth><CreatePage /></RequireAuth>} />
         <Route path="/play/:gridId"      element={<RequireAuth><PlayPage /></RequireAuth>} />
         <Route path="/result/:gridId"    element={<RequireAuth><ResultPage /></RequireAuth>} />

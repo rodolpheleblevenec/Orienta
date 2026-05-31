@@ -51,8 +51,9 @@ const ChevronIcon = () => (
   </svg>
 )
 
-export default function GridCard({ grid, playInfo, index, isDaily = false }) {
+export default function GridCard({ grid, playInfo, index, isDaily = false, isOwnGrid = false }) {
   const { user } = useAuthStore()
+  const linkTo = isOwnGrid ? `/dashboard/${grid.id}` : `/play/${grid.id}`
 
   const plays = (grid.orienta_plays ?? []).filter(p => p.success !== null)
   const totalPlays = plays.length
@@ -69,7 +70,7 @@ export default function GridCard({ grid, playInfo, index, isDaily = false }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
     >
-      <Link to={`/play/${grid.id}`} className="card-v2">
+      <Link to={linkTo} className="card-v2">
         <div className="card-v2-header" style={{ backgroundColor: isDaily ? '#6C63FF' : '#33B69A' }}>
           <div className="card-v2-avatar">
             {isDaily ? '★' : creatorInitial}
