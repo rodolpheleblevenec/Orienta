@@ -339,8 +339,8 @@ export default function PlayPage() {
       <Header />
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
 
-        {/* ── Drawer gauche — réserve (toujours visible) ── */}
-        <aside className="play-tray-drawer">
+        {/* ── Drawer gauche — réserve ── */}
+        <aside className={`play-tray-drawer${trayCards.length === 0 ? ' play-tray-drawer--empty' : ''}`}>
           <div className="tray-cards">
             {trayCards.map(({ card, rotation, colorIndex }) => (
               <div key={card.id} className="card-tray-item">
