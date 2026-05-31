@@ -455,7 +455,7 @@ export default function PlayPage() {
           onClick={handleSubmit}
           disabled={!allPlaced || isSubmitting}
         >
-          {isSubmitting ? '…' : (allPlaced ? 'Soumettre' : `Placez toutes les cartes (${trayCards.length} restante${trayCards.length > 1 ? 's' : ''})`)}
+          {isSubmitting ? '…' : (allPlaced ? 'Soumettre' : `${trayCards.length} carte${trayCards.length > 1 ? 's' : ''} à placer`)}
         </button>
         <Link to="/hub" className="btn-secondary play-footer-hub">Retour au Hub</Link>
       </footer>

@@ -1404,6 +1404,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   gap: 12px;
   box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
 }
+@media (max-width: 768px) {
+  .play-footer { padding: 8px 16px; gap: 8px; }
+}
 .play-footer-submit { flex: 1; max-width: 320px; }
 .play-footer-hub { flex-shrink: 0; }
 .play-footer-hint { flex: 1; text-align: center; font-size: 14px; color: var(--text-muted); }
@@ -1884,8 +1887,12 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 }
 @media (max-width: 680px) {
   .result-page { height: auto; min-height: 100dvh; overflow: visible; }
-  .result-main { grid-template-columns: 1fr; padding: 16px; overflow: visible; }
-  .result-footer { padding: 12px 16px; }
+  .result-main { grid-template-columns: 1fr; padding: 16px 16px 80px; overflow: visible; }
+  .result-footer {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    padding: 10px 16px;
+    z-index: 100;
+  }
   .result-card { padding: 24px 18px; }
   .result-icon { font-size: 36px; }
   .result-title { font-size: 22px; margin-bottom: 12px; }
