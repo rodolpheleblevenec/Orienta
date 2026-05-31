@@ -3,14 +3,16 @@ import { Link } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import { getMarineItem } from '../../lib/marineItems'
 import StreakModal from './StreakModal'
+import NotificationsPanel from './NotificationsPanel'
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 
 const ADMIN_PSEUDO = 'Rodolphe LE BLEVENEC'
 
 export default function Header() {
-  const { user, openTutorial, logout } = useAuthStore()
+  const { user, openTutorial, logout, notifCount } = useAuthStore()
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
   const [showStreakModal, setShowStreakModal] = useState(false)
+  const [showNotifs, setShowNotifs] = useState(false)
   useBodyScrollLock(showLogoutConfirm)
   const streak = user?.streak_current ?? 0
   const isAdmin = user?.pseudo === ADMIN_PSEUDO
@@ -52,6 +54,20 @@ export default function Header() {
           </svg>
           <span className="header-label">Tutoriel</span>
         </button>
+        <button
+          className="header-item header-item--notif"
+          onClick={() => setShowNotifs(true)}
+          title="Notifications"
+          type="button"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          {notifCount > 0 && (
+            <span className="notif-badge">{notifCount > 9 ? '9+' : notifCount}</span>
+          )}
+        </button>
         <Link to="/profile" className="header-item">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -72,7 +88,9 @@ export default function Header() {
           </svg>
         </button>
       </div>
+
       {showStreakModal && <StreakModal onClose={() => setShowStreakModal(false)} />}
+      {showNotifs && <NotificationsPanel onClose={() => setShowNotifs(false)} />}
       {showLogoutConfirm && (
         <div className="logout-modal-backdrop" onClick={() => setShowLogoutConfirm(false)}>
           <div className="logout-modal" onClick={e => e.stopPropagation()}>

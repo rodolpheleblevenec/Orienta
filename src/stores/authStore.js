@@ -4,11 +4,11 @@ import { supabase } from '../lib/supabase'
 const STORAGE_KEY = 'orienta_user_id'
 
 export const useAuthStore = create((set, get) => ({
-  user: null,      // row from orienta_users
+  user: null,
   loading: true,
   tutorialOpen: false,
+  notifCount: 0,
 
-  // Called on app boot — rehydrate from localStorage
   init: async () => {
     const savedId = localStorage.getItem(STORAGE_KEY)
     if (!savedId) { set({ loading: false }); return }
@@ -20,9 +20,9 @@ export const useAuthStore = create((set, get) => ({
       .single()
 
     set({ user: data ?? null, loading: false })
+    if (data) get().fetchNotifCount(data.id)
   },
 
-  // Login or create by pseudo
   loginWithPseudo: async (pseudo) => {
     const trimmed = pseudo.trim()
     if (!trimmed) return { error: 'Pseudo vide' }
@@ -36,6 +36,7 @@ export const useAuthStore = create((set, get) => ({
     if (existing) {
       localStorage.setItem(STORAGE_KEY, existing.id)
       set({ user: existing })
+      get().fetchNotifCount(existing.id)
       return { user: existing, isNew: false }
     }
 
@@ -54,7 +55,7 @@ export const useAuthStore = create((set, get) => ({
 
   logout: () => {
     localStorage.removeItem(STORAGE_KEY)
-    set({ user: null })
+    set({ user: null, notifCount: 0 })
   },
 
   refreshUser: async () => {
@@ -66,6 +67,28 @@ export const useAuthStore = create((set, get) => ({
       .eq('id', user.id)
       .single()
     if (data) set({ user: data })
+  },
+
+  fetchNotifCount: async (userId) => {
+    const id = userId ?? get().user?.id
+    if (!id) return
+    const { count } = await supabase
+      .from('orienta_notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', id)
+      .eq('read', false)
+    set({ notifCount: count ?? 0 })
+  },
+
+  markNotifsRead: async () => {
+    const { user } = get()
+    if (!user) return
+    await supabase
+      .from('orienta_notifications')
+      .update({ read: true })
+      .eq('user_id', user.id)
+      .eq('read', false)
+    set({ notifCount: 0 })
   },
 
   openTutorial: () => set({ tutorialOpen: true }),

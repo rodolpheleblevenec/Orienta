@@ -324,11 +324,13 @@ export default function PlayPage() {
           score: 0,
           xp_earned: participationXp,
         }).eq('id', playId)
-        // Award XP to creator (no XP to player on failure)
         await supabase.rpc('award_xp_on_play', { p_grid_id: gridId, p_player_id: user.id, p_success: false, p_streak_bonus: 0 })
         await refreshUser()
         setGameOver(true)
         navigate(`/result/${gridId}`, { state: { score: 0, xp: participationXp, success: false } })
+      } else {
+        // Mise à jour intermédiaire : Hub affiche le bon nb d'essais en cours
+        supabase.from('orienta_plays').update({ attempts_count: attemptNumber }).eq('id', playId)
       }
     }
   }

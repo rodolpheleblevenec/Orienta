@@ -78,14 +78,14 @@
 
 ---
 
-## 🔄 Phase 3 — En cours / À faire
+## ✅ Phase 3 — P1 (COMPLÉTÉ 2026-06-01)
 
-### P1 — Important
+- ✅ **Notifications** : table `orienta_notifications` + trigger SQL (`trg_notify_comment`) + badge rouge Header + `NotificationsPanel.jsx` (panel slide-in, mark-as-read automatique, lien vers dashboard)
+- ✅ **Attempts count sur hub** : `attempts_count` mis à jour après chaque essai raté (fire-and-forget) ; GridCard affiche "En cours" si aucun essai encore enregistré
 
-- [ ] **Notifications** : `orienta_notifications` table + trigger SQL + badge Header + `NotificationsPanel`
-- [ ] **Attemptes count sur hub** : afficher le nb réel d'essais depuis `orienta_play_attempts`
+## 🔄 Phase 4 — En cours / À faire
 
-### P2 — Nice to have
+### P2 — Nice to have (backlog)
 
 - [ ] **Dark mode**
 - [ ] **Audit responsive mobile** complet

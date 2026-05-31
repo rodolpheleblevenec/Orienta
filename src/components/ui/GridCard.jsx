@@ -91,7 +91,7 @@ export default function GridCard({ grid, playInfo, index, isDaily = false, isOwn
               Statut
             </div>
             <div className={`card-v2-cell-value${inProgress ? ' card-v2-status--inprogress' : completed ? ' card-v2-status--done' : ''}`}>
-              {completed ? 'Joué' : inProgress ? `${playInfo.attemptsCount} essai${playInfo.attemptsCount > 1 ? 's' : ''}` : 'Non joué'}
+              {completed ? 'Joué' : inProgress ? (playInfo.attemptsCount > 0 ? `${playInfo.attemptsCount} essai${playInfo.attemptsCount > 1 ? 's' : ''}` : 'En cours') : 'Non joué'}
             </div>
           </div>
           <div className="card-v2-cell">
