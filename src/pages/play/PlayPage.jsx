@@ -24,8 +24,8 @@ const PLAY_TOUR_STEPS = [
     description: "Glisse les cartes depuis le plateau gauche vers les emplacements de la grille. Chaque carte a 4 mots.",
   },
   {
-    anchor: 'center-right',
-    zone: '← Grille centrale',
+    anchor: 'center',
+    zone: 'Grille centrale',
     title: 'Lis les indices',
     description: "Les 4 mots autour de la grille sont les indices du créateur. Ils t'indiquent quelle carte va dans quel emplacement — et dans quel sens !",
   },
@@ -50,7 +50,7 @@ const MAX_ATTEMPTS = 3
 export default function PlayPage() {
   const { gridId } = useParams()
   const navigate = useNavigate()
-  const { user, refreshUser } = useAuthStore()
+  const { user, refreshUser, markTourDone } = useAuthStore()
 
   const [showTour, setShowTour] = useState(false)
   const [grid, setGrid] = useState(null)
@@ -173,11 +173,7 @@ export default function PlayPage() {
 
   useEffect(() => {
     if (!user?.id) return
-    const key = `orienta_tour_play_${user.id}`
-    const hasSeenTour = localStorage.getItem(key) === '1'
-    if (!hasSeenTour) {
-      setShowTour(true)
-    }
+    if (!user.tour_play_done) setShowTour(true)
   }, [user?.id])
 
   useEffect(() => {
@@ -300,7 +296,8 @@ export default function PlayPage() {
         score: finalScore,
         xp_earned: totalXp,
       }).eq('id', playId)
-      await supabase.rpc('add_user_xp', { uid: user.id, amount: totalXp })
+      // Award XP to creator, player, and update collective progress (with streak bonus)
+      await supabase.rpc('award_xp_on_play', { p_grid_id: gridId, p_player_id: user.id, p_success: true, p_streak_bonus: bonusXp })
       await refreshUser()
       setGameOver(true)
       navigate(`/result/${gridId}`, { state: { score: finalScore, xp: totalXp, success: true, baseXp, bonusXp, timeSeconds: elapsed, attemptCount: attemptNumber, streakCurrent: user.streak_current } })
@@ -319,7 +316,8 @@ export default function PlayPage() {
           score: 0,
           xp_earned: participationXp,
         }).eq('id', playId)
-        await supabase.rpc('add_user_xp', { uid: user.id, amount: participationXp })
+        // Award XP to creator (no XP to player on failure)
+        await supabase.rpc('award_xp_on_play', { p_grid_id: gridId, p_player_id: user.id, p_success: false, p_streak_bonus: 0 })
         await refreshUser()
         setGameOver(true)
         navigate(`/result/${gridId}`, { state: { score: 0, xp: participationXp, success: false } })
@@ -378,35 +376,8 @@ export default function PlayPage() {
         </main>
 
         {/* ── Drawer droit — feedback ── */}
-        <aside className="play-feedback-drawer">
-          {attemptHistory.length === 0 ? (
-            <div className="play-history">
-              <div className="play-history-tabs">
-                <div className="play-tab-ghost" />
-              </div>
-              <div className="play-history-panel play-history-panel--ghost">
-                <div className="play-feedback-rows">
-                  {[
-                    { cls: 'play-feedback-dot--correct', label: 'bien placé et orienté' },
-                    { cls: 'play-feedback-dot--rotation', label: 'partiellement correct', title: 'Position correcte + orientation incorrecte, OU position incorrecte + orientation correcte' },
-                    { cls: 'play-feedback-dot--wrong', label: 'mal placé' },
-                  ].map(({ cls, label, title }) => (
-                    <div key={label} className="play-feedback-row play-feedback-row--ghost">
-                      <div className={`play-feedback-dot ${cls}`} />
-                      <span className="play-ghost-count" />
-                      <span className="play-ghost-label" />
-                      {title && <span className="feedback-info-icon" title={title}>ⓘ</span>}
-                    </div>
-                  ))}
-                </div>
-                <div className="play-feedback-divider" />
-                <div className="play-mini-grid-center">
-                  <div className="play-ghost-minigrid" />
-                </div>
-              </div>
-              <p className="play-ghost-caption">Soumets pour voir ton résultat</p>
-            </div>
-          ) : (
+        <aside className={`play-feedback-drawer${attemptHistory.length === 0 ? ' play-feedback-drawer--collapsed' : ''}`}>
+          {attemptHistory.length > 0 && (
             <div className="play-history">
               {/* Onglets en haut — englobent résultat + aperçu */}
               <div className="play-history-tabs">
@@ -478,7 +449,7 @@ export default function PlayPage() {
         <TourOverlay
           steps={PLAY_TOUR_STEPS}
           onDone={() => {
-            localStorage.setItem(`orienta_tour_play_${user.id}`, '1')
+            markTourDone('tour_play_done')
             setShowTour(false)
           }}
         />

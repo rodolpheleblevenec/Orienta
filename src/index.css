@@ -756,12 +756,13 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 22px;
+  line-height: 1;
   font-weight: 700;
-  color: white;
+  color: black;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.25);
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: white;
+  border: 2px solid rgba(0, 0, 0, 0.1);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 .card-v2-name {
@@ -1045,8 +1046,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 
 /* ── Center — grid ── */
 .play-main {
-  flex: 1;
-  min-height: 0;
   position: relative;
   display: flex;
   align-items: center;
@@ -1055,6 +1054,10 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   margin-right: var(--feedback-w);
   padding: 20px 0 calc(var(--footer-h) + 20px);
   overflow: hidden;
+  transition: margin-right 0.3s ease;
+}
+.play-page:has(.play-feedback-drawer--collapsed) .play-main {
+  margin-right: 0;
 }
 .play-grid-area {
   display: flex;
@@ -1102,8 +1105,14 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   padding: 24px 20px 20px;
   gap: 0;
   overflow-y: auto;
+  transition: width 0.3s ease, padding 0.3s ease;
 }
-.play-history-panel--ghost { opacity: 0.45; pointer-events: none; }
+.play-feedback-drawer--collapsed {
+  width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: none;
+}
 .play-tab-ghost {
   width: 64px; height: 32px;
   background: var(--bg-surface); border: 1px solid var(--border);
@@ -1841,7 +1850,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .profile-page { min-height: 100dvh; background: var(--bg-secondary); }
 .profile-main { max-width: 600px; width: 100%; margin: 0 auto; padding: 28px 20px; display: flex; flex-direction: column; gap: 24px; }
 .profile-header-block { display: flex; align-items: center; gap: 16px; }
-.profile-avatar { width: 58px; height: 58px; border-radius: 50%; background: var(--accent-dim); border: 2px solid var(--accent-border); color: var(--accent); font-family: var(--display); font-size: 24px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+.profile-avatar { width: 58px; height: 58px; border-radius: 50%; background: white; border: 2px solid #e0e0e0; color: black; font-family: var(--display); font-size: 28px; line-height: 1; font-weight: 800; display: flex; align-items: center; justify-content: center; }
 .profile-name   { font-size: 22px; margin-bottom: 2px; }
 .profile-streak { display: flex; gap: 20px; font-size: 14px; color: var(--text-secondary); }
 .profile-stats  { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
@@ -1895,8 +1904,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .skin-card--active { border-color: var(--accent); border-width: 2px; background: var(--accent-dim); }
 .skin-creature { position: relative; display: flex; align-items: center; justify-content: center; height: 48px; }
 .skin-lock { position: absolute; font-size: 18px; }
-.skin-info { text-align: center; width: 100%; }
+.skin-info { text-align: center; width: 100%; display: flex; flex-direction: column; gap: 4px; }
 .skin-name { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.skin-xp-threshold { font-size: 10px; color: var(--text-muted); font-weight: 500; }
 .skin-badge { font-size: 10px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
 
 @media (max-width: 600px) {
