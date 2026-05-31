@@ -996,9 +996,17 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   /* overhead = header(64) + footer(70) + clue rows(116) + grid internals(26) + padding(40) */
   --slot-size: min(calc((100dvh - 316px) / 2), calc(100vw / 3 - 198px), 320px);
   --tray-w: 230px;
-  --feedback-w: calc(100vw / 3);
+  --feedback-w: min(calc(100vw / 3), 260px);
   --header-h: 64px;
   --footer-h: 70px;
+}
+@media (max-width: 1100px) {
+  .play-page,
+  .create-page { --tray-w: 180px; --feedback-w: 220px; }
+}
+@media (max-width: 900px) {
+  .play-page,
+  .create-page { --tray-w: 160px; --feedback-w: 200px; }
 }
 @media (max-width: 768px) {
   .play-page,
