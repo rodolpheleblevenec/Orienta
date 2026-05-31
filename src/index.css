@@ -1213,8 +1213,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   flex-direction: column;
   background: var(--bg-secondary);
   --tray-w: 230px;
-  --feedback-w: 320px;
-  --mini-card-size: clamp(64px, calc((var(--feedback-w) - 76px) / 2), 110px);
+  --feedback-w: 480px;
+  --mini-card-size: clamp(64px, calc((var(--feedback-w) - 76px) / 2), 150px);
   --slot-size: min(
     calc((100dvh - 316px) / 2),
     calc((100vw - var(--tray-w) - var(--feedback-w) - 40px) / 2),
