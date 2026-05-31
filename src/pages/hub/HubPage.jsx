@@ -260,6 +260,11 @@ export default function HubPage() {
             {createdGrid ? (
               <div className="my-grid-card-container">
                 <CreatedGridCard grid={createdGrid} index={0} />
+                <div className="my-grid-done-hint">
+                  <span className="my-grid-done-badge">✓ Grille du jour créée</span>
+                  <span className="create-grid-btn create-grid-btn--disabled">+ Créer ma grille</span>
+                  <p className="my-grid-done-sub">Reviens demain pour en proposer une nouvelle !</p>
+                </div>
               </div>
             ) : hasForfeited ? (
               <div className="my-grid-section">
