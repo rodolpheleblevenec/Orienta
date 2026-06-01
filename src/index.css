@@ -1071,23 +1071,26 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 
 /* ── Boutons latéraux cliquables (remplacent les inputs left/right) ── */
 .clue-side-btn {
+  -webkit-appearance: none;
+  appearance: none;
   background: var(--bg-surface);
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--accent);
   font-family: var(--display);
-  font-size: 17px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+  /* writing-mode + flex = bug Safari iOS — utiliser grid à la place */
+  -webkit-writing-mode: vertical-rl;
   writing-mode: vertical-rl;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 6px;
+  display: grid;
+  place-items: center;
+  padding: 10px 0;
   white-space: nowrap;
   align-self: stretch;
   transition: border-color 0.15s, background 0.15s;
-  min-width: 36px;
+  min-width: 30px;
   overflow: hidden;
 }
 .clue-side-btn--left  { grid-area: left;  transform: rotate(180deg); }
