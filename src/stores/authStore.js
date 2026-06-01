@@ -104,7 +104,8 @@ export const useAuthStore = create((set, get) => ({
 
     await supabase.from('orienta_notifications').insert({
       user_id: user.id,
-      payload: { type: 'streak_danger', streak_current: user.streak_current },
+      type: 'streak_danger',
+      payload: { streak_current: user.streak_current },
     })
     get().fetchNotifCount()
   },

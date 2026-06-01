@@ -143,7 +143,8 @@ serve(async (req) => {
       if (creatorId && creatorId !== play.player_id) {
         await supabase.from('orienta_notifications').insert({
           user_id: creatorId,
-          payload: { type: 'play', player_pseudo: user.pseudo, grid_id: play.orienta_grids.id, success },
+          type: 'play',
+          payload: { player_pseudo: user.pseudo, grid_id: play.orienta_grids.id, success },
         })
       }
     }

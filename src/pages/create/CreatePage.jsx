@@ -422,7 +422,7 @@ export default function CreatePage() {
                 clues={clues}
                 setClues={setClues}
                 onRotate={handleRotate}
-                draggable={difficulty === 'difficile'}
+                draggable
               />
             ) : (
               <CloverGrid

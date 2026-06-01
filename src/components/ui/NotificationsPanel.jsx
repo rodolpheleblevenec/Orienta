@@ -58,7 +58,7 @@ export default function NotificationsPanel({ onClose }) {
             <ul className="notif-list">
               <AnimatePresence initial={false}>
                 {notifs.map((n, i) => {
-                  const type = n.payload?.type
+                  const type = n.type
                   let icon = '💬'
                   let text = null
                   let comment = null

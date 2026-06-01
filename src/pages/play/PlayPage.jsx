@@ -318,7 +318,8 @@ export default function PlayPage() {
       if (newLevelData.level > oldLevel) {
         await supabase.from('orienta_notifications').insert({
           user_id: user.id,
-          payload: { type: 'level_up', level: newLevelData.level, level_name: newLevelData.name },
+          type: 'level_up',
+          payload: { level: newLevelData.level, level_name: newLevelData.name },
         })
         useAuthStore.getState().fetchNotifCount()
       }
