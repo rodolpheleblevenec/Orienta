@@ -1116,8 +1116,13 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 }
 
 /* ── Overlay de saisie centré (pour les indices gauche/droite) ── */
+.clue-lateral-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1009;
+}
 .clue-lateral-editor {
-  position: absolute;
+  position: fixed;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
@@ -1128,10 +1133,10 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   display: flex;
   align-items: center;
   gap: 10px;
-  z-index: 20;
+  z-index: 1010;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28);
   min-width: 260px;
-  max-width: calc(100% - 16px);
+  max-width: calc(100vw - 32px);
   box-sizing: border-box;
 }
 .clue-lateral-label {
@@ -1158,19 +1163,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 }
 .clue-lateral-input:focus { border-color: var(--accent); background: var(--bg-card); }
 .clue-lateral-input::placeholder { color: var(--text-muted); font-weight: 400; }
-.clue-lateral-confirm {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 7px 12px;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: opacity 0.15s;
-}
-.clue-lateral-confirm:hover { opacity: 0.85; }
 
 .clover-grid {
   grid-area: grid;
@@ -1271,7 +1263,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   .create-page {
     --mini-card-size: 88px;
     --slot-size: min(
-      calc((100vw - 24px) / 2),
+      calc((100vw - 40px) / 2),
       150px
     );
   }
@@ -1387,7 +1379,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 }
 /* Zone C/D */
 @media (max-width: 768px) {
-  .play-main { margin: 0; padding: 16px 12px calc(var(--footer-h) + 16px); }
+  .play-main { margin: 0; padding: 16px 20px calc(var(--footer-h) + 16px); }
   /* Sur create-page, le create-info-drawer suit en flux normal → pas besoin du padding-bottom footer */
   .create-page .play-main { padding-bottom: 8px; }
   .btn-reset { position: static; margin-bottom: 10px; align-self: flex-end; width: auto; }

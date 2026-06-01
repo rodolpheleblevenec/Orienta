@@ -105,19 +105,21 @@ export default function CloverWithInputs({ placements, clues, setClues, onRotate
 
       {/* Overlay de saisie centré — mobile uniquement, quand editingSide est défini */}
       {editingSide && (
-        <div className="clue-lateral-editor">
-          <span className="clue-lateral-label">{SIDE_LABELS[editingSide]}</span>
-          <input
-            ref={inputRef}
-            className="clue-lateral-input"
-            value={clues[editingSide]}
-            onChange={e => setClues(p => ({ ...p, [editingSide]: e.target.value }))}
-            onKeyDown={e => e.key === 'Enter' && closeSide()}
-            placeholder="Indice…"
-            maxLength={24}
-          />
-          <button type="button" className="clue-lateral-confirm" onClick={closeSide}>✓</button>
-        </div>
+        <>
+          <div className="clue-lateral-backdrop" onClick={closeSide} />
+          <div className="clue-lateral-editor">
+            <span className="clue-lateral-label">{SIDE_LABELS[editingSide]}</span>
+            <input
+              ref={inputRef}
+              className="clue-lateral-input"
+              value={clues[editingSide]}
+              onChange={e => setClues(p => ({ ...p, [editingSide]: e.target.value }))}
+              onKeyDown={e => e.key === 'Enter' && closeSide()}
+              placeholder="Indice…"
+              maxLength={24}
+            />
+          </div>
+        </>
       )}
     </div>
   )
