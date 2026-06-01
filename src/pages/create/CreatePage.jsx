@@ -21,13 +21,13 @@ const CREATE_PLACEMENT_STEPS = [
     anchor: 'tray-right',
     zone: '← Plateau de cartes',
     title: 'Tes cartes disponibles',
-    description: "Glisse les cartes depuis le plateau vers les 4 emplacements de la grille. En mode Difficile, une 5e carte reste en réserve — c'est le leurre pour les joueurs !",
+    description: "Glisse les cartes depuis le plateau vers les 4 emplacements de la grille. En mode Difficile, une 5e carte reste en réserve : c'est le leurre pour les joueurs !",
   },
   {
     anchor: 'tray-right',
     zone: '← Bouton ↻',
     title: 'Oriente les cartes',
-    description: "Utilise ↻ pour tourner chaque carte. La position d'un mot dans la carte correspond au côté de la grille — et donc à l'indice que tu vas écrire.",
+    description: "Utilise ↻ pour tourner chaque carte. La position d'un mot dans la carte correspond au côté de la grille, et donc à l'indice que tu vas écrire.",
   },
 ]
 
@@ -36,7 +36,7 @@ const CREATE_CLUES_STEPS = [
     anchor: 'center',
     zone: 'Indices de grille',
     title: 'Écris tes 4 indices',
-    description: "Un indice par côté de la grille. Chaque indice doit évoquer la carte placée de ce côté — sans être trop évident pour les joueurs !",
+    description: "Un indice par côté de la grille. Chaque indice doit évoquer la carte placée de ce côté, sans être trop évident pour les joueurs !",
   },
   {
     anchor: 'center',
@@ -313,7 +313,7 @@ export default function CreatePage() {
   const showTimer = difficulty && difficulty !== 'facile'
   const timerPct = showTimer ? (timeLeft / TIMER_DURATION) * 100 : 100
   const timerColor = timeLeft < 20 ? 'var(--coral)' : timeLeft < 45 ? 'var(--warning)' : 'var(--accent)'
-  const dummyClues = { top: '—', right: '—', bottom: '—', left: '—' }
+  const dummyClues = { top: '·', right: '·', bottom: '·', left: '·' }
 
   return (
     <div className="create-page">
@@ -338,9 +338,9 @@ export default function CreatePage() {
                 <h2 className="difficulty-modal-title">Quel niveau de difficulté ?</h2>
                 <div className="difficulty-options">
                   {[
-                    { id: 'facile',    name: 'Facile',    desc: 'Temps illimité — 4 cartes' },
-                    { id: 'moyen',     name: 'Moyen',     desc: '90 secondes — 4 cartes', lockMsg: 'Crée une grille Facile pour débloquer' },
-                    { id: 'difficile', name: 'Difficile', desc: '90 secondes — 5 cartes (1 leurre)', lockMsg: 'Crée une grille Moyen pour débloquer' },
+                    { id: 'facile',    name: 'Facile',    desc: 'Temps illimité · 4 cartes' },
+                    { id: 'moyen',     name: 'Moyen',     desc: '90 secondes · 4 cartes', lockMsg: 'Crée une grille Facile pour débloquer' },
+                    { id: 'difficile', name: 'Difficile', desc: '90 secondes · 5 cartes (1 leurre)', lockMsg: 'Crée une grille Moyen pour débloquer' },
                   ].map(d => {
                     const isLocked = !unlockedDifficulties.includes(d.id)
                     return (
@@ -408,7 +408,7 @@ export default function CreatePage() {
               <div className="create-expired">
                 <div className="create-expired-icon">⌛</div>
                 <p className="create-expired-title">Grille non publiée</p>
-                <p className="create-expired-text">Tu n'as pas rempli tous les indices à temps. Tu ne pourras plus créer de grille aujourd'hui — reviens demain !</p>
+                <p className="create-expired-text">Tu n'as pas rempli tous les indices à temps. Tu ne pourras plus créer de grille aujourd'hui. Reviens demain !</p>
                 <button className="btn-secondary" onClick={() => navigate('/hub')}>Retour au Hub</button>
               </div>
             ) : expired ? (

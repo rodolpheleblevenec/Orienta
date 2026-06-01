@@ -74,6 +74,14 @@ export default function PlayPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(false)
   const [isSwappingSlots, setIsSwappingSlots] = useState(false)
+  const [tooltipOpen, setTooltipOpen] = useState(false)
+
+  useEffect(() => {
+    if (!tooltipOpen) return
+    const close = () => setTooltipOpen(false)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [tooltipOpen])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -437,7 +445,19 @@ export default function PlayPage() {
                     <div className="play-feedback-dot play-feedback-dot--rotation" />
                     <span className="play-feedback-count">{attemptHistory[activeHistoryTab].correctRotation}</span>
                     <span>partiellement correct</span>
-                    <span className="feedback-info-icon" title="Position correcte + orientation incorrecte, OU position incorrecte + orientation correcte">ⓘ</span>
+                    <span
+                      className="feedback-info-icon"
+                      onClick={e => { e.stopPropagation(); setTooltipOpen(v => !v) }}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      ⓘ
+                      {tooltipOpen && (
+                        <span className="feedback-tooltip">
+                          Bonne position et mauvaise orientation, ou bonne orientation et mauvaise position
+                        </span>
+                      )}
+                    </span>
                   </div>
                   <div className="play-feedback-row">
                     <div className="play-feedback-dot play-feedback-dot--wrong" />

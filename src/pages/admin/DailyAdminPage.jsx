@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { DndContext, closestCorners, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { supabase } from '../../lib/supabase'
@@ -53,6 +53,15 @@ export default function DailyAdminPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [refreshingSlot, setRefreshingSlot] = useState(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [editingSide, setEditingSide] = useState(null)
+  const lateralInputRef = useRef(null)
+
+  useEffect(() => {
+    if (editingSide && lateralInputRef.current) {
+      lateralInputRef.current.focus()
+      lateralInputRef.current.select()
+    }
+  }, [editingSide])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -276,13 +285,13 @@ export default function DailyAdminPage() {
                       placeholder="Haut"
                       maxLength={24}
                     />
-                    <input
-                      className="clue-input clue-input--left"
-                      value={clues.left}
-                      onChange={e => handleClueChange('left', e.target.value)}
-                      placeholder="Gauche"
-                      maxLength={24}
-                    />
+                    <button
+                      type="button"
+                      className={`clue-side-btn clue-side-btn--left${editingSide === 'left' ? ' clue-side-btn--active' : ''}${!clues.left ? ' clue-side-btn--empty' : ''}`}
+                      onClick={() => setEditingSide('left')}
+                    >
+                      <span className="clue-side-btn__text">{clues.left || 'Gauche'}</span>
+                    </button>
                     <div className="clover-grid">
                       {[0, 1, 2, 3].map(pos => (
                         <div key={pos} className="clover-slot admin-clover-slot">
@@ -310,13 +319,13 @@ export default function DailyAdminPage() {
                         </div>
                       ))}
                     </div>
-                    <input
-                      className="clue-input clue-input--right"
-                      value={clues.right}
-                      onChange={e => handleClueChange('right', e.target.value)}
-                      placeholder="Droite"
-                      maxLength={24}
-                    />
+                    <button
+                      type="button"
+                      className={`clue-side-btn clue-side-btn--right${editingSide === 'right' ? ' clue-side-btn--active' : ''}${!clues.right ? ' clue-side-btn--empty' : ''}`}
+                      onClick={() => setEditingSide('right')}
+                    >
+                      <span className="clue-side-btn__text">{clues.right || 'Droite'}</span>
+                    </button>
                     <input
                       className="clue-input clue-input--bottom"
                       value={clues.bottom}
@@ -324,6 +333,24 @@ export default function DailyAdminPage() {
                       placeholder="Bas"
                       maxLength={24}
                     />
+                    {editingSide && (
+                      <>
+                        <div className="clue-lateral-backdrop" onClick={() => setEditingSide(null)} />
+                        <div className="clue-lateral-editor">
+                          <span className="clue-lateral-label">{editingSide === 'left' ? '← Gauche' : 'Droite →'}</span>
+                          <input
+                            ref={lateralInputRef}
+                            className="clue-lateral-input"
+                            value={clues[editingSide]}
+                            onChange={e => handleClueChange(editingSide, e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && setEditingSide(null)}
+                            onBlur={() => setEditingSide(null)}
+                            placeholder="Indice…"
+                            maxLength={24}
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
                 </DndContext>
               </div>
