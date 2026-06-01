@@ -322,12 +322,6 @@ export default function PlayPage() {
         })
         useAuthStore.getState().fetchNotifCount()
       }
-      if (grid.creator_id !== user.id) {
-        supabase.from('orienta_notifications').insert({
-          user_id: grid.creator_id,
-          payload: { type: 'play', player_pseudo: user.pseudo, grid_id: gridId, success: true },
-        })
-      }
       setGameOver(true)
       navigate(`/result/${gridId}`, { state: { score: finalScore, xp: totalXp, success: true, baseXp, bonusXp, timeSeconds: elapsed, attemptCount: attemptNumber, streakCurrent: user.streak_current } })
     } else {
@@ -347,12 +341,6 @@ export default function PlayPage() {
         }).eq('id', playId)
         await supabase.rpc('award_xp_on_play', { p_grid_id: gridId, p_player_id: user.id, p_success: false, p_streak_bonus: 0 })
         await refreshUser()
-        if (grid.creator_id !== user.id) {
-          supabase.from('orienta_notifications').insert({
-            user_id: grid.creator_id,
-            payload: { type: 'play', player_pseudo: user.pseudo, grid_id: gridId, success: false },
-          })
-        }
         setGameOver(true)
         navigate(`/result/${gridId}`, { state: { score: 0, xp: participationXp, success: false } })
       } else {

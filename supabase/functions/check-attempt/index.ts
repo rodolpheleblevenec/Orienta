@@ -34,7 +34,7 @@ serve(async (req) => {
   // Load play and grid
   const { data: play } = await supabase
     .from('orienta_plays')
-    .select('*, orienta_grids(id)')
+    .select('*, orienta_grids(id, creator_id)')
     .eq('id', play_id)
     .single()
 
@@ -115,7 +115,7 @@ serve(async (req) => {
     const today = new Date().toDateString()
     const { data: user } = await supabase
       .from('orienta_users')
-      .select('streak_current, streak_best, last_played_at')
+      .select('streak_current, streak_best, last_played_at, pseudo')
       .eq('id', play.player_id)
       .single()
 
@@ -137,6 +137,15 @@ serve(async (req) => {
           xp_contributed: (user.xp_contributed ?? 0) + xpGained,
         })
         .eq('id', play.player_id)
+
+      // Notify creator (skip if playing own grid)
+      const creatorId = play.orienta_grids?.creator_id
+      if (creatorId && creatorId !== play.player_id) {
+        await supabase.from('orienta_notifications').insert({
+          user_id: creatorId,
+          payload: { type: 'play', player_pseudo: user.pseudo, grid_id: play.orienta_grids.id, success },
+        })
+      }
     }
   }
 
