@@ -1807,10 +1807,16 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .create-confirm  { margin-top: 20px; min-width: 220px; }
 
 /* ── Tour Overlay ─────────────────────────────────── */
+@keyframes tour-card-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 .tour-backdrop {
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.55);
   z-index: 1500;
+  animation: tour-card-in 0.2s ease-out;
 }
 .tour-card {
   position: fixed;
@@ -1818,66 +1824,24 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   border-radius: var(--radius-xl);
   padding: 24px;
   width: 300px;
-  max-width: calc(100vw - 24px);
+  max-width: calc(100vw - 32px);
   box-shadow: 0 20px 60px rgba(0,0,0,0.3);
   z-index: 1501;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  animation: tour-card-in 0.18s ease-out both;
 }
+
 /* center — intro sans cible spécifique */
-.tour-card--center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
-
-/* center-right — cible à gauche (tray, grille). Flèche ← */
-.tour-card--center-right {
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-.tour-card--center-right::before {
-  content: '';
-  position: absolute;
-  left: -11px; top: 50%; transform: translateY(-50%);
-  border: 11px solid transparent;
-  border-right: 11px solid var(--bg-card);
-  border-left: 0;
-  filter: drop-shadow(-3px 0 3px rgba(0,0,0,0.1));
+.tour-card--center {
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
 }
 
-/* top-center — cible en bas (footer). Flèche ↓ */
-.tour-card--top-center {
-  top: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.tour-card--top-center::after {
-  content: '';
-  position: absolute;
-  bottom: -11px; left: 50%; transform: translateX(-50%);
-  border: 11px solid transparent;
-  border-top: 11px solid var(--bg-card);
-  border-bottom: 0;
-  filter: drop-shadow(0 3px 3px rgba(0,0,0,0.1));
-}
-
-/* bottom-center — cible en haut. Flèche ↑ */
-.tour-card--bottom-center {
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-.tour-card--bottom-center::before {
-  content: '';
-  position: absolute;
-  top: -11px; left: 50%; transform: translateX(-50%);
-  border: 11px solid transparent;
-  border-bottom: 11px solid var(--bg-card);
-  border-top: 0;
-}
-
-/* tray-right — cible à gauche (tray de réserve). Flèche ← */
+/* tray-right — juste à droite du plateau gauche, flèche ← vers le plateau */
 .tour-card--tray-right {
-  left: calc(var(--tray-w, 230px) + 16px);
+  left: calc(var(--tray-w, 230px) + 20px);
   top: 50%;
   transform: translateY(-50%);
 }
@@ -1888,12 +1852,12 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   border: 11px solid transparent;
   border-right: 11px solid var(--bg-card);
   border-left: 0;
-  filter: drop-shadow(-3px 0 3px rgba(0,0,0,0.1));
+  filter: drop-shadow(-2px 0 3px rgba(0,0,0,0.12));
 }
 
-/* footer-center — cible en bas (footer sticky). Flèche ↓ */
+/* footer-center — au-dessus du footer fixe, flèche ↓ vers le footer */
 .tour-card--footer-center {
-  bottom: 80px;
+  bottom: calc(var(--footer-h, 70px) + 20px);
   left: 50%;
   transform: translateX(-50%);
 }
@@ -1904,12 +1868,28 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   border: 11px solid transparent;
   border-top: 11px solid var(--bg-card);
   border-bottom: 0;
-  filter: drop-shadow(0 3px 3px rgba(0,0,0,0.1));
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.12));
+}
+
+/* center-right — cible à gauche, flèche ← (zone A : reste dans la zone visible) */
+.tour-card--center-right {
+  right: calc(var(--feedback-w, 0px) + 16px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+.tour-card--center-right::before {
+  content: '';
+  position: absolute;
+  left: -11px; top: 50%; transform: translateY(-50%);
+  border: 11px solid transparent;
+  border-right: 11px solid var(--bg-card);
+  border-left: 0;
+  filter: drop-shadow(-2px 0 3px rgba(0,0,0,0.12));
 }
 
 /* center-left — cible à droite (drawer). Flèche → */
 .tour-card--center-left {
-  left: calc(var(--tray-w, 230px) + 16px);
+  left: calc(var(--tray-w, 230px) + 20px);
   top: 50%;
   transform: translateY(-50%);
 }
@@ -1941,26 +1921,31 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .tour-skip:hover { color: var(--text-secondary); }
 .tour-next  { padding: 9px 18px; font-size: 14px; }
 
+/* ── Mobile ≤768px ── */
 @media (max-width: 768px) {
-  /* Anchors référençant du contenu en milieu de page → centrer verticalement */
-  .tour-card--center-right, .tour-card--center-left,
+  /* tray-right : sur mobile le plateau est horizontal en haut → bulle juste en dessous */
   .tour-card--tray-right {
+    top: calc(var(--header-h, 64px) + 148px);
+    bottom: auto;
+    left: 16px; right: 16px;
+    transform: none; width: auto;
+  }
+  /* center-right et center-left → centrer verticalement */
+  .tour-card--center-right,
+  .tour-card--center-left {
     top: 50%; bottom: auto;
     left: 16px; right: 16px;
     transform: translateY(-50%); width: auto;
   }
-  /* Anchors pointant vers le footer → juste au-dessus du footer fixe */
-  .tour-card--top-center, .tour-card--bottom-center,
+  /* footer-center : au-dessus du footer fixe, pleine largeur */
   .tour-card--footer-center {
-    bottom: calc(var(--footer-h, 70px) + 16px);
+    bottom: calc(var(--footer-h, 70px) + 12px);
     top: auto; left: 16px; right: 16px;
     transform: none; width: auto;
   }
-  /* Masquer toutes les flèches directionnelles */
+  /* Masquer toutes les flèches directionnelles sur mobile */
   .tour-card--center-right::before,
   .tour-card--center-left::before,
-  .tour-card--top-center::after,
-  .tour-card--bottom-center::before,
   .tour-card--tray-right::before,
   .tour-card--footer-center::after { display: none; }
 }

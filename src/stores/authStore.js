@@ -23,6 +23,7 @@ export const useAuthStore = create((set, get) => ({
     if (data) {
       get().fetchNotifCount(data.id)
       get().checkStreakDanger()
+      if (!data.tutorial_modal_done) set({ tutorialOpen: true })
     }
   },
 
@@ -41,6 +42,7 @@ export const useAuthStore = create((set, get) => ({
       set({ user: existing })
       get().fetchNotifCount(existing.id)
       get().checkStreakDanger()
+      if (!existing.tutorial_modal_done) set({ tutorialOpen: true })
       return { user: existing, isNew: false }
     }
 

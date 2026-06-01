@@ -3,7 +3,12 @@ import { useAuthStore } from '../../stores/authStore'
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 
 export default function TutorialModal() {
-  const { tutorialOpen, closeTutorial } = useAuthStore()
+  const { tutorialOpen, closeTutorial, markTourDone } = useAuthStore()
+
+  function handleClose() {
+    markTourDone('tutorial_modal_done')
+    closeTutorial()
+  }
   const [tab, setTab] = useState('creator')
   useBodyScrollLock(tutorialOpen)
 
@@ -14,7 +19,7 @@ export default function TutorialModal() {
       <div className="tutorial-modal">
         <div className="tutorial-header">
           <h2>Comment jouer</h2>
-          <button className="tutorial-close" onClick={closeTutorial} type="button">✕</button>
+          <button className="tutorial-close" onClick={handleClose} type="button">✕</button>
         </div>
 
         <div className="tutorial-tabs">
@@ -86,7 +91,7 @@ export default function TutorialModal() {
 
         {tab === 'creator'
           ? <button className="tutorial-close-btn btn-secondary" onClick={() => setTab('player')} type="button">Suivant →</button>
-          : <button className="tutorial-close-btn btn-primary" onClick={closeTutorial} type="button">Fermer</button>
+          : <button className="tutorial-close-btn btn-primary" onClick={handleClose} type="button">Fermer</button>
         }
       </div>
     </div>

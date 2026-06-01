@@ -10,7 +10,7 @@ export default function TourOverlay({ steps, onDone }) {
 
   return (
     <div className="tour-backdrop">
-      <div className={`tour-card tour-card--${current.anchor ?? 'center'}`}>
+      <div key={step} className={`tour-card tour-card--${current.anchor ?? 'center'}`}>
         {current.zone && <div className="tour-zone">{current.zone}</div>}
         <h3 className="tour-title">{current.title}</h3>
         <p className="tour-desc">{current.description}</p>

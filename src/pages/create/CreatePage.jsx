@@ -18,14 +18,14 @@ const CREATE_PLACEMENT_STEPS = [
     description: "Tu vas placer des cartes dans une grille en trèfle, puis écrire 4 indices pour que d'autres joueurs la résolvent.",
   },
   {
-    anchor: 'center-right',
-    zone: 'Plateau de cartes',
+    anchor: 'tray-right',
+    zone: '← Plateau de cartes',
     title: 'Tes cartes disponibles',
     description: "Glisse les cartes depuis le plateau vers les 4 emplacements de la grille. En mode Difficile, une 5e carte reste en réserve — c'est le leurre pour les joueurs !",
   },
   {
-    anchor: 'center-right',
-    zone: 'Bouton ↻',
+    anchor: 'tray-right',
+    zone: '← Bouton ↻',
     title: 'Oriente les cartes',
     description: "Utilise ↻ pour tourner chaque carte. La position d'un mot dans la carte correspond au côté de la grille — et donc à l'indice que tu vas écrire.",
   },
@@ -145,7 +145,12 @@ export default function CreatePage() {
       .then(({ data }) => {
         if (!data) return
         const cardCount = difficulty === 'difficile' ? 5 : 4
-        const shuffled = [...data].sort(() => Math.random() - 0.5).slice(0, cardCount)
+        const arr = [...data]
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]]
+        }
+        const shuffled = arr.slice(0, cardCount)
         setTrayCards(shuffled.map((card, i) => ({ card, rotation: 0, colorIndex: i })))
       })
   }, [phase, difficulty])
