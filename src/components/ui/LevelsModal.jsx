@@ -85,9 +85,6 @@ export default function LevelsModal({ collectiveLevel, collectiveXp, onClose }) 
               {LEVELS_COLLECTIVE.map((level) => {
                 const creature = getCreature(level.level)
                 const isUnlocked = collectiveLevel >= level.level
-                const nextThreshold = LEVELS_COLLECTIVE.find(l => l.level === level.level + 1)
-                const nextXp = nextThreshold ? nextThreshold.xp : level.xp + 50000
-
                 return (
                   <div key={level.level} className={`levels-modal-card ${isUnlocked ? 'levels-modal-card--unlocked' : 'levels-modal-card--locked'}`}>
                     <div className="levels-modal-creature">
@@ -102,19 +99,17 @@ export default function LevelsModal({ collectiveLevel, collectiveXp, onClose }) 
                     </div>
                     <div className="levels-modal-info">
                       <div className="levels-modal-name">Niv {level.level} — {level.name}</div>
-                      <div className="levels-modal-xp">{level.xp.toLocaleString()} XP</div>
                       {isUnlocked ? (
-                        <div className="levels-modal-badge">✓ Débloqué</div>
+                        <>
+                          <div className="levels-modal-xp">{level.xp.toLocaleString()} XP</div>
+                          <div className="levels-modal-badge">✓ Débloqué</div>
+                        </>
                       ) : (
                         <div className="levels-modal-progress">
-                          {nextXp > level.xp && (
-                            <>
-                              <div className="levels-modal-progress-bar">
-                                <div className="levels-modal-progress-fill" style={{ width: `${Math.min(((collectiveXp - level.xp) / (nextXp - level.xp)) * 100, 100)}%` }} />
-                              </div>
-                              <div className="levels-modal-remaining">{Math.max(nextXp - collectiveXp, 0).toLocaleString()} XP</div>
-                            </>
-                          )}
+                          <div className="levels-modal-progress-bar">
+                            <div className="levels-modal-progress-fill" style={{ width: `${Math.min((collectiveXp / level.xp) * 100, 100)}%` }} />
+                          </div>
+                          <div className="levels-modal-remaining">{Math.max(level.xp - collectiveXp, 0).toLocaleString()} XP restants</div>
                         </div>
                       )}
                     </div>
