@@ -1081,20 +1081,25 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  /* writing-mode + flex = bug Safari iOS — utiliser grid à la place */
-  -webkit-writing-mode: vertical-rl;
-  writing-mode: vertical-rl;
-  display: grid;
-  place-items: center;
-  padding: 10px 0;
-  white-space: nowrap;
+  /* Pas de writing-mode — bug Safari iOS. On utilise transform sur le span interne. */
+  position: relative;
+  overflow: hidden;
+  padding: 0;
   align-self: stretch;
   transition: border-color 0.15s, background 0.15s;
   min-width: 30px;
-  overflow: hidden;
 }
-.clue-side-btn--left  { grid-area: left;  transform: rotate(180deg); }
+.clue-side-btn__text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  white-space: nowrap;
+  display: block;
+}
+.clue-side-btn--left  { grid-area: left; }
+.clue-side-btn--left  .clue-side-btn__text { transform: translate(-50%, -50%) rotate(90deg); }
 .clue-side-btn--right { grid-area: right; }
+.clue-side-btn--right .clue-side-btn__text { transform: translate(-50%, -50%) rotate(-90deg); }
 .clue-side-btn--active { border-color: var(--accent); background: var(--bg-card); outline: 2px solid var(--accent); outline-offset: 1px; }
 .clue-side-btn--empty { color: var(--text-muted); font-weight: 400; font-size: 17px; }
 

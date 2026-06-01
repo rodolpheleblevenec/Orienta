@@ -43,7 +43,7 @@ export default function CloverWithInputs({ placements, clues, setClues, onRotate
         onClick={() => setEditingSide('left')}
         title="Indice gauche"
       >
-        {clues.left || 'Gauche'}
+        <span className="clue-side-btn__text">{clues.left || 'Gauche'}</span>
       </button>
 
       <div className="clover-grid">
@@ -91,7 +91,7 @@ export default function CloverWithInputs({ placements, clues, setClues, onRotate
         onClick={() => setEditingSide('right')}
         title="Indice droite"
       >
-        {clues.right || 'Droite'}
+        <span className="clue-side-btn__text">{clues.right || 'Droite'}</span>
       </button>
 
       <input
