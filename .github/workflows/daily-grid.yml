@@ -1,0 +1,43 @@
+name: Générer la grille journalière
+
+on:
+  schedule:
+    # 22h00 UTC = minuit heure de Paris (hiver) / 00h00 CEST (été ≈ 22h UTC)
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Date cible (YYYY-MM-DD) — laisser vide pour aujourd''hui + 7j'
+        required: false
+      offset:
+        description: 'Nombre de jours à l''avance (défaut : 7)'
+        required: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Appeler la Edge Function generate-daily-grid
+        run: |
+          DATE_PARAM="?offset=7"
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            DATE_PARAM="?date=${{ github.event.inputs.date }}"
+          elif [ -n "${{ github.event.inputs.offset }}" ]; then
+            DATE_PARAM="?offset=${{ github.event.inputs.offset }}"
+          fi
+
+          HTTP_STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/generate-daily-grid${DATE_PARAM}" \
+            -H "Authorization: Bearer ${{ secrets.FUNCTION_SECRET }}" \
+            -H "Content-Type: application/json")
+
+          echo "HTTP status: $HTTP_STATUS"
+          cat /tmp/response.json
+
+          if [ "$HTTP_STATUS" -ge 400 ]; then
+            echo "❌ Edge Function returned an error"
+            exit 1
+          fi
+
+          echo "✅ Grille journalière générée avec succès"
