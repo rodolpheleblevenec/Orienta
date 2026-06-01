@@ -115,6 +115,7 @@ export default function CloverWithInputs({ placements, clues, setClues, onRotate
               value={clues[editingSide]}
               onChange={e => setClues(p => ({ ...p, [editingSide]: e.target.value }))}
               onKeyDown={e => e.key === 'Enter' && closeSide()}
+              onBlur={closeSide}
               placeholder="Indice…"
               maxLength={24}
             />

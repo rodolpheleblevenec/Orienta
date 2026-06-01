@@ -1263,9 +1263,10 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   .create-page {
     --mini-card-size: 88px;
     --slot-size: min(
-      calc((100vw - 40px) / 2),
-      150px
+      calc((100vw - 140px) / 2),
+      140px
     );
+    /* 140px = 40px (padding play-main) + 60px (boutons latéraux) + 16px (gaps wrapper) + 16px (padding grille) + 8px (gap grille) */
   }
 }
 
