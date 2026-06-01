@@ -19,11 +19,11 @@ export default function LevelsModal({ collectiveLevel, collectiveXp, onClose }) 
         setLeaderboardLoading(true)
         const [{ data: topPlayers }, { data: currentUser }] = await Promise.all([
           supabase.from('orienta_users')
-            .select('pseudo, xp_contributed')
-            .order('xp_contributed', { ascending: false })
+            .select('pseudo, xp')
+            .order('xp', { ascending: false })
             .limit(10),
           supabase.from('orienta_users')
-            .select('xp_contributed')
+            .select('xp')
             .eq('id', user.id)
             .single()
         ])
@@ -34,10 +34,10 @@ export default function LevelsModal({ collectiveLevel, collectiveXp, onClose }) 
           const { count } = await supabase
             .from('orienta_users')
             .select('id', { count: 'exact' })
-            .gt('xp_contributed', currentUser.xp_contributed)
+            .gt('xp', currentUser.xp)
           setUserRank({
             pseudo: user.pseudo,
-            xp_contributed: currentUser.xp_contributed,
+            xp: currentUser.xp,
             rank: (count ?? 0) + 1
           })
         }
@@ -146,7 +146,7 @@ export default function LevelsModal({ collectiveLevel, collectiveXp, onClose }) 
                     >
                       <span className="leaderboard-rank">{getMedal(idx)}</span>
                       <span className="leaderboard-name">{player.pseudo}</span>
-                      <span className="leaderboard-xp">{(player.xp_contributed ?? 0).toLocaleString()} XP</span>
+                      <span className="leaderboard-xp">{(player.xp ?? 0).toLocaleString()} XP</span>
                     </div>
                   )
                 })}
@@ -154,7 +154,7 @@ export default function LevelsModal({ collectiveLevel, collectiveXp, onClose }) 
                   <div className="leaderboard-item leaderboard-item--user">
                     <span className="leaderboard-rank">#{userRank.rank}</span>
                     <span className="leaderboard-name">{userRank.pseudo}</span>
-                    <span className="leaderboard-xp">{(userRank.xp_contributed ?? 0).toLocaleString()} XP</span>
+                    <span className="leaderboard-xp">{(userRank.xp ?? 0).toLocaleString()} XP</span>
                   </div>
                 )}
               </div>
