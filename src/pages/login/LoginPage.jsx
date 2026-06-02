@@ -42,14 +42,20 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
-      <div className="login-bg" />
       <motion.div
         className="login-card"
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.45 }}
       >
-        <h1 className="login-logo">Orienta</h1>
+        <div className="login-brand">
+          <div className="login-brand-dot">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <path d="M7 1v12M1 7h12"/>
+            </svg>
+          </div>
+          <span className="login-brand-name">Orienta</span>
+        </div>
         <p className="login-tagline">Le jeu de mots quotidien de l'équipe WeFiiT</p>
 
         {collective && (() => {
@@ -75,7 +81,7 @@ export default function LoginPage() {
             autoComplete="off"
           />
           {error && <p className="login-error">{error}</p>}
-          <button className="btn-primary login-btn" type="submit" disabled={submitting}>
+          <button className="login-btn" type="submit" disabled={submitting}>
             {submitting ? 'Connexion…' : 'Jouer →'}
           </button>
         </form>

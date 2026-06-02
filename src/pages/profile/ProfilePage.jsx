@@ -140,7 +140,7 @@ export default function ProfilePage() {
         <section className="profile-section">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
             <h2 style={{ marginBottom: 0 }}>Ton bestiaire</h2>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Déverrouillés avec ton XP</span>
+            <span style={{ fontSize: '12px', color: 'var(--ink-3)' }}>Déverrouillés avec ton XP</span>
           </div>
           <div className="skin-grid">
             {MARINE_ITEMS.map((item) => {
@@ -248,7 +248,7 @@ export default function ProfilePage() {
         </section>
 
         <section className="profile-section profile-logout-section">
-          <button className="btn-secondary profile-logout-btn" onClick={logout} type="button">
+          <button className="profile-logout-btn" onClick={logout} type="button">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
               <polyline points="16 17 21 12 16 7"/>

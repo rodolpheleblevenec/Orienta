@@ -375,6 +375,10 @@ export default function CreatePage() {
 
         {/* ── Drawer gauche — réserve ── */}
         <aside className={`play-tray-drawer${allPlaced ? ' play-tray-drawer--empty' : ''}`}>
+          <div className="tray-header">
+            <span className="tray-header-label">Réserve</span>
+            <span className="tray-header-count">{trayCards.length} carte{trayCards.length !== 1 ? 's' : ''}</span>
+          </div>
           <div className="tray-cards">
             {trayCards.map(({ card, rotation, colorIndex }) => (
               <div key={card.id} className="card-tray-item">
@@ -444,6 +448,19 @@ export default function CreatePage() {
         <aside className="play-feedback-drawer create-info-drawer">
           {!showDifficultyModal && !expired && (
             <div className="create-phase-panel">
+              {/* En-tête sticky */}
+              <div className="create-step-header">
+                <span className="create-step-badge">
+                  {phase === 'placement' ? 'Étape 1' : 'Étape 2'}
+                </span>
+                <p className="create-step-title">
+                  {phase === 'placement'
+                    ? `Place et oriente tes ${difficulty === 'difficile' ? '5' : '4'} cartes`
+                    : 'Écris tes 4 indices'}
+                </p>
+              </div>
+
+              {/* Timer (moyen / difficile) */}
               {showTimer && (
                 <div className="create-timer-block">
                   <div className="timer-bar-track">
@@ -458,17 +475,6 @@ export default function CreatePage() {
                   </span>
                 </div>
               )}
-
-              <div className="create-step-header">
-                <span className="create-step-badge">
-                  {phase === 'placement' ? 'Étape 1' : 'Étape 2'}
-                </span>
-                <p className="create-step-title">
-                  {phase === 'placement'
-                    ? `Place et oriente tes ${difficulty === 'difficile' ? '5' : '4'} cartes`
-                    : 'Écris tes 4 indices'}
-                </p>
-              </div>
 
               {phase === 'placement' ? (
                 <div className="create-placement-status">
@@ -517,24 +523,43 @@ export default function CreatePage() {
 
       {/* ── Footer ── */}
       <footer className="play-footer">
+        {/* Gauche : phase ou timer */}
+        <div className="play-footer-left">
+          {showTimer && !expired && !missedCreation ? (
+            <div className="play-attempt-chip">
+              <span className="pac-label">Chrono</span>
+              <span className="pac-num" style={{ color: timerColor }}>
+                {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+              </span>
+            </div>
+          ) : (
+            <span className="play-footer-hint">
+              {phase === 'placement'
+                ? (allPlaced ? 'Passe aux indices →' : `Place toutes les cartes (${placedCount}/4)`)
+                : null}
+            </span>
+          )}
+        </div>
+
+        {/* Centre : bouton publier */}
         {!expired && phase === 'clues' && (
           <button
-            className="btn-primary play-footer-submit"
+            className={`play-submit-btn${allCluesFilled && !hasClueConflict ? ' play-submit-btn--ready' : ''}`}
             onClick={handleSubmit}
             disabled={!allCluesFilled || hasClueConflict}
           >
-            {!allCluesFilled ? 'Remplis les 4 indices pour publier' : hasClueConflict ? 'Un indice est un mot des cartes' : 'Publier la grille'}
+            {!allCluesFilled ? 'Remplis les 4 indices' : hasClueConflict ? 'Mot interdit dans un indice' : 'Publier ma grille'}
           </button>
         )}
-        {!expired && phase === 'placement' && (
-          <span className="play-footer-hint">
-            {allPlaced ? 'Passe aux indices →' : `Place toutes les cartes (${placedCount}/4)`}
-          </span>
-        )}
-        {showTimer && !expired && !missedCreation
-          ? <button className="btn-secondary play-footer-hub" onClick={() => setShowExitWarning(true)} type="button">Retour au Hub</button>
-          : <Link to="/hub" className="btn-secondary play-footer-hub">Retour au Hub</Link>
-        }
+        {(!expired && phase === 'placement') && <div />}
+
+        {/* Droite : retour hub */}
+        <div className="play-footer-right">
+          {showTimer && !expired && !missedCreation
+            ? <button className="play-footer-hub-btn" onClick={() => setShowExitWarning(true)} type="button">Retour au Hub</button>
+            : <Link to="/hub" className="play-footer-hub-btn">Retour au Hub</Link>
+          }
+        </div>
       </footer>
 
       {showPlacementTour && (

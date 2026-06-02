@@ -4,6 +4,8 @@
 
 Orienta is a collaborative daily word-rotation puzzle game. Players place and orient 4-word cards on a 2×2 grid to match 4 directional clues. It has a dual XP progression system (collective + individual), a marine creature/item skin collection, daily grids, and a timed creation mode.
 
+**Design system V2** (applied since 2026-06): Bricolage Grotesque (titles/numbers) + DM Sans (UI text), teal accent (`#0a9e84`), dot-pattern neutral background, white cards with soft shadows. All tokens in `src/index.css` CSS variables.
+
 ## Stack
 
 - **React 19** (functional components, hooks) + **Vite 8**
@@ -21,9 +23,11 @@ src/
 ├── pages/
 │   ├── login/       LoginPage.jsx
 │   ├── hub/         HubPage.jsx          — daily + community grids, "Ma grille"
-│   ├── play/        PlayPage.jsx         — drag-drop game + feedback drawer
-│   ├── create/      CreatePage.jsx       — timed grid creation (3 difficulties)
+│   ├── play/        PlayPage.jsx         — drag-drop game + feedback drawer (V2)
+│   ├── create/      CreatePage.jsx       — timed grid creation (3 difficulties, V2)
 │   ├── result/      ResultPage.jsx       — score + solution tab + attempts replay
+│   ├── classement/  ClassementPage.jsx   — contributor leaderboard
+│   ├── tutoriel/    TutorielPage.jsx     — interactive tutorial page
 │   ├── dashboard/   DashboardPage.jsx    — creator stats + solution display
 │   ├── profile/     ProfilePage.jsx      — XP, skins, history
 │   └── admin/       DailyAdminPage.jsx   — daily grid management (admin only)
@@ -33,7 +37,7 @@ src/
 │   │   ├── CloverGrid.jsx        — 2×2 grid + DroppableSlot (named export)
 │   │   └── CloverWithInputs.jsx  — grid with clue inputs (create phase, dual desktop/mobile)
 │   └── ui/
-│       ├── Header.jsx            — logo, streak, tutoriel, profil, logout
+│       ├── Header.jsx            — logo, nav (Hub/Classement/Tutoriel), streak, profil, logout
 │       ├── GridCard.jsx          — hub card (status, difficulty, stats)
 │       ├── CreatedGridCard.jsx   — creator's own grid card
 │       ├── StaticMiniGrid.jsx    — read-only mini grid (feedback/result)
@@ -42,7 +46,9 @@ src/
 │       ├── ReplayModal.jsx       — attempt replay from profile history
 │       ├── StreakModal.jsx       — streak explanation modal
 │       ├── TourOverlay.jsx       — first-visit guided tour bubbles
-│       └── TutorialModal.jsx     — full tutorial modal (creator + player tabs)
+│       ├── TutorialModal.jsx     — full tutorial modal (creator + player tabs)
+│       ├── NotificationsPanel.jsx — notifications UI
+│       └── RequireAuth.jsx       — auth guard wrapper
 ├── lib/
 │   ├── supabase.js          — Supabase client (singleton)
 │   ├── cardColors.js        — CARD_COLORS palette + getCardColor(index)
@@ -54,11 +60,12 @@ src/
 │                              NOTE: evaluateAttempt() is DEAD CODE — do not use client-side
 ├── stores/
 │   └── authStore.js         — Zustand: user, loading, loginWithPseudo, refreshUser, markTourDone
-└── index.css                — All styles (BEM-ish, CSS variables)
+└── index.css                — All styles (BEM-ish, CSS variables V2)
 supabase/
 ├── functions/
-│   └── check-attempt/index.ts  — server-side attempt validation (service role key)
-└── migrations/
+│   ├── check-attempt/index.ts       — server-side attempt validation (service role key)
+│   └── generate-daily-grid/index.ts — daily grid generation (scheduled via GitHub Actions)
+└── migrations/              — 001_initial_schema → 007_add_tutorial_modal_done
 ```
 
 ## Database
@@ -125,10 +132,12 @@ HubPage reads the forfeit key and disables "Créer ma grille" for the rest of th
 
 ## Card Colors
 
-Centralized in `src/lib/cardColors.js`. Five vivid colors, always `{ bg: '#ffffff', border, text }`:
-- Teal vif `#00A889`, orange-rouge `#F0440A`, bleu électrique `#1472E8`, ambre `#E89010`, violet `#7030E0`
+Centralized in `src/lib/cardColors.js`. Five semantic colors, always `{ id, bg: '#ffffff', border, text }`:
+- `green` `#16a085`, `coral` `#f2603f`, `orange` `#e8920e`, `blue` `#2f6fd6`, `violet` `#7030E0`
 
-`getCardColor(colorIndex)` cycles through them. Both `WordCard` and `StaticMiniGrid` use this.
+All cards have white background; only `border` and `text` carry the identity color. `getCardColor(colorIndex)` cycles through them. Both `WordCard` and `StaticMiniGrid` use this.
+
+These colors are **semantically fixed** — never replace them with the brand teal (`--accent`).
 
 ## XP System
 
@@ -186,6 +195,35 @@ No Supabase Auth — identity is a pseudo stored in `localStorage` as a UUID. `a
 - Don't add inline styles except Framer Motion `animate` props
 - Don't skip `useBodyScrollLock()` in new modals
 - Don't use `writing-mode` CSS on `<input>` elements (replaced elements ignore it)
+
+## Design System V2 (CSS Variables)
+
+All design tokens live in `src/index.css`. Key variables:
+
+```css
+/* Brand */
+--accent: #0a9e84;        /* teal — CTA, active states, brand */
+--accent-soft: #e3f4ef;   /* teal pale — clue chips, active tab background */
+
+/* Surfaces */
+--bg: #f1f2f3;            /* page background (dot-pattern radial-gradient 24px) */
+--card: #ffffff;          /* cards, panels, header/footer (translucent) */
+--ink: #1c2128;           /* primary text */
+--ink-2: #5d6470;         /* secondary text */
+--line: rgba(28,33,40,0.10); /* borders */
+
+/* Card identities — semantically fixed, never reassign to --accent */
+--green: #16a085;   --coral: #f2603f;
+--orange: #e8920e;  --blue: #2f6fd6;
+
+/* Feedback (Mastermind) */
+--fb-green: #16a085;  --fb-orange: #e8920e;  --fb-red: #f2603f;
+
+/* Radii */
+--r: 22px;  --r-sm: 14px;  --r-pill: 999px;
+```
+
+Fonts: `Bricolage Grotesque` (titles, card words, numbers) + `DM Sans` (UI text). Imported via Google Fonts in `index.html`.
 
 ## Environment
 

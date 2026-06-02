@@ -74,14 +74,14 @@ export default function PlayPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(false)
   const [isSwappingSlots, setIsSwappingSlots] = useState(false)
-  const [tooltipOpen, setTooltipOpen] = useState(false)
+  const [configTooltipOpen, setConfigTooltipOpen] = useState(false)
 
   useEffect(() => {
-    if (!tooltipOpen) return
-    const close = () => setTooltipOpen(false)
+    if (!configTooltipOpen) return
+    const close = () => setConfigTooltipOpen(false)
     document.addEventListener('click', close)
     return () => document.removeEventListener('click', close)
-  }, [tooltipOpen])
+  }, [configTooltipOpen])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -373,6 +373,10 @@ export default function PlayPage() {
 
         {/* ── Drawer gauche — réserve ── */}
         <aside className={`play-tray-drawer${trayCards.length === 0 ? ' play-tray-drawer--empty' : ''}`}>
+          <div className="tray-header">
+            <span className="tray-header-label">Réserve</span>
+            <span className="tray-header-count">{trayCards.length} carte{trayCards.length !== 1 ? 's' : ''}</span>
+          </div>
           <div className="tray-cards">
             {trayCards.map(({ card, rotation, colorIndex }) => (
               <div key={card.id} className="card-tray-item">
@@ -417,55 +421,62 @@ export default function PlayPage() {
         ].filter(Boolean).join(' ')}>
           {attemptHistory.length > 0 && (
             <div className="play-history">
-              {/* Header avec onglets + bouton fermer */}
-              <div className="play-history-header">
-                <div className="play-history-tabs">
-                  {attemptHistory.map((_, idx) => (
+              {/* Onglets essais + croix (pas de header séparé) */}
+              <div className="play-history-tabs">
+                {[0, 1, 2].map(idx => {
+                  const played = idx < attemptHistory.length
+                  const isActive = activeHistoryTab === idx
+                  return (
                     <button
                       key={idx}
-                      className={`play-history-tab ${activeHistoryTab === idx ? 'play-history-tab--active' : ''}`}
-                      onClick={() => setActiveHistoryTab(idx)}
+                      className={`play-history-tab ${isActive ? 'play-history-tab--active' : ''} ${!played ? 'play-history-tab--locked' : ''}`}
+                      onClick={() => played && setActiveHistoryTab(idx)}
                       type="button"
+                      disabled={!played}
                     >
                       Essai {idx + 1}
                     </button>
-                  ))}
-                </div>
+                  )
+                })}
                 <button className="play-feedback-close" onClick={() => setFeedbackOpen(false)} type="button" aria-label="Fermer">✕</button>
               </div>
-              {/* Panneau unifié */}
-              <div className="play-history-panel">
-                <div className="play-feedback-rows">
-                  <div className="play-feedback-row">
-                    <div className="play-feedback-dot play-feedback-dot--correct" />
-                    <span className="play-feedback-count">{attemptHistory[activeHistoryTab].correctFull}</span>
-                    <span>bien placé et orienté</span>
-                  </div>
-                  <div className="play-feedback-row">
-                    <div className="play-feedback-dot play-feedback-dot--rotation" />
-                    <span className="play-feedback-count">{attemptHistory[activeHistoryTab].correctRotation}</span>
-                    <span>partiellement correct</span>
-                    <span
-                      className="feedback-info-icon"
-                      onClick={e => { e.stopPropagation(); setTooltipOpen(v => !v) }}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      ⓘ
-                      {tooltipOpen && (
-                        <span className="feedback-tooltip">
-                          Bonne position et mauvaise orientation, ou bonne orientation et mauvaise position
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                  <div className="play-feedback-row">
-                    <div className="play-feedback-dot play-feedback-dot--wrong" />
-                    <span className="play-feedback-count">{attemptHistory[activeHistoryTab].neither}</span>
-                    <span>mal placé</span>
-                  </div>
+
+              {/* Scorecard — 3 lignes verticales */}
+              <div className="pfd-tiles">
+                <div className="pfd-tile pfd-tile--green">
+                  <span className="pfd-tile-num">{attemptHistory[activeHistoryTab].correctFull}</span>
+                  <span className="pfd-tile-icon">✓</span>
+                  <span className="pfd-tile-label">Bien placée{attemptHistory[activeHistoryTab].correctFull !== 1 ? 's' : ''} et orientée{attemptHistory[activeHistoryTab].correctFull !== 1 ? 's' : ''}</span>
                 </div>
-                <div className="play-feedback-divider" />
+                <div className="pfd-tile pfd-tile--orange">
+                  <span className="pfd-tile-num">{attemptHistory[activeHistoryTab].correctRotation}</span>
+                  <span className="pfd-tile-icon">↻</span>
+                  <span className="pfd-tile-label">Partiellement correcte{attemptHistory[activeHistoryTab].correctRotation !== 1 ? 's' : ''}</span>
+                </div>
+                <div className="pfd-tile pfd-tile--red">
+                  <span className="pfd-tile-num">{attemptHistory[activeHistoryTab].neither}</span>
+                  <span className="pfd-tile-icon">✗</span>
+                  <span className="pfd-tile-label">Mal placée{attemptHistory[activeHistoryTab].neither !== 1 ? 's' : ''}</span>
+                </div>
+              </div>
+
+              {/* « Ta configuration » — mini-grille de l'essai */}
+              <div className="pfd-config-section">
+                <div className="pfd-config-header">
+                  <span className="pfd-config-label">Ta configuration</span>
+                  <button
+                    className="pfd-config-info-btn"
+                    type="button"
+                    onClick={e => { e.stopPropagation(); setConfigTooltipOpen(v => !v) }}
+                    aria-label="En savoir plus"
+                  >ⓘ
+                    {configTooltipOpen && (
+                      <span className="pfd-custom-tooltip">
+                        On t'indique <strong>combien</strong> de cartes sont bien placées — à toi de deviner lesquelles&nbsp;!
+                      </span>
+                    )}
+                  </button>
+                </div>
                 <div className="play-mini-grid-center">
                   <StaticMiniGrid placements={attemptHistory[activeHistoryTab].placements} clues={clues} />
                 </div>
@@ -489,7 +500,8 @@ export default function PlayPage() {
 
       {attemptHistory.length > 0 && !feedbackOpen && (
         <button className="play-feedback-reopen" onClick={() => setFeedbackOpen(true)} type="button">
-          Essai {attemptHistory.length} ›
+          <span className="pfr-text">Feedback</span>
+          <span className="pfr-badge">{attemptHistory.length}</span>
         </button>
       )}
 
@@ -504,14 +516,36 @@ export default function PlayPage() {
         {submitError && (
           <p className="play-submit-error">Erreur réseau — réessaie.</p>
         )}
+
+        {/* Gauche : chip essai + chrono */}
+        <div className="play-footer-left">
+          <div className="play-attempt-chip">
+            <span className="pac-label">Essai</span>
+            <span className="pac-num">{attemptNumber}/{MAX_ATTEMPTS}</span>
+            <span className="pac-dots">
+              {[0, 1, 2].map(i => (
+                <span key={i} className={`pac-dot${i < attemptNumber - 1 ? ' pac-dot--used' : i === attemptNumber - 1 ? ' pac-dot--active' : ''}`} />
+              ))}
+            </span>
+          </div>
+          <span className="play-chrono">
+            {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}
+          </span>
+        </div>
+
+        {/* Centre : bouton à états */}
         <button
-          className="btn-primary play-footer-submit"
+          className={`play-submit-btn${allPlaced ? ' play-submit-btn--ready' : ''}`}
           onClick={handleSubmit}
           disabled={!allPlaced || isSubmitting}
         >
-          {isSubmitting ? '…' : (allPlaced ? 'Soumettre' : `${trayCards.length} carte${trayCards.length > 1 ? 's' : ''} à placer`)}
+          {isSubmitting ? '…' : (allPlaced ? 'Valider l\'essai' : `${trayCards.length} carte${trayCards.length > 1 ? 's' : ''} à placer`)}
         </button>
-        <Link to="/hub" className="btn-secondary play-footer-hub">Retour au Hub</Link>
+
+        {/* Droite : retour hub */}
+        <div className="play-footer-right">
+          <Link to="/hub" className="play-footer-hub-btn">Retour au Hub</Link>
+        </div>
       </footer>
 
       {showTour && (

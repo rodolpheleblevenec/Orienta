@@ -15,6 +15,7 @@ function StaticMiniCard({ card, rotation, colorIndex }) {
 
   return (
     <div className="mini-card" style={{ transform: `rotate(${rotation}deg)`, backgroundColor: bg, borderColor: border }}>
+      <span className="mini-card-badge" style={{ background: border }} />
       <span className="mini-card-word mini-card-word--top"    style={wordStyle('top')}   >{card.word_top}</span>
       <span className="mini-card-word mini-card-word--right"  style={wordStyle('right')} >{card.word_right}</span>
       <span className="mini-card-word mini-card-word--bottom" style={wordStyle('bottom')}>{card.word_bottom}</span>

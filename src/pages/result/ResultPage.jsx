@@ -173,7 +173,7 @@ export default function ResultPage() {
                 placeholder="Laisser un message aux autres joueurs…"
                 value={comment} onChange={e => setComment(e.target.value)}
                 rows={3} maxLength={280} />
-              <button className="btn-secondary" onClick={handleCommentSubmit} disabled={!comment.trim()}>
+              <button className="result-comment-btn" onClick={handleCommentSubmit} disabled={!comment.trim()}>
                 Envoyer
               </button>
             </div>

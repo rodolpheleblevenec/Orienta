@@ -32,10 +32,14 @@ export default function WordCard({ card, rotation = 0, feedback = 'neutral', onR
     borderColor: border,
   }
 
+  const badgeStyle = { background: border }
+  /* --card-color exposé en CSS variable pour que le :hover puisse passer le texte en blanc */
+  const rotateStyle = { '--card-color': border }
+
   const POSITIONS = ['top', 'right', 'bottom', 'left']
   function wordStyle(originalPos) {
     const physIdx = (POSITIONS.indexOf(originalPos) + rotation / 90) % 4
-    const isVertical = physIdx % 2 === 1  // physically at right(1) or left(3)
+    const isVertical = physIdx % 2 === 1
     const deg = isVertical ? -90 - rotation : -rotation
     const transition = isDragging ? 'none' : 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)'
     return { transform: `rotate(${deg}deg)`, whiteSpace: 'nowrap', transition, color: text }
@@ -51,6 +55,7 @@ export default function WordCard({ card, rotation = 0, feedback = 'neutral', onR
       {...(draggable ? { ...listeners, ...attributes } : {})}
     >
       <div className={`word-card ${feedbackClass} ${isDragging ? 'word-card--dragging' : ''}`} style={cardInnerStyle}>
+        <span className="word-card-badge" style={badgeStyle} />
         <span className="word-card-top"    style={wordStyle('top')}   >{card.word_top}</span>
         <span className="word-card-right"  style={wordStyle('right')} >{card.word_right}</span>
         <span className="word-card-bottom" style={wordStyle('bottom')}>{card.word_bottom}</span>
@@ -60,6 +65,7 @@ export default function WordCard({ card, rotation = 0, feedback = 'neutral', onR
       {onRotate && (
         <button
           className="word-card-rotate"
+          style={rotateStyle}
           onPointerDown={e => e.stopPropagation()}
           onClick={e => { e.stopPropagation(); onRotate() }}
           title="Tourner la carte"
