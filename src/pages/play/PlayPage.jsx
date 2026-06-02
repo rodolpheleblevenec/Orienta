@@ -75,13 +75,14 @@ export default function PlayPage() {
   const [submitError, setSubmitError] = useState(false)
   const [isSwappingSlots, setIsSwappingSlots] = useState(false)
   const [configTooltipOpen, setConfigTooltipOpen] = useState(false)
+  const [tileTooltipOpen, setTileTooltipOpen] = useState(false)
 
   useEffect(() => {
-    if (!configTooltipOpen) return
-    const close = () => setConfigTooltipOpen(false)
+    if (!configTooltipOpen && !tileTooltipOpen) return
+    const close = () => { setConfigTooltipOpen(false); setTileTooltipOpen(false) }
     document.addEventListener('click', close)
     return () => document.removeEventListener('click', close)
-  }, [configTooltipOpen])
+  }, [configTooltipOpen, tileTooltipOpen])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -441,22 +442,51 @@ export default function PlayPage() {
                 <button className="play-feedback-close" onClick={() => setFeedbackOpen(false)} type="button" aria-label="Fermer">✕</button>
               </div>
 
-              {/* Scorecard — 3 lignes verticales */}
+              {/* Scorecard — 3 cartes verticales */}
               <div className="pfd-tiles">
                 <div className="pfd-tile pfd-tile--green">
                   <span className="pfd-tile-num">{attemptHistory[activeHistoryTab].correctFull}</span>
-                  <span className="pfd-tile-icon">✓</span>
-                  <span className="pfd-tile-label">Bien placée{attemptHistory[activeHistoryTab].correctFull !== 1 ? 's' : ''} et orientée{attemptHistory[activeHistoryTab].correctFull !== 1 ? 's' : ''}</span>
+                  <div className="pfd-tile-content">
+                    <div className="pfd-tile-title-row">
+                      <span className="pfd-tile-dot" />
+                      <span className="pfd-tile-title">Bien placé{attemptHistory[activeHistoryTab].correctFull !== 1 ? 's' : ''} et orienté{attemptHistory[activeHistoryTab].correctFull !== 1 ? 's' : ''}</span>
+                    </div>
+                    <span className="pfd-tile-subtitle">Bon emplacement et bonne orientation</span>
+                  </div>
                 </div>
+
                 <div className="pfd-tile pfd-tile--orange">
                   <span className="pfd-tile-num">{attemptHistory[activeHistoryTab].correctRotation}</span>
-                  <span className="pfd-tile-icon">↻</span>
-                  <span className="pfd-tile-label">Partiellement correcte{attemptHistory[activeHistoryTab].correctRotation !== 1 ? 's' : ''}</span>
+                  <div className="pfd-tile-content">
+                    <div className="pfd-tile-title-row">
+                      <span className="pfd-tile-dot" />
+                      <span className="pfd-tile-title">Bonne orientation</span>
+                      <button
+                        className="pfd-tile-info-btn"
+                        type="button"
+                        onClick={e => { e.stopPropagation(); setTileTooltipOpen(v => !v) }}
+                        aria-label="En savoir plus"
+                      >ⓘ
+                        {tileTooltipOpen && (
+                          <span className="pfd-custom-tooltip pfd-custom-tooltip--left">
+                            Bonne position et mauvaise orientation, ou bonne orientation et mauvaise position
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                    <span className="pfd-tile-subtitle">Bien orientée, mais au mauvais emplacement</span>
+                  </div>
                 </div>
+
                 <div className="pfd-tile pfd-tile--red">
                   <span className="pfd-tile-num">{attemptHistory[activeHistoryTab].neither}</span>
-                  <span className="pfd-tile-icon">✗</span>
-                  <span className="pfd-tile-label">Mal placée{attemptHistory[activeHistoryTab].neither !== 1 ? 's' : ''}</span>
+                  <div className="pfd-tile-content">
+                    <div className="pfd-tile-title-row">
+                      <span className="pfd-tile-dot" />
+                      <span className="pfd-tile-title">À revoir</span>
+                    </div>
+                    <span className="pfd-tile-subtitle">Ni le bon emplacement, ni la bonne orientation</span>
+                  </div>
                 </div>
               </div>
 

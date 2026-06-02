@@ -35,6 +35,14 @@ export default function ResultPage() {
   const [attempts, setAttempts] = useState([])
   const [activeTab, setActiveTab] = useState('solution')
   const [copied, setCopied] = useState(false)
+  const [tileTooltipOpen, setTileTooltipOpen] = useState(false)
+
+  useEffect(() => {
+    if (!tileTooltipOpen) return
+    const close = () => setTileTooltipOpen(false)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [tileTooltipOpen])
 
   function copyChallenge() {
     const url = success
@@ -301,25 +309,51 @@ export default function ResultPage() {
                   </div>
                 ) : currentAttempt ? (
                   <>
-                    <div className="result-feedback-dots">
-                      <div className="play-feedback-row">
-                        <div className="play-feedback-dot play-feedback-dot--correct" />
-                        <span className="play-feedback-count">{currentAttempt.correct_full}</span>
-                        <span>bien placé et orienté</span>
+                    <div className="pfd-tiles">
+                      <div className="pfd-tile pfd-tile--green">
+                        <span className="pfd-tile-num">{currentAttempt.correct_full}</span>
+                        <div className="pfd-tile-content">
+                          <div className="pfd-tile-title-row">
+                            <span className="pfd-tile-dot" />
+                            <span className="pfd-tile-title">Bien placé{currentAttempt.correct_full !== 1 ? 's' : ''} et orienté{currentAttempt.correct_full !== 1 ? 's' : ''}</span>
+                          </div>
+                          <span className="pfd-tile-subtitle">Bon emplacement et bonne orientation</span>
+                        </div>
                       </div>
-                      <div className="play-feedback-row" title="Position correcte + orientation incorrecte, OU position incorrecte + orientation correcte">
-                        <div className="play-feedback-dot play-feedback-dot--rotation" />
-                        <span className="play-feedback-count">{currentAttempt.correct_rotation}</span>
-                        <span>partiellement correct</span>
+                      <div className="pfd-tile pfd-tile--orange">
+                        <span className="pfd-tile-num">{currentAttempt.correct_rotation}</span>
+                        <div className="pfd-tile-content">
+                          <div className="pfd-tile-title-row">
+                            <span className="pfd-tile-dot" />
+                            <span className="pfd-tile-title">Bonne orientation</span>
+                            <button
+                              className="pfd-tile-info-btn"
+                              type="button"
+                              onClick={e => { e.stopPropagation(); setTileTooltipOpen(v => !v) }}
+                              aria-label="En savoir plus"
+                            >ⓘ
+                              {tileTooltipOpen && (
+                                <span className="pfd-custom-tooltip pfd-custom-tooltip--left">
+                                  Bonne position et mauvaise orientation, ou bonne orientation et mauvaise position
+                                </span>
+                              )}
+                            </button>
+                          </div>
+                          <span className="pfd-tile-subtitle">Bien orientée, mais au mauvais emplacement</span>
+                        </div>
                       </div>
-                      <div className="play-feedback-row">
-                        <div className="play-feedback-dot play-feedback-dot--wrong" />
-                        <span className="play-feedback-count">{currentAttempt.neither}</span>
-                        <span>mal placé</span>
+                      <div className="pfd-tile pfd-tile--red">
+                        <span className="pfd-tile-num">{currentAttempt.neither}</span>
+                        <div className="pfd-tile-content">
+                          <div className="pfd-tile-title-row">
+                            <span className="pfd-tile-dot" />
+                            <span className="pfd-tile-title">À revoir</span>
+                          </div>
+                          <span className="pfd-tile-subtitle">Ni le bon emplacement, ni la bonne orientation</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="result-feedback-divider" />
-                    <div className="result-feedback-grid-wrap">
+                    <div className="result-feedback-grid-wrap" style={{ padding: '0 16px 4px' }}>
                       <StaticMiniGrid placements={buildAttemptPlacements(currentAttempt)} clues={clues} />
                     </div>
                   </>
