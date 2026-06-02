@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import RequireAuth from './components/ui/RequireAuth'
-import TutorialModal from './components/ui/TutorialModal'
 import LoginPage from './pages/login/LoginPage'
 import HubPage from './pages/hub/HubPage'
 import DailyArchivesPage from './pages/archives/DailyArchivesPage'
@@ -10,6 +9,8 @@ import ResultPage from './pages/result/ResultPage'
 import ProfilePage from './pages/profile/ProfilePage'
 import DashboardPage from './pages/dashboard/DashboardPage'
 import DailyAdminPage from './pages/admin/DailyAdminPage'
+import ClassementPage from './pages/classement/ClassementPage'
+import TutorielPage from './pages/tutoriel/TutorielPage'
 import './index.css'
 
 export default function App() {
@@ -26,9 +27,10 @@ export default function App() {
         <Route path="/profile"           element={<RequireAuth><ProfilePage /></RequireAuth>} />
         <Route path="/dashboard/:gridId" element={<RequireAuth><DashboardPage /></RequireAuth>} />
         <Route path="/admin/daily"       element={<RequireAuth><DailyAdminPage /></RequireAuth>} />
+        <Route path="/classement"        element={<RequireAuth><ClassementPage /></RequireAuth>} />
+        <Route path="/tutoriel"          element={<RequireAuth><TutorielPage /></RequireAuth>} />
         <Route path="*"                  element={<Navigate to="/hub" replace />} />
       </Routes>
-      <TutorialModal />
     </BrowserRouter>
   )
 }

@@ -1,243 +1,198 @@
-# DESIGN.md — Orienta
+# Orienta — Design V2
 
-## Design Philosophy
-
-Orienta uses a **clean, calm, focused aesthetic** — light backgrounds, teal accent, subtle shadows. The visual language supports the puzzle-first experience: nothing decorative should compete with the grid.
-
----
-
-## Color System
-
-Defined as CSS variables in `:root` in `src/index.css`.
-
-| Variable | Value | Usage |
-|---|---|---|
-| `--accent` | `#00B899` | Primary CTA, active states, XP bars, highlights |
-| `--accent-dim` | `rgba(0,184,153,0.10)` | Hover backgrounds, accent cards |
-| `--accent-border` | `rgba(0,184,153,0.25)` | Borders on accent elements |
-| `--success` | `#00A889` | Correct placements, "joué" status |
-| `--warning` | `#E89010` | Partial match (rotation only), "en cours" status |
-| `--error` | `#F0440A` | Wrong answers |
-| `--text-primary` | `#111827` | Body text, headings |
-| `--text-secondary` | `#4B5563` | Supporting text |
-| `--text-muted` | `#9CA3AF` | Labels, hints, meta |
-| `--bg-primary` | `#FFFFFF` | Page background |
-| `--bg-secondary` | `#F7F6F3` | App shell / section background |
-| `--bg-card` | `#FFFFFF` | Card background |
-| `--bg-surface` | `#F2F1EE` | Input fields, track bars |
-| `--border` | `rgba(0,0,0,0.08)` | Default border |
-
-**Never** hardcode colors in JSX or CSS — always use variables.
+> Document de design des deux écrans de référence :
+> - **`index-v2.html`** → présente le **Hub** (`hub-v2.html`) en cadre desktop + mobile.
+> - **`play-index-v2.html`** → présente la page **`/play`** (`play-v2.html`) en cadre desktop.
+>
+> Les fichiers `*-index-v2.html` sont des **vitrines de présentation** (chrome de navigateur + maquette de téléphone autour d'une `<iframe>`). Le vrai design vit dans `hub-v2.html` et `play-v2.html`. Ce document décrit le système commun puis chaque écran.
 
 ---
 
-## Card Colors
+## 1. Principes
 
-Game cards use a separate vivid palette defined in `src/lib/cardColors.js`. Always `white` background with colored border and text:
+Direction V2 convergée : **fond neutre** (fini le beige), **cartes blanches à ombre douce**, **police Bricolage Grotesque** pour les titres/chiffres, **DM Sans** pour le texte, **accent teal** comme couleur de marque, et les **4 couleurs de cartes** issues du plateau de jeu. Header clair et sobre, aligné sur le jeu réel. Esthétique calme, ludique, lisible.
 
-| Index | Border / Text | Name |
-|---|---|---|
-| 0 | `#00A889` | Teal vif |
-| 1 | `#F0440A` | Orange-rouge |
-| 2 | `#1472E8` | Bleu électrique |
-| 3 | `#E89010` | Ambre vif |
-| 4 | `#7030E0` | Violet intense |
-
-Use `getCardColor(colorIndex)` — never hardcode card colors directly.
+Les deux écrans partagent **exactement** le même header, les mêmes tokens et le même vocabulaire visuel — c'est ce qui assure l'homogénéité de l'app.
 
 ---
 
-## Status & Difficulty Color Coding
+## 2. Design system (partagé)
 
-### Play status (GridCard)
-| Status | Class | Color |
-|---|---|---|
-| Non joué | (default) | `--text-muted` |
-| En cours | `.card-v2-status--inprogress` | `#E89010` (warning) |
-| Joué | `.card-v2-status--done` | `#00A889` (success) |
+### 2.1 Typographie
+- **Display** — `Bricolage Grotesque` (400–800), titres, chiffres, mots des cartes, libellés de section. `letter-spacing:-0.025em` sur les titres, `line-height:1.05`.
+- **Texte / UI** — `DM Sans` (400–700), `font-size:16px`, `line-height:1.5`.
+- Import Google Fonts :
+  ```html
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+  ```
 
-### Difficulty
-| Difficulty | Class | Color |
-|---|---|---|
-| Facile | `.card-v2-difficulty--easy` | `#00A889` |
-| Moyen | `.card-v2-difficulty--medium` | `#E89010` |
-| Difficile | `.card-v2-difficulty--hard` | `#F0440A` |
-
----
-
-## Typography
-
-| Variable | Font | Usage |
-|---|---|---|
-| `--display` | Syne (700, 800) | Headings, scores, logo, level names |
-| `--sans` | DM Sans (400, 500, 600) | Body, buttons, labels |
-
-**Rules:**
-- Headings use `font-family: var(--display)`
-- All body/UI text uses `var(--sans)` (set on `:root`)
-- Never inline font-family in JSX
-
----
-
-## Spacing & Radius
-
-| Variable | Value |
-|---|---|
-| `--radius-sm` | 8px |
-| `--radius-md` | 12px |
-| `--radius-lg` | 20px |
-| `--radius-xl` | 28px |
-
-Cards and modals use `--radius-md` to `--radius-xl`. Buttons use `--radius-md`. Pills/badges use `--radius-sm` or `6px`.
-
----
-
-## Shadow System
-
+### 2.2 Couleurs (variables CSS)
 ```css
---card-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
-```
+/* Surfaces neutres */
+--bg:        #f1f2f3;   /* fond de page (+ trame de points) */
+--bg-tint:   #eceeef;   /* survols, fonds discrets, puces */
+--card:      #ffffff;   /* cartes, panneaux, header/footer */
+--ink:       #1c2128;   /* texte principal */
+--ink-2:     #5d6470;   /* texte secondaire */
+--ink-3:     #9aa1ac;   /* texte tertiaire / placeholder */
+--line:      rgba(28,33,40,0.09);  /* bordures (Hub) / 0.10 (Play) */
+--line-2:    rgba(28,33,40,0.05);  /* bordures très discrètes */
 
-Use `var(--card-shadow)` on cards. Modals use a stronger shadow:
+/* Marque / accent (teal) */
+--teal:      #0a9e84;   /* = --accent dans play-v2 */
+--teal-700:  #08846f;   /* hover, texte sur clair */
+--teal-soft: #e3f4ef;   /* fonds d'indices, pastilles, états actifs pâles */
+--mint:      #9fe3d2;   /* dégradés, pulse "live" */
+
+/* Identités de carte (FIXES — sémantique de jeu) */
+--green:  #16a085;  --green-soft:  #dcf2ec;
+--coral:  #f2603f;  --coral-soft:  #fde3dc;
+--orange: #e8920e;  --orange-soft: #fcefd6;
+--blue:   #2f6fd6;  --blue-soft:   #e0eafb;
+--amber:  #d98a14;  /* niveau "Moyen" */
+
+/* Feedback Mastermind (page /play) */
+--fb-green:  #16a085; /* bien placé ET orienté */
+--fb-orange: #e8920e; /* bonne orientation, mauvais emplacement */
+--fb-red:    #f2603f; /* ni l'un, ni l'autre */
+```
+> ⚠️ Les 4 identités de carte (green/coral/orange/blue) et les 3 couleurs de feedback sont **sémantiques** : ne jamais les remplacer par le teal.
+
+### 2.3 Rayons, ombres, fond
 ```css
-box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+--r:22px;  --r-sm:14px;  --r-pill:999px;       /* cartes de jeu : 18px */
+
+--shadow:    0 18px 44px -22px rgba(20,30,45,0.30); /* héro */
+--shadow-sm: 0 10px 26px -16px rgba(20,30,45,0.24); /* panneaux */
+--shadow-xs: 0 2px 8px -4px   rgba(20,30,45,0.18);  /* survols légers */
+--shadow-card: 0 14px 30px -20px rgba(20,30,45,0.40), 0 2px 6px -3px rgba(20,30,45,0.12); /* cartes /play */
 ```
-
----
-
-## Layout Principles
-
-- **Max widths**: Pages use `max-width: 600–680px` centered with `margin: 0 auto`
-- **Play/Create layout**: 3-column fixed — left drawer (tray), center (grid), right drawer (feedback)
-- **Padding**: `28px 20px` on main content areas, `24px` on modals
-- **Gaps**: `24px` between sections, `10–12px` between cards, `8px` within card content
-- **Sticky header**: `position: sticky; top: 0; z-index: 100`
-- **Sticky footer** (PlayPage): `position: fixed; bottom: 0; z-index: 50`
-
----
-
-## Component Patterns
-
-### Buttons
-
+Fond de page = `--bg` + trame de points :
 ```css
-.btn-primary    → accent bg, white text, 12px 24px padding, radius-md
-.btn-primary:hover → translateY(-1px) + accent glow shadow
-
-.btn-secondary  → transparent, border, accent on hover
+background-image: radial-gradient(rgba(28,33,40,0.04) 1px, transparent 1px);
+background-size: 24px 24px;
 ```
 
-Only two button variants. Never create a third without adding it here.
-
-### Cards
-
-```css
-.some-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  box-shadow: var(--card-shadow);
-  padding: 14px 18px;
-}
-.some-card:hover {
-  border-color: var(--accent-border);
-  transform: translateY(-1px);
-}
-```
-
-### Badges / Pills
-
-```css
-background: var(--accent-dim);
-border: 1px solid var(--accent-border);
-border-radius: 6px;
-padding: 2px 8px;
-font-size: 11px;
-color: var(--accent);
-```
-
-### Modals
-
-- Backdrop: `position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000`
-- Panel: `max-width: 520px; max-height: 80dvh; overflow-y: auto`
-- Always use `useBodyScrollLock()` to prevent background scroll
-- Click backdrop to close, ✕ button in header
-
-### Tour Overlay Bubbles
-
-CSS anchor classes for `TourOverlay`:
-| Class | Position | Arrow |
-|---|---|---|
-| `tour-card--center` | Centered | None |
-| `tour-card--center-right` | Right edge, middle | ← (left) |
-| `tour-card--center-left` | After left tray, middle | → (right) |
-| `tour-card--tray-right` | Just right of tray | ← (left, toward tray) |
-| `tour-card--top-center` | Top, centered | ↓ (down) |
-| `tour-card--bottom-center` | Bottom, centered | ↑ (up) |
-| `tour-card--footer-center` | Above sticky footer | ↓ (down, toward footer) |
-
-Mobile: all non-center positions collapse to bottom-centered, arrows hidden.
-
-### XP / Progress Bars
-
-```css
-.track { height: 6–8px; background: var(--bg-surface); border-radius: 4px; }
-.fill  { background: linear-gradient(90deg, var(--accent), #00E8B8); }
-```
+### 2.4 Header (identique sur les deux écrans)
+Barre **sticky** translucide (`rgba(241,242,243,0.82)` + `backdrop-filter: saturate(140%) blur(12px)`), bordure basse `--line`, contenu max 1200px, padding `14px 28px`, `gap:20px`.
+- **Logo** : pastille teal 26×26 `radius:8px` portant une croix blanche (le « + »), puis « **Orienta** » (Bricolage 800, 22px, `--teal`).
+- **Nav** : `Hub` / `Classement` / `Tutoriel` — DM Sans 14/600, `--ink-2` ; hover fond `--bg-tint` ; actif `--teal` + fond `--teal-soft`.
+- *(spacer flexible)*
+- **Série** : chip `--coral-soft`, flamme + chiffre, texte `--coral`, Bricolage 700, pill.
+- **Boutons icônes** 38×38 `radius:11px`, `--ink-2`, hover `--bg-tint` : notifications, réglages.
+- **Séparateur** 1×26 `--line`.
+- **Profil** : avatar rond 32×32 dégradé `135deg,var(--teal),var(--green)`, initiale blanche + prénom (DM Sans 14/600).
+- En mobile : nav repliée derrière un **burger**, prénom et séparateur masqués.
 
 ---
 
-## Header
+## 3. Écran « Hub » — présenté par `index-v2.html`
+
+`index-v2.html` affiche `hub-v2.html` côte à côte : **cadre navigateur desktop** (≈1200px) et **maquette de téléphone** (390px), sur fond `#e4e6e7` à trame de points, avec un chapeau (eyebrow teal + titre Bricolage + paragraphe + bouton « Ouvrir le Hub en plein écran »).
+
+### 3.1 Architecture du Hub (`hub-v2.html`)
+Contenu centré, max **1200px**, padding latéral 28px. Deux grandes parties à en-têtes numérotés :
 
 ```
-[Orienta logo] ────────────── [🔥 streak] [🎓 Tutoriel] [Avatar Profil]
+HEADER (sticky)
+
+PARTIE 01 · « La grille du jour »   ← en-tête : 01 + titre + filet + dateline (Édition N°142 · date)
+  └─ Groupe "today"
+     ├─ HERO (2 colonnes 1.32fr / 1fr)
+     │   ├─ Carte challenge : eyebrow, titre "La grille du jour" (Bricolage 800, 58px),
+     │   │   paragraphe, 4 "spills" (Statut/Niveau/Réussite/Joueurs), bouton "Jouer la grille"
+     │   │   (pill teal) + lien fantôme "Grilles précédentes"
+     │   └─ MEDIA SLOT (fond sombre #10212b) : plateau 2×2 animé en boucle
+     │       (4 tuiles couleur qui pivotent — @keyframes tileSpin 7s), badge "Découvrir le jeu",
+     │       pastille "En boucle" (pulse mint), titre + sous-titre blancs.
+     │       → réservé à la future vidéo motion.
+     └─ CLASSEMENT DU JOUR (panel) : titre + sous-titre, podium 3 colonnes
+         (médailles 1/2/3, nom, points teal)
+
+PARTIE 02 · « La communauté »       ← en-tête : 02 + titre + filet
+  ├─ CRÉER MA GRILLE (bloc bordure pointillée teal) : eyebrow "Ma grille",
+  │   titre d'état, texte, bouton sombre "Créer ma grille" (pill, hover teal)  → mène à /create
+  └─ GRILLES DES AUTRES JOUEURS : en-tête + tab "Aujourd'hui · 4",
+      grille de 4 cartes joueur (avatar couleur + nom, mini-grille Statut/Niveau/Joueurs/Réussite),
+      hover : élévation + ombre.
 ```
 
-- Logo: `--display` font, accent color, left-aligned
-- Right cluster: gap `10px`, icon + text label per item
-- Avatar: 36px circle, accent border, shows skin emoji or pseudo initial
+### 3.2 Composants notables du Hub
+- **Spill** (statistique) : petite tuile `--bg` `radius:14px`, clé en capitales `--ink-3` + valeur Bricolage 19px. Variante `is-teal` (fond `--teal-soft`, valeur `--teal-700`).
+- **Bouton principal** `.btn` : pill teal, Bricolage 700 16px, ombre teal portée, hover `translateY(-2px)` + `--teal-700`.
+- **Media slot animé** : `demo-board` 188×188, 4 `.dtile` colorées (orange/green/blue/coral) avec flèche de rotation, animation `tileSpin` décalée par tuile ; pulse « live » `livePulse`. Respecte `prefers-reduced-motion`.
+- **Podium / rangs** : lignes `--bg` `radius:14px`, médailles rondes dégradées (or/argent/bronze), points en `--teal-700`.
+- **Bloc créer** : bordure `1.6px dashed rgba(10,158,132,0.4)`, `--shadow-xs`.
+- **Carte joueur** `.pcard` : `--card` `radius:22px`, avatar carré 40×40 coloré, mini-grille 2×2 de stats.
+
+### 3.3 Responsive du Hub
+- **≤ 920px** : héro et duo en 1 colonne, cartes joueurs en 2 colonnes, titre héro 46px, podium en 1 colonne.
+- **≤ 560px** : header replié (burger), prénom masqué ; spills sur 2 colonnes ; bouton « Jouer » pleine largeur ; bloc créer empilé ; cartes joueurs en 1 colonne.
 
 ---
 
-## Icons / Emojis
+## 4. Écran « /play » — présenté par `play-index-v2.html`
 
-- **Collective creatures** (10 levels): emoji (`🥚🐟🐠🔭🗺️🦈🐢🐋🦑🐉`)
-- **Individual skins** (10 levels): SVG components in `src/lib/marineItems.jsx`
-- **UI icons**: emoji for streak 🔥, tutorial 🎓, lock 🔒
-- **GridCard icons**: inline SVG only (IconClock, IconPlay, IconCheckmark, etc.)
-- Never import SVGs as assets — inline SVGs or emoji only
+`play-index-v2.html` affiche `play-v2.html` dans un **cadre navigateur desktop** (chapeau eyebrow + titre + paragraphe + bouton « Ouvrir /play en plein écran (avec Tweaks) »). Une seule direction : **réserve à gauche** (le mobile sera une itération dédiée).
+
+### 4.1 Architecture de `/play`
+Page plein écran en colonne (header / zone de jeu / footer) :
+
+```
+HEADER (identique au Hub)
+
+┌──────────┬─────────────────────────────────┬───────────────────┐
+│ RÉSERVE  │           PLATEAU 2×2           │  DRAWER FEEDBACK  │
+│  gauche  │   indices Haut/Bas/Gauche/Droite│   droite, 404px   │
+│  222px   │       au cœur de la zone        │  (rétractable)    │
+├──────────┴─────────────────────────────────┴───────────────────┤
+FOOTER STICKY (essai, chrono, bouton à états, retour Hub)
+```
+
+### 4.2 Réserve (gauche, `flex:0 0 222px`)
+Bordure droite `--line`, fond `rgba(255,255,255,0.35)`. En-tête « RÉSERVE · N cartes » (Bricolage 700, 12px, capitales) + sous-titre `--ink-3`. Liste verticale scrollable des cartes non posées.
+
+### 4.3 Carte de jeu (`.gcard`) — style retenu « blanc doux »
+Carrée, fond blanc, `border:1px solid var(--line)`, `--shadow-card`, `radius:18px`. **Pastille d'identité** (carré 14×14 `radius:5px`) en haut-gauche, couleur = identité. **4 mots** sur les arêtes (haut/bas centrés ; gauche/droite en `writing-mode:vertical-rl`, gauche pivoté 180°), Bricolage 700 **colorés** dans l'identité, capitales. **Rotation** par pas de 90° (bouton ↻ central au survol). Survol = légère élévation ; `:active` = `scale(.97)`.
+
+### 4.4 Plateau 2×2 + indices
+Grille 2×2, `gap:18px`, fond `rgba(28,33,40,0.018)`, `radius:24px`. **Emplacements** pointillés (`2px dashed`), fond `rgba(255,255,255,0.5)`, `radius:18px`, icône fantôme ; état « cible » teal. **4 indices** (ex. *Ferme / Cire / Epaisse / Roues*) en pastilles `--teal-soft` / texte `--teal-700` Bricolage ~23px ; gauche/droite verticaux. **Les indices restent contenus dans la zone du plateau** (padding ~`72px 96px` autour de la grille) — ils ne débordent jamais sur la réserve ni le drawer. Le plateau est l'élément central et reste visuellement au cœur de la page.
+
+### 4.5 Drawer de feedback (droite, 404px, rétractable)
+Panneau `--card`, bordure gauche `--line`, ombre portée. En-tête « **Feedback** » + sous-titre. Contenu :
+1. **Onglets Essai 1 · 2 · 3** : pleine largeur ; essais joués cliquables, à venir **verrouillés** (cadenas) ; actif = fond `--teal`, blanc, ombre teal.
+2. **Score global** : grand chiffre Bricolage 800 40px teal + « /4 ».
+3. **Scorecard par comptage** : 3 tuiles (verte `--green-soft`, orange `--orange-soft`, rouge `--coral-soft`), chacune = grand nombre + titre (avec pastille) + descriptif. **On indique COMBIEN de cartes** par cas, **jamais lesquelles** (le joueur doit déduire).
+4. **« Ta configuration »** : mini-grille 2×2 (~164px) reconstituant le **placement + l'orientation** des cartes posées à l'essai sélectionné, entourée des 4 indices — pour revoir ses essais sans les refaire. Changer d'onglet change scorecard ET mini-grille.
+5. **Encart d'aide** (fond `--bg-tint`, ampoule) rappelant la règle.
+
+**Rétraction** : la croix ferme le drawer (le plateau reprend la largeur) et un **onglet vertical « Feedback »** apparaît au bord droit (fond teal, texte vertical + icône) pour le rouvrir.
+
+### 4.6 Footer sticky
+Barre translucide, contenu centré (max ~1100px) : à gauche chips « Essai N/3 » (+ 3 puces, active teal) et chrono ; au centre **bouton à états** `.submit` (« X cartes à placer » en `is-wait` pâle → « Valider l'essai » en `is-ready` teal plein) ; à droite « Retour au Hub » (`.hub-btn` clair).
+
+### 4.7 Interactions
+Poser une carte (drag&drop réel dans l'app ; clic dans la maquette) → halo sur l'emplacement ; retirer ; pivoter (↻) ; bouton qui passe prêt à 4/4 ; valider → enregistre l'essai, déverrouille l'onglet suivant, ouvre le drawer, réinitialise le plateau ; onglets pour revoir chaque essai ; fermer/rouvrir le drawer ; réinitialiser.
+
+> **Note moteur (maquette)** : le coulissé du drawer et l'onglet de réouverture sont pilotés par bascule de `transform` **inline en JS**, car la transition CSS se fige dans l'outil de prototypage. En production (React/Framer Motion), utiliser une vraie transition — c'est la cible visuelle, pas la méthode d'animation.
 
 ---
 
-## Animations
+## 5. Réglages de maquette (« Tweaks », hors production)
 
-- **Framer Motion** for entrance animations and XP bar fills
-- Default entrance: `initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}`
-- Stagger: `transition={{ delay: i * 0.05 }}`
-- Hover states: CSS `transition: all 0.18s` (not Framer Motion)
-- Keep animations subtle — no bouncing, no spinning, no color flash
+`play-v2.html` embarque un panneau de réglages de maquettage (`play-tweaks.jsx`) pour explorer des variantes : position de la réserve (gauche / dock bas), densité du plateau, **style de carte** (bord coloré / blanc doux / teinté / étiquette), couleur des mots, arrondi, accent. **Direction retenue** : réserve à gauche, **carte « blanc doux » + mots colorés + rayon 18px**, accent teal. Les autres variantes sont des outils d'exploration, pas la cible.
 
 ---
 
-## Responsive Breakpoints
+## 6. Cartographie des fichiers
 
-| Breakpoint | Notes |
-|---|---|
-| `max-width: 768px` | Play/Create: drawers become inline flow |
-| `max-width: 600px` | Word cards shrink, skin grid 5→4 cols |
-| `max-width: 480px` | Skin grid 4→3 cols |
-| `max-width: 640px` | Tour bubbles collapse to bottom |
+```
+index-v2.html        ← vitrine du Hub (desktop + mobile) → iframe hub-v2.html
+hub-v2.html          ← design réel du Hub (header, grille du jour, communauté)
 
-Mobile-first adjustments live in `@media (max-width: X)` blocks **after** the default rule.
-
----
-
-## Things to Avoid
-
-- No dark mode theming (not in scope)
-- No CSS frameworks (Tailwind, Bootstrap, etc.)
-- No inline styles except Framer Motion `animate` props
-- No emoji in button labels (icon + text pattern)
-- No shadows on text
-- No `!important` unless overriding a library
-- No hardcoded card colors — always `getCardColor(index)` from `cardColors.js`
+play-index-v2.html   ← vitrine de /play (desktop)        → iframe play-v2.html
+play-v2.html         ← design réel de /play (réserve, plateau, drawer, footer)
+play-logic.js        ← interactions simulées de /play (référence de comportement)
+play-tweaks.jsx      ← panneau de réglages de maquette (hors prod)
+tweaks-panel.jsx     ← dépendance du panneau de réglages
+```

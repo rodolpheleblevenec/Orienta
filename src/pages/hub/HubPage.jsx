@@ -15,19 +15,17 @@ function formatDayLabel(dateStr) {
   return new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'short' })
 }
 
-function SectionTitle({ children, tip }) {
-  return (
-    <h2 className="section-title">
-      {children}
-      <span className="section-tip" data-tip={tip}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="12"/>
-          <line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-      </span>
-    </h2>
-  )
+function formatDateLine(dateStr) {
+  return new Date(dateStr).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+const DIFF_LABEL = { facile: 'Facile', moyen: 'Moyen', difficile: 'Difficile' }
+const DIFF_COLOR_CLASS = { facile: 'spill--teal', moyen: 'spill--amber', difficile: 'spill--coral' }
+
+function statusLabel(playInfo) {
+  if (!playInfo) return 'Non joué'
+  if (playInfo.completed) return 'Terminé'
+  return 'En cours'
 }
 
 export default function HubPage() {
@@ -50,11 +48,10 @@ export default function HubPage() {
       const now = new Date().toISOString()
       const todayStart = new Date()
       todayStart.setHours(0, 0, 0, 0)
-
       const todayDate = now.split('T')[0]
       const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]
 
-    const [{ data: activeGrids }, { data: plays }, { data: todayGrid }, { data: dailyGridData }] = await Promise.all([
+      const [{ data: activeGrids }, { data: plays }, { data: todayGrid }, { data: dailyGridData }] = await Promise.all([
         supabase
           .from('orienta_grids')
           .select('*, orienta_users(pseudo, selected_skin), orienta_plays(success, player_id, completed_at)')
@@ -124,7 +121,6 @@ export default function HubPage() {
 
   const twoDaysAgoDate = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0]
   const todayDate = new Date().toISOString().split('T')[0]
-
   const todaysCommunityGrids = grids.filter(g => g.created_at.split('T')[0] === todayDate)
 
   const communityGroups = (() => {
@@ -141,94 +137,131 @@ export default function HubPage() {
   const olderGroups = communityGroups.filter(([date]) => date < twoDaysAgoDate)
   const visibleGroups = showAllCommunity ? communityGroups : recentGroups
 
+  const dailyPlayInfo = todayDaily ? (playsMap.get(todayDaily.id) ?? null) : null
+  const totalDailyPlayers = todayDaily ? (todayDaily.orienta_plays ?? []).length : 0
+  const successfulDailyPlays = todayDaily ? (todayDaily.orienta_plays ?? []).filter(p => p.success).length : 0
+  const dailySuccessRate = totalDailyPlayers > 0 ? Math.round((successfulDailyPlays / totalDailyPlayers) * 100) : null
+
   return (
     <div className="hub-page">
       <Header />
       <main className="hub-main">
 
-        {/* Ligne 1 — Challenge journalier */}
-        <section>
-          <SectionTitle tip="La grille du jour, commune à tous les joueurs. Résous-la pour marquer des points et grimper au classement.">Challenge journalier</SectionTitle>
+        {/* ===== PARTIE 01 — LA GRILLE DU JOUR ===== */}
+        <section className="hub-part">
+          <div className="hub-part-head">
+            <span className="hub-kick"><span className="hub-kick-num">01</span>La grille du jour</span>
+            <span className="hub-kick-rule" />
+            {todayDaily && (
+              <span className="hub-dateline">
+                <span className="hub-dateline-no">
+                  {todayDaily.edition_number ? `Édition N°${todayDaily.edition_number}` : 'Challenge du jour'}
+                </span>
+                <span className="hub-dateline-sep" />
+                {formatDateLine(todayDaily.daily_date)}
+              </span>
+            )}
+          </div>
+
           {loading ? (
-            <div className="hub-loading"><div className="grid-card-skeleton" /></div>
+            <div className="hub-loading">
+              <div className="grid-card-skeleton" style={{ height: 320 }} />
+            </div>
           ) : todayDaily ? (
-            <div className="daily-challenge-layout">
-              <div className="daily-challenge-card">
-                <GridCard
-                  grid={todayDaily}
-                  playInfo={playsMap.get(todayDaily.id) ?? null}
-                  index={0}
-                  isDaily
-                />
-              </div>
-              <div className="daily-challenge-side">
-                <div className="daily-lb">
-                  <div className="daily-lb-header">
-                    <svg className="daily-lb-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M6 9H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/>
-                      <path d="M18 9h3a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-3"/>
-                      <path d="M6 4h12v8a6 6 0 0 1-12 0V4Z"/>
-                      <path d="M12 18v4"/>
-                      <path d="M8 22h8"/>
-                    </svg>
-                    <span className="daily-lb-title">Classement du jour</span>
+            <div className="hub-hero">
+              {/* Carte hero gauche */}
+              <div className="hub-hero-card">
+                <div className="hub-eyebrow">
+                  <span className="hub-eyebrow-dot" />
+                  Challenge du jour
+                </div>
+                <h1 className="hub-hero-title">La grille<br />du jour</h1>
+                <p className="hub-hero-p">
+                  Faites pivoter les quatre cartes, suivez les indices et placez tout juste.
+                  Une nouvelle grille chaque matin.
+                </p>
+                <div className="hub-stat-row">
+                  <div className="hub-spill">
+                    <span className="hub-spill-k">Statut</span>
+                    <span className="hub-spill-v">{statusLabel(dailyPlayInfo)}</span>
                   </div>
-
-                  {dailyTop3.length === 0 ? (
-                    <div className="daily-lb-empty">
-                      <div className="daily-lb-empty-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M6 9H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/>
-                          <path d="M18 9h3a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-3"/>
-                          <path d="M6 4h12v8a6 6 0 0 1-12 0V4Z"/>
-                          <path d="M12 18v4"/>
-                          <path d="M8 22h8"/>
-                        </svg>
-                      </div>
-                      <p className="daily-lb-empty-text">Aucun joueur n'a encore terminé le challenge aujourd'hui.</p>
-                      <p className="daily-lb-empty-cta">Sois le premier !</p>
-                    </div>
-                  ) : (
-                    <ol className="daily-lb-list">
-                      {dailyTop3.map((p, i) => (
-                        <li key={i} className={`daily-lb-row${p.player_id === user?.id ? ' daily-lb-row--me' : ''}`}>
-                          <span className={`daily-lb-rank daily-lb-rank--${i + 1}`}>
-                            {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
-                          </span>
-                          <span className="daily-lb-name">{p.orienta_users?.pseudo ?? '?'}</span>
-                          <span className="daily-lb-score">{p.score} pts</span>
-                        </li>
-                      ))}
-                    </ol>
-                  )}
-
-                  {myDailyPlay && !myInTop3 && (
-                    <>
-                      <div className="daily-lb-separator">···</div>
-                      <div className="daily-lb-row daily-lb-row--me">
-                        <span className="daily-lb-rank">#{myDailyRank}</span>
-                        <span className="daily-lb-name">{user?.pseudo}</span>
-                        <span className="daily-lb-score">{myDailyPlay.score ?? 0} pts</span>
-                      </div>
-                    </>
+                  <div className={`hub-spill ${DIFF_COLOR_CLASS[todayDaily.difficulty] ?? 'hub-spill--teal'}`}>
+                    <span className="hub-spill-k">Niveau</span>
+                    <span className="hub-spill-v">{DIFF_LABEL[todayDaily.difficulty] ?? '—'}</span>
+                  </div>
+                  <div className="hub-spill">
+                    <span className="hub-spill-k">Joueurs</span>
+                    <span className="hub-spill-v">{totalDailyPlayers}</span>
+                  </div>
+                  <div className="hub-spill">
+                    <span className="hub-spill-k">Réussite</span>
+                    <span className="hub-spill-v">{dailySuccessRate !== null ? `${dailySuccessRate}%` : '—'}</span>
+                  </div>
+                </div>
+                <div className="hub-actions">
+                  <Link to={`/play/${todayDaily.id}`} className="hub-btn-play">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                    Jouer la grille
+                  </Link>
+                  {archiveDailies.length > 0 && (
+                    <button className="hub-ghost-link" onClick={() => navigate('/daily-archives')} type="button">
+                      Grilles précédentes ({archiveDailies.length}) →
+                    </button>
                   )}
                 </div>
-
-                {archiveDailies.length > 0 && (
-                  <button
-                    className="daily-archives-link"
-                    onClick={() => navigate('/daily-archives')}
-                    type="button"
-                  >
-                    Grilles précédentes ({archiveDailies.length}) →
-                  </button>
-                )}
               </div>
+
+              {/* Bloc vidéo / animation droite */}
+              <aside className="hub-stage">
+                <div className="hub-media">
+                  <div className="hub-media-top">
+                    <span className="hub-media-kind">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polygon points="23 7 16 12 23 17 23 7"/>
+                        <rect x="1" y="5" width="15" height="14" rx="2"/>
+                      </svg>
+                      Découvrir le jeu
+                    </span>
+                    <span className="hub-media-live">
+                      <span className="hub-ldot" />
+                      En boucle
+                    </span>
+                  </div>
+                  <div className="hub-media-center">
+                    <div className="hub-demo-board">
+                      <div className="hub-dtile hub-dtile--o">
+                        <span className="hub-dtile-arrow">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/></svg>
+                        </span>
+                      </div>
+                      <div className="hub-dtile hub-dtile--g">
+                        <span className="hub-dtile-arrow">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/></svg>
+                        </span>
+                      </div>
+                      <div className="hub-dtile hub-dtile--b">
+                        <span className="hub-dtile-arrow">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/></svg>
+                        </span>
+                      </div>
+                      <div className="hub-dtile hub-dtile--c">
+                        <span className="hub-dtile-arrow">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/></svg>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="hub-media-info">
+                    <h3>Une grille. Chaque jour.<br />Avec tout le monde.</h3>
+                    <p>Tournez les cartes, suivez les indices, résolvez la grille.</p>
+                  </div>
+                </div>
+              </aside>
             </div>
           ) : (
             <div className="daily-empty-state">
               <div className="daily-empty-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <circle cx="12" cy="12" r="10"/>
                   <path d="M12 6v6l4 2"/>
                 </svg>
@@ -236,109 +269,154 @@ export default function HubPage() {
               <h3 className="daily-empty-title">Pas de challenge aujourd'hui</h3>
               <p className="daily-empty-text">En attente du prochain défi. Reviens plus tard ou rejoue les challenges précédents !</p>
               {archiveDailies.length > 0 && (
-                <button
-                  className="btn-secondary"
-                  onClick={() => navigate('/daily-archives')}
-                  type="button"
-                >
+                <button className="btn-secondary" onClick={() => navigate('/daily-archives')} type="button">
                   Voir les challenges précédents
                 </button>
               )}
             </div>
           )}
+
+          {/* Classement du jour */}
+          {!loading && todayDaily && (
+            <div className="hub-rank-panel">
+              <div className="hub-rank-head">
+                <div>
+                  <h2 className="hub-rank-title">Classement du jour</h2>
+                  <p className="hub-rank-sub">Les meilleurs scores sur la grille d'aujourd'hui</p>
+                </div>
+                <Link to="/classement" className="hub-rank-see">Tout voir</Link>
+              </div>
+              {dailyTop3.length === 0 ? (
+                <div className="daily-lb-empty">
+                  <div className="daily-lb-empty-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M6 9H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/>
+                      <path d="M18 9h3a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1h-3"/>
+                      <path d="M6 4h12v8a6 6 0 0 1-12 0V4Z"/>
+                      <path d="M12 18v4"/><path d="M8 22h8"/>
+                    </svg>
+                  </div>
+                  <p className="daily-lb-empty-text">Aucun joueur n'a encore terminé le challenge.</p>
+                  <p className="daily-lb-empty-cta">Sois le premier !</p>
+                </div>
+              ) : (
+                <ol className="hub-rank-row">
+                  {dailyTop3.map((p, i) => (
+                    <li key={i} className={`hub-rank-item${p.player_id === user?.id ? ' hub-rank-item--me' : ''}`}>
+                      <span className="hub-rank-medal hub-rank-medal--gold" style={i === 1 ? { background: 'linear-gradient(135deg,#c3c9d1,#9aa3ad)' } : i === 2 ? { background: 'linear-gradient(135deg,#dfa074,#c07d4d)' } : {}}>
+                        {i + 1}
+                      </span>
+                      <span className="hub-rank-meta">
+                        <span className="hub-rank-nm">{p.orienta_users?.pseudo ?? '?'}</span>
+                        <span className="hub-rank-pt">{p.score} <span>pts</span></span>
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {myDailyPlay && !myInTop3 && (
+                <div className="hub-rank-me">
+                  <span className="hub-rank-medal" style={{ background: 'var(--bg-tint)', color: 'var(--ink-2)', fontSize: '13px' }}>#{myDailyRank}</span>
+                  <span className="hub-rank-meta">
+                    <span className="hub-rank-nm">{user?.pseudo}</span>
+                    <span className="hub-rank-pt">{myDailyPlay.score ?? 0} <span>pts</span></span>
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </section>
 
-        {/* Ligne 2 — Progression Collective + Ma grille */}
-        <div className="top-sections">
-          <section>
-            <SectionTitle tip="Chaque partie jouée fait avancer toute la communauté. Montez ensemble pour débloquer de nouvelles créatures !">Progression Collective</SectionTitle>
-            <CollectiveGauge />
-          </section>
+        {/* ===== PARTIE 02 — LA COMMUNAUTÉ ===== */}
+        <section className="hub-part hub-part-2">
+          <div className="hub-part-head">
+            <span className="hub-kick"><span className="hub-kick-num">02</span>La communauté</span>
+            <span className="hub-kick-rule" />
+          </div>
 
-          <section>
-            <SectionTitle tip="Crée une grille par jour pour faire jouer la communauté et gagner de l'XP à chaque réussite.">Ma grille</SectionTitle>
-            {createdGrid ? (
-              <div className="my-grid-card-container">
-                <CreatedGridCard grid={createdGrid} index={0} />
+          {/* Créer ma grille */}
+          {createdGrid ? (
+            <div className="my-grid-card-container">
+              <CreatedGridCard grid={createdGrid} index={0} />
+            </div>
+          ) : hasForfeited ? (
+            <div className="hub-create-block hub-create-block--disabled">
+              <div>
+                <div className="hub-eyebrow" style={{ marginBottom: 8 }}><span className="hub-eyebrow-dot" /> Ma grille</div>
+                <h3 className="hub-create-title">Tu as loupé la création du jour</h3>
+                <p className="hub-create-desc">Tu as abandonné une grille chronométrée. Reviens demain !</p>
               </div>
-            ) : hasForfeited ? (
-              <div className="my-grid-section">
-                <div className="my-grid-empty">
-                  <h3>Tu as loupé la création du jour</h3>
-                  <p className="my-grid-forfeit-hint">Tu as abandonné une grille chronométrée. Reviens demain pour une nouvelle chance !</p>
-                  <span className="create-grid-btn create-grid-btn--disabled">+ Créer ma grille</span>
-                </div>
+              <span className="hub-btn-create hub-btn-create--disabled">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Créer ma grille
+              </span>
+            </div>
+          ) : (
+            <div className="hub-create-block">
+              <div>
+                <div className="hub-eyebrow" style={{ marginBottom: 8 }}><span className="hub-eyebrow-dot" /> Ma grille</div>
+                <h3 className="hub-create-title">Vous n'avez pas encore créé votre grille</h3>
+                <p className="hub-create-desc">Composez la vôtre et défiez la communauté dès aujourd'hui.</p>
               </div>
-            ) : (
-              <div className="my-grid-section">
-                <div className="my-grid-empty">
-                  <h3>Vous n'avez pas encore créé votre grille du jour</h3>
-                  <Link to="/create" className="create-grid-btn">
-                    + Créer ma grille
-                  </Link>
-                </div>
-              </div>
+              <Link to="/create" className="hub-btn-create">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Créer ma grille
+              </Link>
+            </div>
+          )}
+
+          {/* Grilles des autres joueurs */}
+          <div className="hub-sec-head">
+            <h2>Grilles des autres joueurs</h2>
+            {!loading && todaysCommunityGrids.length > 0 && (
+              <span className="hub-sec-tab">Aujourd'hui · {todaysCommunityGrids.length}</span>
             )}
-          </section>
-        </div>
-
-        {/* Ligne 3 — Grilles des autres joueurs */}
-        <section className="hub-section--spaced">
-          <SectionTitle tip="Les grilles créées par la communauté ces 7 derniers jours. Joue-les pour marquer de l'XP et faire progresser leur créateur.">Grilles des autres joueurs</SectionTitle>
+          </div>
 
           {loading ? (
             <div className="hub-loading">
-              {[1, 2, 3].map(i => <div key={i} className="grid-card-skeleton" />)}
+              {[1, 2, 3, 4].map(i => <div key={i} className="grid-card-skeleton" style={{ height: 160 }} />)}
             </div>
           ) : grids.length === 0 ? (
             <div className="community-empty-state">
               <div className="community-empty-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 16v-4"/>
-                  <path d="M12 8h.01"/>
+                  <path d="M12 16v-4"/><path d="M12 8h.01"/>
                 </svg>
               </div>
               <h3 className="community-empty-title">Aucune grille cette semaine</h3>
               <p className="community-empty-text">La communauté attend tes créations ! Sois le premier à proposer une grille.</p>
-              <Link to="/create" className="btn-primary">
-                Créer ma grille
-              </Link>
+              <Link to="/create" className="btn-primary">Créer ma grille</Link>
             </div>
           ) : (
             <>
               {todaysCommunityGrids.length === 0 && (
-                <div className="community-no-today">
-                  <p>Aucune grille créée aujourd'hui</p>
-                </div>
+                <div className="community-no-today"><p>Aucune grille créée aujourd'hui</p></div>
               )}
               <div className="community-groups">
-              {visibleGroups.map(([date, dateGrids]) => (
-                <div key={date} className="community-group">
-                  <h3 className="community-group-date">{formatDayLabel(date)}</h3>
-                  <div className="cards-grid">
-                    {dateGrids.map((grid, i) => (
-                      <GridCard
-                        key={grid.id}
-                        grid={grid}
-                        playInfo={playsMap.get(grid.id) ?? null}
-                        index={i}
-                        isOwnGrid={grid.creator_id === user?.id}
-                      />
-                    ))}
+                {visibleGroups.map(([date, dateGrids]) => (
+                  <div key={date} className="community-group">
+                    <h3 className="community-group-date">{formatDayLabel(date)}</h3>
+                    <div className="cards-grid">
+                      {dateGrids.map((grid, i) => (
+                        <GridCard
+                          key={grid.id}
+                          grid={grid}
+                          playInfo={playsMap.get(grid.id) ?? null}
+                          index={i}
+                          isOwnGrid={grid.creator_id === user?.id}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
-              {!showAllCommunity && olderGroups.length > 0 && (
-                <button
-                  className="community-show-more"
-                  onClick={() => setShowAllCommunity(true)}
-                  type="button"
-                >
-                  Voir plus — {olderGroups.reduce((n, [, g]) => n + g.length, 0)} grille{olderGroups.reduce((n, [, g]) => n + g.length, 0) > 1 ? 's' : ''} plus ancienne{olderGroups.reduce((n, [, g]) => n + g.length, 0) > 1 ? 's' : ''}
-                </button>
-              )}
-            </div>
+                ))}
+                {!showAllCommunity && olderGroups.length > 0 && (
+                  <button className="community-show-more" onClick={() => setShowAllCommunity(true)} type="button">
+                    Voir plus — {olderGroups.reduce((n, [, g]) => n + g.length, 0)} grille{olderGroups.reduce((n, [, g]) => n + g.length, 0) > 1 ? 's' : ''} plus ancienne{olderGroups.reduce((n, [, g]) => n + g.length, 0) > 1 ? 's' : ''}
+                  </button>
+                )}
+              </div>
             </>
           )}
         </section>

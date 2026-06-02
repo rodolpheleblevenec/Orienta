@@ -1,56 +1,25 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '../../stores/authStore'
-import { getMarineItem, MARINE_ITEMS } from '../../lib/marineItems'
+import { getMarineItem } from '../../lib/marineItems'
 
 const DIFFICULTY_LABEL = { facile: 'Facile', moyen: 'Moyen', difficile: 'Difficile' }
-const DIFFICULTY_CLASS = { facile: 'card-v2-difficulty--easy', moyen: 'card-v2-difficulty--medium', difficile: 'card-v2-difficulty--hard' }
+const DIFFICULTY_VALUE_CLASS = { facile: 'pc-v--teal', moyen: 'pc-v--amber', difficile: 'pc-v--coral' }
 
-const IconClock = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10"></circle>
-    <polyline points="12 6 12 12 16 14"></polyline>
-  </svg>
-)
+const AVA_COLORS = [
+  'var(--green)',
+  'var(--blue)',
+  'var(--orange)',
+  'var(--coral)',
+  'var(--amber)',
+  'var(--teal)',
+]
 
-const IconCheckmark = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <polyline points="20 6 9 17 4 12"></polyline>
-  </svg>
-)
-
-const IconPlay = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-  </svg>
-)
-
-const IconStar = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-    <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
-  </svg>
-)
-
-const IconPeople = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-    <circle cx="12" cy="7" r="4"></circle>
-  </svg>
-)
-
-const IconChart = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="18" y1="20" x2="18" y2="10"></line>
-    <line x1="12" y1="20" x2="12" y2="4"></line>
-    <line x1="6" y1="20" x2="6" y2="14"></line>
-  </svg>
-)
-
-const ChevronIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <polyline points="9 18 15 12 9 6"></polyline>
-  </svg>
-)
+function pickAvaColor(str) {
+  let h = 0
+  for (let i = 0; i < (str?.length ?? 0); i++) h = (h * 31 + str.charCodeAt(i)) | 0
+  return AVA_COLORS[Math.abs(h) % AVA_COLORS.length]
+}
 
 export default function GridCard({ grid, playInfo, index, isDaily = false, isOwnGrid = false }) {
   const { user } = useAuthStore()
@@ -61,62 +30,60 @@ export default function GridCard({ grid, playInfo, index, isDaily = false, isOwn
   const successPlays = plays.filter(p => p.success).length
   const successRate = totalPlays > 0 ? Math.round((successPlays / totalPlays) * 100) : 0
 
-  const creatorInitial = grid.orienta_users?.pseudo?.[0]?.toUpperCase() ?? '?'
+  const creatorPseudo = grid.orienta_users?.pseudo ?? 'Inconnu'
   const creatorSkin = grid.orienta_users?.selected_skin ?? 1
-  const creatorAvatar = creatorSkin > 1 ? getMarineItem(creatorSkin).name.split(' ')[0] : creatorInitial
+  const creatorAvatar = creatorSkin > 1
+    ? getMarineItem(creatorSkin).name.split(' ')[0]
+    : creatorPseudo[0]?.toUpperCase() ?? '?'
 
   const inProgress = playInfo && !playInfo.completed
   const completed = playInfo?.completed === true
 
+  const statusLabel = completed ? 'Terminé' : inProgress ? 'En cours' : 'Non joué'
+  const avaColor = isDaily ? 'var(--teal)' : pickAvaColor(creatorPseudo)
+
   return (
-    <motion.div
+    <motion.article
+      className="pcard"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
     >
-      <Link to={linkTo} className="card-v2">
-        <div className="card-v2-header" style={{ backgroundColor: isDaily ? '#6C63FF' : '#33B69A' }}>
-          <div className="card-v2-avatar">
+      <Link to={linkTo} className="pcard-link">
+        <div className="pc-top">
+          <div className="pc-ava" style={{ background: avaColor }}>
             {isDaily ? '★' : creatorAvatar}
           </div>
-          <div className="card-v2-name">{isDaily ? 'Grille du jour' : (grid.orienta_users?.pseudo ?? 'Inconnu')}</div>
-          <div className="card-v2-icon">
-            <ChevronIcon />
+          <div className="pc-name">
+            {isDaily ? 'Grille du jour' : creatorPseudo}
+            <small>{isOwnGrid ? 'Ma grille' : isDaily ? 'Challenge' : 'Joueur'}</small>
           </div>
         </div>
-        <div className="card-v2-body">
-          <div className="card-v2-cell">
-            <div className="card-v2-cell-label">
-              {completed ? <IconCheckmark /> : inProgress ? <IconPlay /> : <IconClock />}
-              Statut
-            </div>
-            <div className={`card-v2-cell-value${inProgress ? ' card-v2-status--inprogress' : completed ? ' card-v2-status--done' : ''}`}>
-              {completed ? 'Joué' : inProgress ? (playInfo.attemptsCount > 0 ? `${playInfo.attemptsCount} essai${playInfo.attemptsCount > 1 ? 's' : ''}` : 'En cours') : 'Non joué'}
+        <div className="pc-grid">
+          <div className="pc-cell">
+            <div className="pc-k">Statut</div>
+            <div className="pc-v">
+              <span className={`pc-badge${completed ? ' pc-badge--done' : inProgress ? ' pc-badge--progress' : ''}`}>
+                {statusLabel}
+              </span>
             </div>
           </div>
-          <div className="card-v2-cell">
-            <div className="card-v2-cell-label">
-              <IconStar />
-              Niveau
+          <div className="pc-cell">
+            <div className="pc-k">Niveau</div>
+            <div className={`pc-v ${DIFFICULTY_VALUE_CLASS[grid.difficulty] ?? 'pc-v--teal'}`}>
+              {DIFFICULTY_LABEL[grid.difficulty] ?? '—'}
             </div>
-            <div className={`card-v2-cell-value${DIFFICULTY_CLASS[grid.difficulty] ? ` ${DIFFICULTY_CLASS[grid.difficulty]}` : ''}`}>{DIFFICULTY_LABEL[grid.difficulty] || '-'}</div>
           </div>
-          <div className="card-v2-cell">
-            <div className="card-v2-cell-label">
-              <IconPeople />
-              Joueurs
-            </div>
-            <div className="card-v2-cell-value">{totalPlays}</div>
+          <div className="pc-cell">
+            <div className="pc-k">Joueurs</div>
+            <div className="pc-v">{totalPlays}</div>
           </div>
-          <div className="card-v2-cell">
-            <div className="card-v2-cell-label">
-              <IconChart />
-              Réussi
-            </div>
-            <div className="card-v2-cell-value">{successRate}%</div>
+          <div className="pc-cell">
+            <div className="pc-k">Réussite</div>
+            <div className="pc-v">{totalPlays > 0 ? `${successRate}%` : '—'}</div>
           </div>
         </div>
       </Link>
-    </motion.div>
+    </motion.article>
   )
 }

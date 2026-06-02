@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orienta — Hub convergé · Desktop + Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  :root{--bg:#e4e6e7;--ink:#1c2128;--ink-2:#5d6470;--ink-3:#9aa1ac;--line:rgba(0,0,0,0.1);--teal:#0a9e84;}
+  body{background:var(--bg);color:var(--ink);font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(rgba(0,0,0,0.045) 1px,transparent 1px);background-size:22px 22px;}
+  .top{max-width:1320px;margin:0 auto;padding:40px 40px 0;}
+  .ey{font-family:'Bricolage Grotesque',sans-serif;font-size:12px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--teal);margin-bottom:12px;}
+  h1{font-family:'Bricolage Grotesque',sans-serif;font-size:34px;font-weight:800;letter-spacing:-0.03em;margin-bottom:10px;}
+  .top p{font-size:15.5px;color:var(--ink-2);max-width:78ch;line-height:1.6;}
+  .top p b{color:var(--ink);font-weight:600;}
+  .fs{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-size:13.5px;font-weight:600;color:var(--ink);text-decoration:none;background:#fff;border:1px solid var(--line);padding:10px 16px;border-radius:11px;transition:transform .15s,box-shadow .15s;}
+  .fs:hover{transform:translateY(-2px);box-shadow:0 8px 20px -10px rgba(0,0,0,0.3);}
+  .fs svg{width:15px;height:15px;}
+
+  .stage{max-width:1320px;margin:0 auto;padding:30px 40px 90px;display:grid;grid-template-columns:1fr 392px;gap:38px;align-items:start;}
+  @media (max-width:1180px){.stage{grid-template-columns:1fr;}}
+
+  .col-label{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;}
+  .col-label h2{font-family:'Bricolage Grotesque',sans-serif;font-size:16px;font-weight:700;}
+  .col-label span{font-size:12.5px;color:var(--ink-3);}
+
+  /* desktop browser */
+  .browser{background:#fff;border-radius:16px;box-shadow:0 36px 80px -38px rgba(0,0,0,0.45),0 4px 14px -8px rgba(0,0,0,0.2);overflow:hidden;border:1px solid rgba(0,0,0,0.07);}
+  .chrome{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:1px solid var(--line);background:#fbfbfa;}
+  .dot{width:11px;height:11px;border-radius:50%;}
+  .dot.r{background:#ff5f57;}.dot.y{background:#febc2e;}.dot.g{background:#28c840;}
+  .url{flex:1;margin-left:10px;background:#fff;border:1px solid var(--line);border-radius:7px;padding:5px 12px;font-size:12px;color:var(--ink-3);}
+  .desk-frame{width:100%;border:0;display:block;background:#f1f2f3;height:1380px;}
+
+  /* phone */
+  .phone{width:390px;margin:0 auto;background:#0e1116;border-radius:46px;padding:11px;box-shadow:0 40px 80px -34px rgba(0,0,0,0.55),0 0 0 1px rgba(0,0,0,0.2);}
+  .phone-screen{position:relative;border-radius:36px;overflow:hidden;background:#f1f2f3;height:780px;}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:126px;height:30px;background:#0e1116;border-radius:0 0 18px 18px;z-index:5;}
+  .phone-frame{width:390px;border:0;display:block;background:#f1f2f3;height:780px;}
+  .scroll-hint{text-align:center;font-size:12px;color:var(--ink-3);margin-top:14px;}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="ey">Orienta · Refonte du Hub — V2 convergée</div>
+    <h1>Une seule direction, desktop &amp; mobile</h1>
+    <p>J'ai fusionné ce que tu as retenu : <b>l'agencement et les cartes douces du style « Récré »</b>, <b>la police Bricolage</b> et le <b>concept d'édition quotidienne</b> du style éditorial, le tout sur un <b>fond neutre</b> (fini le beige). Le <b>header est entièrement refait</b> (onglets clairs + actions sobres alignées sur ton jeu réel). Le <b>plateau 2×2</b> reprend les couleurs de cartes du jeu et reste <b>réservé à ta future animation motion</b>. Et c'est <b>responsive</b> : redimensionne, ou regarde la colonne mobile.</p>
+    <a class="fs" href="hub-v2.html" target="_blank"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg> Ouvrir le Hub en plein écran</a>
+  </div>
+
+  <div class="stage">
+    <div>
+      <div class="col-label"><h2>Desktop</h2><span>1200 px</span></div>
+      <div class="browser">
+        <div class="chrome"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="url">orienta.app / hub</span></div>
+        <iframe class="desk-frame" src="hub-v2.html" title="Hub desktop"></iframe>
+      </div>
+    </div>
+    <div>
+      <div class="col-label"><h2>Mobile</h2><span>390 px</span></div>
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="notch"></div>
+          <iframe class="phone-frame" src="hub-v2.html" title="Hub mobile"></iframe>
+        </div>
+      </div>
+      <div class="scroll-hint">↕ Les deux aperçus défilent indépendamment</div>
+    </div>
+  </div>
+</body>
+</html>
