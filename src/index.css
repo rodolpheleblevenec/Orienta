@@ -664,13 +664,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   flex-shrink: 0;
 }
 .brand-mark {
-  width: 26px; height: 26px; border-radius: 8px; background: var(--teal);
-  position: relative; flex-shrink: 0;
+  width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0;
 }
-.brand-mark::before,
-.brand-mark::after { content: ""; position: absolute; background: #fff; border-radius: 1px; }
-.brand-mark::before { width: 11px; height: 2.4px; top: 11.8px; left: 7.5px; }
-.brand-mark::after  { width: 2.4px; height: 11px; top: 7.5px;  left: 11.8px; }
 
 .top-nav { display: flex; align-items: center; gap: 4px; }
 .nlink {

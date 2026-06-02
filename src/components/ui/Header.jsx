@@ -23,7 +23,7 @@ export default function Header() {
     <header className="topbar">
       <div className="topbar-in">
         <Link to="/hub" className="brand">
-          <span className="brand-mark" />
+          <img src="/favicon.svg" alt="" className="brand-mark" />
           Orienta
         </Link>
 
