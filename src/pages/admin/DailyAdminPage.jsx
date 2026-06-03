@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { DndContext, closestCorners, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import Header from '../../components/ui/Header'
-import WordCard from '../../components/game/WordCard'
+import CloverWithInputs from '../../components/game/CloverWithInputs'
 
 const ADMIN_PSEUDO = 'Rodolphe LE BLEVENEC'
+const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
+const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
 
 function formatDate(iso) {
   const d = new Date(iso)
@@ -17,15 +19,18 @@ function isoToday() {
   return new Date().toISOString().split('T')[0]
 }
 
-function addDays(dateStr, n) {
-  const d = new Date(dateStr)
-  d.setDate(d.getDate() + n)
-  return d.toISOString().split('T')[0]
+function ymd(year, month, day) {
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
-function buildScheduleDates() {
-  const today = isoToday()
-  return Array.from({ length: 14 }, (_, i) => addDays(today, i))
+function buildMonthCells(year, month) {
+  // month: 0-indexed. Returns array of { date|null } with leading blanks (Monday-first).
+  const firstWeekday = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 6) % 7
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
+  const cells = []
+  for (let i = 0; i < firstWeekday; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(ymd(year, month, d))
+  return cells
 }
 
 async function fetchCardPool() {
@@ -43,7 +48,14 @@ export default function DailyAdminPage() {
   const { user } = useAuthStore()
   const navigate = useNavigate()
 
-  const [schedule, setSchedule] = useState([])
+  const today = isoToday()
+  const [viewMonth, setViewMonth] = useState(() => {
+    const d = new Date()
+    return { year: d.getFullYear(), month: d.getMonth() }
+  })
+  const [gridsByDate, setGridsByDate] = useState(new Map())
+  const [onlyEmpty, setOnlyEmpty] = useState(false)
+  const [calendarOpen, setCalendarOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState(null)
   const [editingGrid, setEditingGrid] = useState(null)
   const [clues, setClues] = useState({ top: '', right: '', bottom: '', left: '' })
@@ -53,15 +65,6 @@ export default function DailyAdminPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [refreshingSlot, setRefreshingSlot] = useState(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
-  const [editingSide, setEditingSide] = useState(null)
-  const lateralInputRef = useRef(null)
-
-  useEffect(() => {
-    if (editingSide && lateralInputRef.current) {
-      lateralInputRef.current.focus()
-      lateralInputRef.current.select()
-    }
-  }, [editingSide])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -73,19 +76,30 @@ export default function DailyAdminPage() {
   }, [user, navigate])
 
   useEffect(() => {
-    fetchSchedule()
     fetchCardPool().then(setCardPool)
   }, [])
 
-  async function fetchSchedule() {
-    const dates = buildScheduleDates()
+  useEffect(() => {
+    fetchMonth(viewMonth.year, viewMonth.month)
+  }, [viewMonth])
+
+  async function fetchMonth(year, month) {
+    const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
+    const first = ymd(year, month, 1)
+    const last = ymd(year, month, lastDay)
     const { data: grids } = await supabase
       .from('orienta_grids')
       .select('id, daily_date, clue_top, clue_right, clue_bottom, clue_left, status, orienta_grid_cards(card_id, position, rotation, orienta_word_cards(*))')
-      .in('daily_date', dates)
+      .gte('daily_date', first)
+      .lte('daily_date', last)
+    setGridsByDate(new Map((grids ?? []).map(g => [g.daily_date, g])))
+  }
 
-    const gridByDate = new Map((grids ?? []).map(g => [g.daily_date, g]))
-    setSchedule(dates.map(date => ({ date, grid: gridByDate.get(date) ?? null })))
+  function changeMonth(delta) {
+    setViewMonth(({ year, month }) => {
+      const m = month + delta
+      return { year: year + Math.floor(m / 12), month: ((m % 12) + 12) % 12 }
+    })
   }
 
   function getExcludedIds(exceptPos = null) {
@@ -96,9 +110,11 @@ export default function DailyAdminPage() {
     return ids
   }
 
-  async function handleSelectDate(date, grid) {
+  async function handleSelectDate(date) {
+    const grid = gridsByDate.get(date) ?? null
     setSelectedDate(date)
     setSaveSuccess(false)
+    setCalendarOpen(false)
 
     const pool = cardPool.length ? cardPool : await fetchCardPool().then(p => { setCardPool(p); return p })
 
@@ -152,14 +168,6 @@ export default function DailyAdminPage() {
     })
   }
 
-  function handleClueChange(key, value) {
-    // Interdire les espaces : un seul mot autorisé
-    if (value.includes(' ')) {
-      return
-    }
-    setClues(p => ({ ...p, [key]: value }))
-  }
-
   async function handleSave() {
     if (!selectedDate || !user) return
     const allFilled = Object.values(placements).every(v => v !== null)
@@ -200,7 +208,7 @@ export default function DailyAdminPage() {
 
     setIsSaving(false)
     setSaveSuccess(true)
-    fetchSchedule()
+    fetchMonth(viewMonth.year, viewMonth.month)
   }
 
   async function handleDelete() {
@@ -210,57 +218,112 @@ export default function DailyAdminPage() {
     await supabase.from('orienta_grids').delete().eq('id', editingGrid.id)
     setSelectedDate(null)
     setEditingGrid(null)
-    fetchSchedule()
+    fetchMonth(viewMonth.year, viewMonth.month)
   }
 
   const allPlaced = Object.values(placements).every(v => v !== null)
   const cluesOk = clues.top && clues.right && clues.bottom && clues.left
+
+  const cells = buildMonthCells(viewMonth.year, viewMonth.month)
+  const emptyCount = cells.filter(d => d && !gridsByDate.has(d)).length
+
+  const calendar = (
+    <div className="admin-calendar">
+      <div className="admin-cal-header">
+        <button className="admin-cal-nav" onClick={() => changeMonth(-1)} type="button" aria-label="Mois précédent">‹</button>
+        <span className="admin-cal-month">{MONTHS[viewMonth.month]} {viewMonth.year}</span>
+        <button className="admin-cal-nav" onClick={() => changeMonth(1)} type="button" aria-label="Mois suivant">›</button>
+      </div>
+
+      <button
+        type="button"
+        className={`admin-cal-filter ${onlyEmpty ? 'admin-cal-filter--on' : ''}`}
+        onClick={() => setOnlyEmpty(v => !v)}
+      >
+        <span className="admin-cal-filter-dot" />
+        {onlyEmpty ? `À remplir uniquement · ${emptyCount}` : 'Filtrer : à remplir'}
+      </button>
+
+      <div className="admin-cal-weekdays">
+        {WEEKDAYS.map((w, i) => <span key={i} className="admin-cal-weekday">{w}</span>)}
+      </div>
+      <div className="admin-cal-grid">
+        {cells.map((date, i) => {
+          if (!date) return <span key={`blank-${i}`} className="admin-cal-cell admin-cal-cell--blank" />
+          const grid = gridsByDate.get(date)
+          const hasGrid = !!grid
+          const dimmed = onlyEmpty && hasGrid
+          const dayNum = parseInt(date.slice(8, 10), 10)
+          return (
+            <button
+              key={date}
+              type="button"
+              onClick={() => handleSelectDate(date)}
+              className={[
+                'admin-cal-cell',
+                hasGrid ? 'admin-cal-cell--filled' : 'admin-cal-cell--empty',
+                date === selectedDate ? 'admin-cal-cell--active' : '',
+                date === today ? 'admin-cal-cell--today' : '',
+                dimmed ? 'admin-cal-cell--dimmed' : '',
+              ].join(' ')}
+              title={hasGrid ? (grid.clue_top ? `${grid.clue_top} · ${grid.clue_right}…` : 'Grille sans indice') : 'À remplir'}
+            >
+              <span className="admin-cal-num">{dayNum}</span>
+              <span className={`admin-cal-mark ${hasGrid ? 'admin-cal-mark--ok' : 'admin-cal-mark--empty'}`}>
+                {hasGrid ? '✓' : ''}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="admin-cal-legend">
+        <span className="admin-cal-legend-item"><span className="admin-cal-dot admin-cal-dot--ok" /> Validée</span>
+        <span className="admin-cal-legend-item"><span className="admin-cal-dot admin-cal-dot--empty" /> À faire</span>
+      </div>
+    </div>
+  )
 
   return (
     <div className="admin-page">
       <Header />
       <main className="admin-main">
 
-        {/* ── Colonne gauche : calendrier ── */}
-        <aside className="admin-schedule">
-          <h2 className="admin-schedule-title">Calendrier — 14 jours</h2>
-          <ul className="admin-schedule-list">
-            {schedule.map(({ date, grid }) => {
-              const isSelected = date === selectedDate
-              const hasGrid = !!grid
-              return (
-                <li key={date}>
-                  <button
-                    className={`admin-schedule-row ${isSelected ? 'admin-schedule-row--active' : ''}`}
-                    onClick={() => handleSelectDate(date, grid)}
-                    type="button"
-                  >
-                    <span className="admin-schedule-date">{formatDate(date)}</span>
-                    <span className={`admin-schedule-status ${hasGrid ? 'admin-schedule-status--ok' : 'admin-schedule-status--empty'}`}>
-                      {hasGrid ? (
-                        <>
-                          <span className="admin-schedule-dot admin-schedule-dot--ok" />
-                          {grid.clue_top ? `${grid.clue_top} · ${grid.clue_right}…` : 'Grille sans indice'}
-                        </>
-                      ) : (
-                        <>
-                          <span className="admin-schedule-dot admin-schedule-dot--empty" />
-                          Vide
-                        </>
-                      )}
-                    </span>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </aside>
+        {/* ── Barre mobile : ouvre le calendrier ── */}
+        <button
+          type="button"
+          className="admin-mobile-bar"
+          onClick={() => setCalendarOpen(true)}
+        >
+          <span className="admin-mobile-bar-icon">📅</span>
+          <span className="admin-mobile-bar-label">
+            {selectedDate ? formatDate(selectedDate) : 'Choisir une date'}
+          </span>
+          <span className="admin-mobile-bar-chevron">Calendrier ›</span>
+        </button>
+
+        {/* ── Colonne gauche : calendrier (sidebar desktop) ── */}
+        <aside className="admin-schedule">{calendar}</aside>
+
+        {/* ── Tiroir calendrier (mobile) ── */}
+        {calendarOpen && (
+          <>
+            <div className="admin-cal-backdrop" onClick={() => setCalendarOpen(false)} />
+            <div className="admin-cal-drawer">
+              <div className="admin-cal-drawer-head">
+                <span className="admin-cal-drawer-title">Calendrier</span>
+                <button className="admin-cal-drawer-close" onClick={() => setCalendarOpen(false)} type="button" aria-label="Fermer">✕</button>
+              </div>
+              {calendar}
+            </div>
+          </>
+        )}
 
         {/* ── Colonne droite : éditeur ── */}
         <section className="admin-editor">
           {!selectedDate ? (
             <div className="admin-editor-empty">
-              <p>Sélectionne une date pour créer ou modifier la grille du jour.</p>
+              <p>Sélectionne une date dans le calendrier pour créer ou modifier la grille du jour.</p>
             </div>
           ) : (
             <>
@@ -277,81 +340,24 @@ export default function DailyAdminPage() {
 
               <div className="admin-editor-body">
                 <DndContext sensors={sensors} collisionDetection={closestCorners}>
-                  <div className="clover-wrapper">
-                    <input
-                      className="clue-input clue-input--top"
-                      value={clues.top}
-                      onChange={e => handleClueChange('top', e.target.value)}
-                      placeholder="Haut"
-                      maxLength={24}
-                    />
-                    <button
-                      type="button"
-                      className={`clue-side-btn clue-side-btn--left${editingSide === 'left' ? ' clue-side-btn--active' : ''}${!clues.left ? ' clue-side-btn--empty' : ''}`}
-                      onClick={() => setEditingSide('left')}
-                    >
-                      <span className="clue-side-btn__text">{clues.left || 'Gauche'}</span>
-                    </button>
-                    <div className="clover-grid">
-                      {[0, 1, 2, 3].map(pos => (
-                        <div key={pos} className="clover-slot admin-clover-slot">
-                          {placements[pos] ? (
-                            <WordCard
-                              id={`admin-${placements[pos].card.id}-${pos}`}
-                              card={placements[pos].card}
-                              rotation={placements[pos].rotation}
-                              colorIndex={placements[pos].colorIndex}
-                              onRotate={() => handleRotate(pos)}
-                              draggable={false}
-                            />
-                          ) : (
-                            <div className="clover-slot-placeholder" />
-                          )}
-                          <button
-                            className="admin-slot-refresh"
-                            onClick={() => handleRefreshSlot(pos)}
-                            disabled={refreshingSlot === pos}
-                            type="button"
-                            title="Remplacer cette carte"
-                          >
-                            {refreshingSlot === pos ? '…' : '↺'}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      className={`clue-side-btn clue-side-btn--right${editingSide === 'right' ? ' clue-side-btn--active' : ''}${!clues.right ? ' clue-side-btn--empty' : ''}`}
-                      onClick={() => setEditingSide('right')}
-                    >
-                      <span className="clue-side-btn__text">{clues.right || 'Droite'}</span>
-                    </button>
-                    <input
-                      className="clue-input clue-input--bottom"
-                      value={clues.bottom}
-                      onChange={e => handleClueChange('bottom', e.target.value)}
-                      placeholder="Bas"
-                      maxLength={24}
-                    />
-                    {editingSide && (
-                      <>
-                        <div className="clue-lateral-backdrop" onClick={() => setEditingSide(null)} />
-                        <div className="clue-lateral-editor">
-                          <span className="clue-lateral-label">{editingSide === 'left' ? '← Gauche' : 'Droite →'}</span>
-                          <input
-                            ref={lateralInputRef}
-                            className="clue-lateral-input"
-                            value={clues[editingSide]}
-                            onChange={e => handleClueChange(editingSide, e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && setEditingSide(null)}
-                            onBlur={() => setEditingSide(null)}
-                            placeholder="Indice…"
-                            maxLength={24}
-                          />
-                        </div>
-                      </>
+                  <CloverWithInputs
+                    placements={placements}
+                    clues={clues}
+                    setClues={setClues}
+                    onRotate={handleRotate}
+                    draggable={false}
+                    slotAction={pos => (
+                      <button
+                        className="admin-slot-refresh"
+                        onClick={() => handleRefreshSlot(pos)}
+                        disabled={refreshingSlot === pos}
+                        type="button"
+                        title="Repiocher une carte"
+                      >
+                        {refreshingSlot === pos ? '…' : '🎲'}
+                      </button>
                     )}
-                  </div>
+                  />
                 </DndContext>
               </div>
 

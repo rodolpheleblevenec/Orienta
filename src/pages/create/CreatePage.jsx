@@ -20,7 +20,7 @@ const CREATE_PLACEMENT_STEPS = [
   {
     anchor: 'tray-right',
     target: '.play-tray-drawer',
-    zone: 'Plateau de cartes',
+    zone: 'Réserve',
     title: 'Reçois tes 4 cartes',
     description: "L'app te distribue 4 cartes aléatoires. Chaque carte a un mot différent sur chacun de ses 4 bords. En mode Difficile, une 5e carte reste en réserve : c'est le leurre pour les joueurs !",
   },
@@ -222,6 +222,12 @@ export default function CreatePage() {
     })
   }
 
+  function handleTrayRotate(cardId) {
+    setTrayCards(prev => prev.map(c =>
+      c.card.id === cardId ? { ...c, rotation: ((c.rotation ?? 0) + 90) % 360 } : c
+    ))
+  }
+
   async function publishGrid(usedTime) {
     const creatorTime = difficulty === 'facile' ? null : usedTime ?? (TIMER_DURATION - timeLeft)
 
@@ -391,6 +397,7 @@ export default function CreatePage() {
                   card={card}
                   rotation={rotation ?? 0}
                   colorIndex={colorIndex ?? 0}
+                  onRotate={() => handleTrayRotate(card.id)}
                   draggable
                 />
               </div>

@@ -6,7 +6,6 @@ const STORAGE_KEY = 'orienta_user_id'
 export const useAuthStore = create((set, get) => ({
   user: null,
   loading: true,
-  tutorialOpen: false,
   notifCount: 0,
 
   init: async () => {
@@ -22,7 +21,6 @@ export const useAuthStore = create((set, get) => ({
     set({ user: data ?? null, loading: false })
     if (data) {
       get().fetchNotifCount(data.id)
-      if (!data.tutorial_modal_done) set({ tutorialOpen: true })
     }
   },
 
@@ -40,7 +38,6 @@ export const useAuthStore = create((set, get) => ({
       localStorage.setItem(STORAGE_KEY, existing.id)
       set({ user: existing })
       get().fetchNotifCount(existing.id)
-      if (!existing.tutorial_modal_done) set({ tutorialOpen: true })
       return { user: existing, isNew: false }
     }
 
@@ -53,7 +50,7 @@ export const useAuthStore = create((set, get) => ({
     if (error) return { error: 'Ce pseudo est déjà pris ou invalide.' }
 
     localStorage.setItem(STORAGE_KEY, created.id)
-    set({ user: created, tutorialOpen: true })
+    set({ user: created })
     return { user: created, isNew: true }
   },
 
@@ -94,9 +91,6 @@ export const useAuthStore = create((set, get) => ({
       .eq('read', false)
     set({ notifCount: 0 })
   },
-
-  openTutorial: () => set({ tutorialOpen: true }),
-  closeTutorial: () => set({ tutorialOpen: false }),
 
   markTourDone: async (flag) => {
     const { user } = get()

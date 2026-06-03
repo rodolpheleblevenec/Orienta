@@ -4,7 +4,7 @@ import { DroppableSlot } from './CloverGrid'
 
 const SIDE_LABELS = { left: '← Gauche', right: 'Droite →' }
 
-export default function CloverWithInputs({ placements, clues, setClues, onRotate, draggable = false }) {
+export default function CloverWithInputs({ placements, clues, setClues, onRotate, draggable = false, slotAction }) {
   const [editingSide, setEditingSide] = useState(null)
   const inputRef = useRef(null)
 
@@ -17,12 +17,18 @@ export default function CloverWithInputs({ placements, clues, setClues, onRotate
 
   const closeSide = () => setEditingSide(null)
 
+  // Règle : un seul mot par indice → on refuse toute saisie contenant un espace.
+  const setClue = (side, value) => {
+    if (value.includes(' ')) return
+    setClues(p => ({ ...p, [side]: value }))
+  }
+
   return (
     <div className="clover-wrapper">
       <input
         className="clue-input clue-input--top"
         value={clues.top}
-        onChange={e => setClues(p => ({ ...p, top: e.target.value }))}
+        onChange={e => setClue('top', e.target.value)}
         onFocus={closeSide}
         placeholder="Haut"
         maxLength={24}
@@ -32,7 +38,7 @@ export default function CloverWithInputs({ placements, clues, setClues, onRotate
       <input
         className="clue-input clue-input--left clue-lateral--desktop"
         value={clues.left}
-        onChange={e => setClues(p => ({ ...p, left: e.target.value }))}
+        onChange={e => setClue('left', e.target.value)}
         placeholder="Gauche"
         maxLength={24}
       />
@@ -56,9 +62,10 @@ export default function CloverWithInputs({ placements, clues, setClues, onRotate
               rotation={placements[pos]?.rotation ?? 0}
               colorIndex={placements[pos]?.colorIndex ?? 0}
               onRotate={onRotate ? () => onRotate(pos) : undefined}
+              slotAction={slotAction}
             />
           ) : (
-            <div key={pos} className="clover-slot">
+            <div key={pos} className={`clover-slot${slotAction ? ' clover-slot--action' : ''}`}>
               {placements[pos] ? (
                 <WordCard
                   id={`placed-${placements[pos].card.id}-${pos}`}
@@ -71,6 +78,7 @@ export default function CloverWithInputs({ placements, clues, setClues, onRotate
               ) : (
                 <div className="clover-slot-placeholder" />
               )}
+              {slotAction && slotAction(pos)}
             </div>
           )
         ))}
@@ -80,7 +88,7 @@ export default function CloverWithInputs({ placements, clues, setClues, onRotate
       <input
         className="clue-input clue-input--right clue-lateral--desktop"
         value={clues.right}
-        onChange={e => setClues(p => ({ ...p, right: e.target.value }))}
+        onChange={e => setClue('right', e.target.value)}
         placeholder="Droite"
         maxLength={24}
       />
@@ -97,7 +105,7 @@ export default function CloverWithInputs({ placements, clues, setClues, onRotate
       <input
         className="clue-input clue-input--bottom"
         value={clues.bottom}
-        onChange={e => setClues(p => ({ ...p, bottom: e.target.value }))}
+        onChange={e => setClue('bottom', e.target.value)}
         onFocus={closeSide}
         placeholder="Bas"
         maxLength={24}
@@ -113,7 +121,7 @@ export default function CloverWithInputs({ placements, clues, setClues, onRotate
               ref={inputRef}
               className="clue-lateral-input"
               value={clues[editingSide]}
-              onChange={e => setClues(p => ({ ...p, [editingSide]: e.target.value }))}
+              onChange={e => setClue(editingSide, e.target.value)}
               onKeyDown={e => e.key === 'Enter' && closeSide()}
               onBlur={closeSide}
               placeholder="Indice…"

@@ -15,6 +15,31 @@ function formatTime(seconds) {
   return s > 0 ? `${m}m${s.toString().padStart(2, '0')}` : `${m}m`
 }
 
+// Emojis proposés dans la palette du champ message (desktop only)
+const EMOJI_PALETTE = ['😂', '🎉', '🔥', '👏', '🍀', '😭', '💪', '🤯', '😱', '❤️', '🤔', '👍']
+// Emojis de réaction rapide sous chaque message
+const REACTION_EMOJIS = ['👍', '❤️', '😂', '🎉', '😮']
+
+// Message de félicitations personnalisé selon la performance
+function congratsMessage({ success, attemptCount, timeSeconds, streakCurrent }) {
+  if (!success) return { icon: '😔', title: 'Dommage…', subtitle: null }
+  if (attemptCount === 1) return { icon: '🎯', title: 'Sans faute !', subtitle: 'Résolu du premier coup, chapeau.' }
+  if (streakCurrent >= 3) return { icon: '🔥', title: 'En feu !', subtitle: `${streakCurrent} jours d'affilée, continue comme ça.` }
+  if (timeSeconds > 0 && timeSeconds <= 30) return { icon: '⚡', title: 'Éclair !', subtitle: `Bouclé en ${formatTime(timeSeconds)}.` }
+  return { icon: '🎉', title: 'Bien joué !', subtitle: null }
+}
+
+// Pluie de trèfles 🍀 à la victoire
+function rainClovers() {
+  const clover = confetti.shapeFromText ? confetti.shapeFromText({ text: '🍀', scalar: 2.4 }) : undefined
+  const opts = clover
+    ? { shapes: [clover], scalar: 2.4, particleCount: 26, spread: 70, startVelocity: 38, ticks: 220, gravity: 1, origin: { y: 0.55 } }
+    : { particleCount: 90, spread: 70, origin: { y: 0.6 } }
+  const end = 700
+  const burst = (delay) => setTimeout(() => confetti(opts), delay)
+  burst(0); burst(220); burst(end)
+}
+
 export default function ResultPage() {
   const { gridId } = useParams()
   const location = useLocation()
@@ -36,6 +61,14 @@ export default function ResultPage() {
   const [activeTab, setActiveTab] = useState('solution')
   const [copied, setCopied] = useState(false)
   const [tileTooltipOpen, setTileTooltipOpen] = useState(false)
+  const [hasUpvoted, setHasUpvoted] = useState(false)
+  const [upvoteCount, setUpvoteCount] = useState(0)
+  const [upvoteBusy, setUpvoteBusy] = useState(false)
+  const [emojiOpen, setEmojiOpen] = useState(false)
+  const [reactions, setReactions] = useState({})     // { [playId]: { [emoji]: count } }
+  const [myReactions, setMyReactions] = useState(new Set()) // `${playId}:${emoji}`
+
+  const isOwnGrid = grid?.creator_id && user?.id === grid.creator_id
 
   useEffect(() => {
     if (!tileTooltipOpen) return
@@ -58,8 +91,16 @@ export default function ResultPage() {
   }
 
   useEffect(() => {
-    if (success) confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } })
+    if (success) rainClovers()
   }, [success])
+
+  // Ferme la palette d'emojis au clic extérieur
+  useEffect(() => {
+    if (!emojiOpen) return
+    const close = () => setEmojiOpen(false)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [emojiOpen])
 
   useEffect(() => {
     if (!user) return
@@ -98,18 +139,47 @@ export default function ResultPage() {
         .single(),
       supabase
         .from('orienta_plays')
-        .select('comment, completed_at, orienta_users(pseudo)')
+        .select('id, comment, success, completed_at, orienta_users(pseudo)')
         .eq('grid_id', gridId)
         .not('comment', 'is', null)
         .order('completed_at', { ascending: false }),
       rankQuery,
-    ]).then(([leaderRes, playRes, gridRes, commentsRes, rankRes]) => {
+      supabase
+        .from('orienta_grid_upvotes')
+        .select('id', { count: 'exact', head: true })
+        .eq('grid_id', gridId)
+        .eq('user_id', user.id),
+    ]).then(([leaderRes, playRes, gridRes, commentsRes, rankRes, myUpvoteRes]) => {
       if (cancelled) return
       setLeaderboard(leaderRes.data ?? [])
       setPlay(playRes.data)
       setGrid(gridRes.data)
-      setComments(commentsRes.data ?? [])
+      const commentRows = commentsRes.data ?? []
+      setComments(commentRows)
       if (rankRes.count !== null) setPlayerRank(rankRes.count + 1)
+
+      // Réactions des messages affichés
+      const playIds = commentRows.map(c => c.id).filter(Boolean)
+      if (playIds.length) {
+        supabase
+          .from('orienta_comment_reactions')
+          .select('play_id, user_id, emoji')
+          .in('play_id', playIds)
+          .then(({ data }) => {
+            if (cancelled || !data) return
+            const counts = {}
+            const mine = new Set()
+            for (const r of data) {
+              counts[r.play_id] = counts[r.play_id] ?? {}
+              counts[r.play_id][r.emoji] = (counts[r.play_id][r.emoji] ?? 0) + 1
+              if (r.user_id === user.id) mine.add(`${r.play_id}:${r.emoji}`)
+            }
+            setReactions(counts)
+            setMyReactions(mine)
+          })
+      }
+      setUpvoteCount(gridRes.data?.upvotes_count ?? 0)
+      setHasUpvoted((myUpvoteRes.count ?? 0) > 0)
       if (playRes.data?.id) {
         supabase
           .from('orienta_play_attempts')
@@ -128,9 +198,83 @@ export default function ResultPage() {
     await supabase.from('orienta_plays').update({ comment: comment.trim() }).eq('id', play.id)
     setCommentSent(true)
     setComments(prev => [
-      { comment: comment.trim(), orienta_users: { pseudo: user?.pseudo ?? 'Moi' } },
+      { id: play.id, comment: comment.trim(), success: play.success, orienta_users: { pseudo: user?.pseudo ?? 'Moi' } },
       ...prev,
     ])
+  }
+
+  function insertEmoji(emoji) {
+    setComment(prev => (prev + emoji).slice(0, 280))
+  }
+
+  async function toggleReaction(playId, emoji) {
+    if (!user || !playId) return
+    const key = `${playId}:${emoji}`
+    const mine = myReactions.has(key)
+    // mise à jour optimiste
+    setMyReactions(prev => {
+      const next = new Set(prev)
+      mine ? next.delete(key) : next.add(key)
+      return next
+    })
+    setReactions(prev => {
+      const forPlay = { ...(prev[playId] ?? {}) }
+      const c = (forPlay[emoji] ?? 0) + (mine ? -1 : 1)
+      if (c <= 0) delete forPlay[emoji]
+      else forPlay[emoji] = c
+      return { ...prev, [playId]: forPlay }
+    })
+    const rollback = () => {
+      setMyReactions(prev => {
+        const next = new Set(prev)
+        mine ? next.add(key) : next.delete(key)
+        return next
+      })
+      setReactions(prev => {
+        const forPlay = { ...(prev[playId] ?? {}) }
+        const c = (forPlay[emoji] ?? 0) + (mine ? 1 : -1)
+        if (c <= 0) delete forPlay[emoji]
+        else forPlay[emoji] = c
+        return { ...prev, [playId]: forPlay }
+      })
+    }
+    if (mine) {
+      const { error } = await supabase
+        .from('orienta_comment_reactions')
+        .delete()
+        .eq('play_id', playId).eq('user_id', user.id).eq('emoji', emoji)
+      if (error) rollback()
+    } else {
+      const { error } = await supabase
+        .from('orienta_comment_reactions')
+        .insert({ play_id: playId, user_id: user.id, emoji })
+      if (error) rollback()
+    }
+  }
+
+  async function handleUpvoteToggle() {
+    if (!user || !grid || isOwnGrid || upvoteBusy) return
+    setUpvoteBusy(true)
+    if (hasUpvoted) {
+      // optimiste : retire
+      setHasUpvoted(false)
+      setUpvoteCount(c => Math.max(c - 1, 0))
+      const { error } = await supabase
+        .from('orienta_grid_upvotes')
+        .delete()
+        .eq('grid_id', grid.id)
+        .eq('user_id', user.id)
+      if (error) { setHasUpvoted(true); setUpvoteCount(c => c + 1) }
+    } else {
+      // optimiste : ajoute (le trigger DB incrémente le compteur + notifie le créateur)
+      setHasUpvoted(true)
+      setUpvoteCount(c => c + 1)
+      const { error } = await supabase
+        .from('orienta_grid_upvotes')
+        .insert({ grid_id: grid.id, user_id: user.id })
+      if (error) { setHasUpvoted(false); setUpvoteCount(c => Math.max(c - 1, 0)) }
+    }
+    setUpvoteBusy(false)
   }
 
   // Solution correcte
@@ -162,6 +306,7 @@ export default function ResultPage() {
     : { top: '', right: '', bottom: '', left: '' }
 
   const currentAttempt = typeof activeTab === 'number' ? attempts[activeTab] : null
+  const congrats = congratsMessage({ success, attemptCount, timeSeconds, streakCurrent })
 
   // Est-ce que le joueur est déjà dans le top 5 affiché ?
   const playerInTop5 = leaderboard.some(row => row.orienta_users?.pseudo === user?.pseudo)
@@ -177,8 +322,9 @@ export default function ResultPage() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: 'spring', duration: 0.5 }}>
-            <div className="result-icon">{success ? '🎉' : '😔'}</div>
-            <h1 className="result-title">{success ? 'Bien joué !' : 'Dommage…'}</h1>
+            <div className="result-icon">{congrats.icon}</div>
+            <h1 className="result-title">{congrats.title}</h1>
+            {congrats.subtitle && <p className="result-congrats-sub">{congrats.subtitle}</p>}
 
             {success && (
               <div className="result-meta">
@@ -330,15 +476,55 @@ export default function ResultPage() {
             </div>
           )}
 
+          {grid && !isOwnGrid && (
+            <div className={`result-upvote${hasUpvoted ? ' result-upvote--done' : ''}`}>
+              <div className="result-upvote-head">
+                <span className="result-upvote-icon">👍</span>
+                <p className="result-upvote-text">
+                  {hasUpvoted
+                    ? 'Merci ! Tu as recommandé cette grille à la communauté.'
+                    : "Cette grille t'a plu, tu l'as trouvée pertinente ? N'hésite pas à la recommander aux autres joueurs."}
+                </p>
+              </div>
+              <button
+                className="result-upvote-btn"
+                onClick={handleUpvoteToggle}
+                disabled={upvoteBusy}
+                type="button"
+              >
+                {hasUpvoted ? '✓ Recommandée' : 'Recommander cette grille'}
+                {upvoteCount > 0 && <span className="result-upvote-count">{upvoteCount}</span>}
+              </button>
+            </div>
+          )}
+
           <div className="result-messages">
             <div className="result-section-title">💬 Messages</div>
 
             {!commentSent && play ? (
               <div className="result-comment">
-                <textarea className="comment-input"
-                  placeholder="Laisser un message aux autres joueurs…"
-                  value={comment} onChange={e => setComment(e.target.value)}
-                  rows={3} maxLength={280} />
+                <div className="comment-input-wrap">
+                  <textarea className="comment-input"
+                    placeholder="Laisser un message aux autres joueurs…"
+                    value={comment} onChange={e => setComment(e.target.value)}
+                    rows={3} maxLength={280} />
+                  <div className="comment-emoji">
+                    <button
+                      type="button"
+                      className="comment-emoji-trigger"
+                      aria-label="Ajouter un emoji"
+                      onClick={e => { e.stopPropagation(); setEmojiOpen(v => !v) }}
+                    >😊</button>
+                    {emojiOpen && (
+                      <div className="comment-emoji-popover" onClick={e => e.stopPropagation()}>
+                        {EMOJI_PALETTE.map(em => (
+                          <button key={em} type="button" className="comment-emoji-item"
+                            onClick={() => insertEmoji(em)}>{em}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <button className="result-comment-btn" onClick={handleCommentSubmit} disabled={!comment.trim()}>
                   Envoyer
                 </button>
@@ -349,14 +535,40 @@ export default function ResultPage() {
 
             {comments.length > 0 ? (
               <ul className="comments-list">
-                {comments.map((c, i) => (
-                  <motion.li key={i} className="comment-item"
-                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}>
-                    <span className="comment-pseudo">{c.orienta_users?.pseudo ?? '?'}</span>
-                    <p className="comment-text">{c.comment}</p>
-                  </motion.li>
-                ))}
+                {comments.map((c, i) => {
+                  const counts = reactions[c.id] ?? {}
+                  return (
+                    <motion.li key={c.id ?? i} className="comment-item"
+                      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}>
+                      <div className="comment-head">
+                        <span className="comment-pseudo">{c.orienta_users?.pseudo ?? '?'}</span>
+                        {c.success != null && (
+                          <span className={`comment-badge comment-badge--${c.success ? 'win' : 'fail'}`}>
+                            {c.success ? '✅ Réussi' : '💔 Raté'}
+                          </span>
+                        )}
+                      </div>
+                      <p className="comment-text">{c.comment}</p>
+                      {c.id && (
+                        <div className="comment-reactions">
+                          {REACTION_EMOJIS.map(em => {
+                            const n = counts[em] ?? 0
+                            const active = myReactions.has(`${c.id}:${em}`)
+                            return (
+                              <button key={em} type="button"
+                                className={`reaction-chip${active ? ' reaction-chip--active' : ''}${n > 0 ? ' reaction-chip--has' : ''}`}
+                                onClick={() => toggleReaction(c.id, em)}>
+                                <span className="reaction-emoji">{em}</span>
+                                {n > 0 && <span className="reaction-count">{n}</span>}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </motion.li>
+                  )
+                })}
               </ul>
             ) : (
               <p className="result-empty-state">Sois le premier à laisser un message !</p>

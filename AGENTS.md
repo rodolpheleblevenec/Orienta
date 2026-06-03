@@ -46,7 +46,6 @@ src/
 │       ├── ReplayModal.jsx       — attempt replay from profile history
 │       ├── StreakModal.jsx       — streak explanation modal
 │       ├── TourOverlay.jsx       — first-visit guided tour bubbles
-│       ├── TutorialModal.jsx     — full tutorial modal (creator + player tabs)
 │       ├── NotificationsPanel.jsx — notifications UI
 │       └── RequireAuth.jsx       — auth guard wrapper
 ├── lib/

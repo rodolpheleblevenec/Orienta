@@ -30,7 +30,7 @@ function statusLabel(playInfo) {
 }
 
 export default function HubPage() {
-  const { user } = useAuthStore()
+  const { user, markTourDone } = useAuthStore()
   const navigate = useNavigate()
   const today = new Date().toISOString().split('T')[0]
   const hasForfeited = localStorage.getItem(`orienta_create_forfeit_${user?.id}`) === today
@@ -42,6 +42,7 @@ export default function HubPage() {
   const [loading, setLoading] = useState(true)
   const [dailyGrids, setDailyGrids] = useState([])
   const [showAllCommunity, setShowAllCommunity] = useState(false)
+  const [communitySort, setCommunitySort] = useState('recent') // 'recent' | 'best'
   const [showDailyLeaderboard, setShowDailyLeaderboard] = useState(false)
   const [livePlayStats, setLivePlayStats] = useState(null)
 
@@ -60,7 +61,6 @@ export default function HubPage() {
           .select('*, orienta_users(pseudo, selected_skin), orienta_plays(success, player_id, completed_at)')
           .eq('status', 'published')
           .is('daily_date', null)
-          .gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString())
           .order('created_at', { ascending: false }),
 
         supabase
@@ -86,7 +86,17 @@ export default function HubPage() {
           .order('daily_date', { ascending: false }),
       ])
 
-      const playsById = new Map((plays ?? []).map(p => [p.grid_id, { completed: !!p.completed_at, attemptsCount: p.attempts_count ?? 0 }]))
+      // Un joueur peut avoir plusieurs rows de play sur une même grille (doublons en base).
+      // On fusionne par grid_id : une partie terminée ne doit JAMAIS être écrasée par un
+      // doublon non terminé, sinon le statut « Terminé » (et le déblocage communauté) saute.
+      const playsById = new Map()
+      for (const p of plays ?? []) {
+        const prev = playsById.get(p.grid_id)
+        playsById.set(p.grid_id, {
+          completed: (prev?.completed ?? false) || !!p.completed_at,
+          attemptsCount: Math.max(prev?.attemptsCount ?? 0, p.attempts_count ?? 0),
+        })
+      }
       setGrids(activeGrids ?? [])
       setPlaysMap(playsById)
       setDailyGrids(dailyGridData ?? [])
@@ -162,6 +172,17 @@ export default function HubPage() {
   const recentGroups = communityGroups.filter(([date]) => date >= twoDaysAgoDate)
   const olderGroups = communityGroups.filter(([date]) => date < twoDaysAgoDate)
   const visibleGroups = showAllCommunity ? communityGroups : recentGroups
+
+  // Tri "meilleures" — toutes les grilles à plat, par upvotes décroissants
+  const bestGrids = [...grids].sort(
+    (a, b) => (b.upvotes_count ?? 0) - (a.upvotes_count ?? 0) || b.created_at.localeCompare(a.created_at)
+  )
+
+  // Communauté débloquée dès que le joueur a terminé sa 1ʳᵉ grille (gagnée ou perdue),
+  // qu'elle soit du jour ou des jours passés. playsMap contient toutes ses plays.
+  const hasCompletedAnyGrid = [...playsMap.values()].some(v => v.completed)
+  const showRevealBanner = hasCompletedAnyGrid && !!user && !user.community_unlocked_seen
+  const dismissReveal = () => { if (!user?.community_unlocked_seen) markTourDone('community_unlocked_seen') }
 
   const dailyPlayInfo = todayDaily ? (playsMap.get(todayDaily.id) ?? null) : null
   const totalDailyPlayers = livePlayStats?.total ?? (todayDaily ? (todayDaily.orienta_plays ?? []).length : 0)
@@ -244,15 +265,31 @@ export default function HubPage() {
                     </>
                   )}
                 </div>
-                <div className="hub-actions">
-                  <Link to={`/play/${todayDaily.id}`} className="hub-btn-play">
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                    Jouer la grille
-                  </Link>
-                  {archiveDailies.length > 0 && (
-                    <button className="hub-ghost-link" onClick={() => navigate('/daily-archives')} type="button">
-                      Grilles précédentes ({archiveDailies.length}) →
-                    </button>
+                <div className={`hub-actions${hasCompletedDaily ? ' hub-actions--done' : ''}`}>
+                  {hasCompletedDaily ? (
+                    <>
+                      {archiveDailies.length > 0 && (
+                        <Link to="/daily-archives" className="hub-btn-secondary">
+                          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                          Grilles précédentes ({archiveDailies.length})
+                        </Link>
+                      )}
+                      <button className="hub-ghost-link" onClick={() => setShowDailyLeaderboard(true)} type="button">
+                        Statistiques du jour →
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link to={`/play/${todayDaily.id}`} className="hub-btn-play">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        Jouer la grille
+                      </Link>
+                      {archiveDailies.length > 0 && (
+                        <button className="hub-ghost-link" onClick={() => navigate('/daily-archives')} type="button">
+                          Grilles précédentes ({archiveDailies.length}) →
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -374,11 +411,44 @@ export default function HubPage() {
         </section>
 
         {/* ===== PARTIE 02 — LA COMMUNAUTÉ ===== */}
+        {/* Masquée tant que le joueur n'a pas terminé sa 1ʳᵉ grille (anti-flash via !loading) */}
+        {!loading && (
         <section className="hub-part hub-part-2">
           <div className="hub-part-head">
             <span className="hub-kick"><span className="hub-kick-num">02</span>La communauté</span>
             <span className="hub-kick-rule" />
           </div>
+
+          {!hasCompletedAnyGrid ? (
+          /* État A — verrouillé : teaser d'onboarding */
+          <div className="hub-community-teaser">
+            <div className="hub-community-teaser-lock">
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <h3 className="hub-create-title">La communauté est verrouillée</h3>
+            <p className="hub-create-desc">Termine ta première grille — celle du jour ou une des jours passés — pour débloquer les créations de la communauté et proposer les tiennes.</p>
+          </div>
+          ) : (
+          <>
+          {/* État B — révélation : on accompagne le joueur vers la création */}
+          {showRevealBanner && (
+            <div className="hub-reveal-banner">
+              <button className="hub-reveal-close" onClick={dismissReveal} type="button" aria-label="Fermer">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.4"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+              </button>
+              <div className="hub-reveal-emoji">🎉</div>
+              <div className="hub-reveal-body">
+                <h3 className="hub-reveal-title">Bravo pour ta première grille&nbsp;!</h3>
+                <p className="hub-reveal-text">Ça t'a plu de résoudre une grille&nbsp;? Maintenant, à toi de créer la tienne et de la soumettre aux autres joueurs.</p>
+              </div>
+              <Link to="/create" className="hub-btn-create" onClick={dismissReveal}>
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Créer ma grille
+              </Link>
+            </div>
+          )}
 
           {/* Créer ma grille */}
           {createdGrid ? (
@@ -414,8 +484,27 @@ export default function HubPage() {
           {/* Grilles des autres joueurs */}
           <div className="hub-sec-head">
             <h2>Grilles des autres joueurs</h2>
-            {!loading && todaysCommunityGrids.length > 0 && (
-              <span className="hub-sec-tab">Aujourd'hui · {todaysCommunityGrids.length}</span>
+            {!loading && grids.length > 0 && (
+              <div className="community-sort" role="tablist" aria-label="Trier les grilles">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={communitySort === 'recent'}
+                  className={`community-sort-btn${communitySort === 'recent' ? ' is-active' : ''}`}
+                  onClick={() => setCommunitySort('recent')}
+                >
+                  🕐 Plus récentes
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={communitySort === 'best'}
+                  className={`community-sort-btn${communitySort === 'best' ? ' is-active' : ''}`}
+                  onClick={() => setCommunitySort('best')}
+                >
+                  🔥 Meilleures
+                </button>
+              </div>
             )}
           </div>
 
@@ -434,6 +523,18 @@ export default function HubPage() {
               <h3 className="community-empty-title">Aucune grille cette semaine</h3>
               <p className="community-empty-text">La communauté attend tes créations ! Sois le premier à proposer une grille.</p>
               <Link to="/create" className="btn-primary">Créer ma grille</Link>
+            </div>
+          ) : communitySort === 'best' ? (
+            <div className="cards-grid">
+              {bestGrids.map((grid, i) => (
+                <GridCard
+                  key={grid.id}
+                  grid={grid}
+                  playInfo={playsMap.get(grid.id) ?? null}
+                  index={i}
+                  isOwnGrid={grid.creator_id === user?.id}
+                />
+              ))}
             </div>
           ) : (
             <>
@@ -465,7 +566,10 @@ export default function HubPage() {
               </div>
             </>
           )}
+          </>
+          )}
         </section>
+        )}
       </main>
 
       {showDailyLeaderboard && todayDaily && (

@@ -72,6 +72,9 @@ export default function NotificationsPanel({ onClose }) {
                   } else if (type === 'play') {
                     icon = n.payload.success ? '🎉' : '🎮'
                     text = <><strong>{n.payload.player_pseudo ?? 'Quelqu\'un'}</strong> {n.payload.success ? 'a réussi' : 'a joué'} ta grille</>
+                  } else if (type === 'upvote') {
+                    icon = '👍'
+                    text = <><strong>{n.payload?.player_pseudo ?? 'Quelqu\'un'}</strong> a recommandé ta grille</>
                   } else {
                     text = <><strong>{n.payload?.player_pseudo ?? 'Quelqu\'un'}</strong> a commenté ta grille</>
                     comment = n.payload?.comment

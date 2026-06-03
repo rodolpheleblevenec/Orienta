@@ -2,9 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '../../stores/authStore'
-import { supabase } from '../../lib/supabase'
-import { getLevelProgressCollective } from '../../lib/levels'
-import { getCreature } from '../../lib/creatures'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -12,16 +9,6 @@ export default function LoginPage() {
   const [pseudo, setPseudo] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [collective, setCollective] = useState(null)
-
-  useEffect(() => {
-    supabase
-      .from('orienta_collective_progress')
-      .select('total_xp, level')
-      .eq('id', 1)
-      .single()
-      .then(({ data }) => data && setCollective(data))
-  }, [])
 
   useEffect(() => { init() }, [])
 
@@ -56,26 +43,7 @@ export default function LoginPage() {
         </div>
 
         <h1 className="login-headline">Le jeu de mots<br />de l'équipe WeFiiT</h1>
-        <p className="login-tagline">Joue chaque jour, progresse ensemble, monte de niveau.</p>
-
-        {collective && (() => {
-          const { currentLevel } = getLevelProgressCollective(collective.total_xp)
-          const creature = getCreature(currentLevel.level)
-          return (
-            <motion.div
-              className="login-mascot-preview"
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.22, duration: 0.38 }}
-            >
-              <span className="mascot-emoji">{creature.emoji}</span>
-              <div className="mascot-info">
-                <span className="mascot-level-badge">Niveau {currentLevel.level}</span>
-                <span className="mascot-creature-name">{currentLevel.name}</span>
-              </div>
-            </motion.div>
-          )
-        })()}
+        <p className="login-tagline">Vos mots, une seule aventure. Relevez le défi du jour, ensemble.</p>
 
         <form onSubmit={handleSubmit} className="login-form">
           <label className="login-label" htmlFor="pseudo-input">Ton pseudo</label>
@@ -106,7 +74,7 @@ export default function LoginPage() {
         </form>
 
         <p className="login-hint">
-          Nouveau pseudo = nouveau compte · Même pseudo = même profil
+          Nouveau pseudo = nouveau compte<br />Même pseudo = même profil
         </p>
       </motion.div>
     </div>

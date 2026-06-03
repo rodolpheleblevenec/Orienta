@@ -1,13 +1,13 @@
 import { useDroppable } from '@dnd-kit/core'
 import WordCard from './WordCard'
 
-export function DroppableSlot({ pos, card, rotation, colorIndex, feedback, onRotate, disableTransition }) {
+export function DroppableSlot({ pos, card, rotation, colorIndex, feedback, onRotate, disableTransition, slotAction }) {
   const { isOver, setNodeRef } = useDroppable({ id: `slot-${pos}` })
 
   return (
     <div
       ref={setNodeRef}
-      className={`clover-slot${isOver ? ' clover-slot--over' : ''}${!card ? ' clover-slot--empty' : ''}`}
+      className={`clover-slot${isOver ? ' clover-slot--over' : ''}${!card ? ' clover-slot--empty' : ''}${slotAction ? ' clover-slot--action' : ''}`}
     >
       {card ? (
         <WordCard
@@ -23,6 +23,7 @@ export function DroppableSlot({ pos, card, rotation, colorIndex, feedback, onRot
       ) : (
         <div className="clover-slot-placeholder" />
       )}
+      {slotAction && slotAction(pos)}
     </div>
   )
 }

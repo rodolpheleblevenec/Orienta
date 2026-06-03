@@ -58,6 +58,14 @@ export default function GridCard({ grid, playInfo, index, isDaily = false, isOwn
             {isDaily ? 'Grille du jour' : creatorPseudo}
             <small>{isOwnGrid ? 'Ma grille' : isDaily ? 'Challenge' : 'Joueur'}</small>
           </div>
+          {!isDaily && (grid.upvotes_count ?? 0) > 0 && (
+            <span className="pc-upvotes">
+              👍 {grid.upvotes_count}
+              <span className="pc-upvotes-tip" role="tooltip">
+                Cette grille a été recommandée par {grid.upvotes_count} joueur{grid.upvotes_count > 1 ? 's' : ''}
+              </span>
+            </span>
+          )}
         </div>
         <div className="pc-grid">
           <div className="pc-cell">

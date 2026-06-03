@@ -19,8 +19,8 @@ const PLAY_TOUR_STEPS = [
     description: "Tu dois placer 4 cartes dans les bons emplacements de la grille, bien orientées. Les indices autour de la grille sont tes seuls repères.",
   },
   {
-    anchor: 'center',
-    target: '.play-grid-area',
+    anchor: 'targets-center',
+    targets: ['.clue--top', '.clue--right', '.clue--bottom', '.clue--left'],
     zone: 'Grille centrale',
     title: 'Lis les indices',
     description: "Les 4 mots autour de la grille sont les indices du créateur. Ils t'indiquent quelle carte va dans quel emplacement — et dans quel sens !",
@@ -28,9 +28,9 @@ const PLAY_TOUR_STEPS = [
   {
     anchor: 'tray-right',
     target: '.play-tray-drawer',
-    zone: 'Plateau de cartes',
+    zone: 'Réserve',
     title: 'Glisse et oriente les cartes',
-    description: "Glisse les cartes depuis le plateau vers les 4 emplacements. Chaque carte a un mot sur chacune de ses faces — tourne-la (↻) pour que les mots pointent vers les bons indices. L'orientation compte autant que la position.",
+    description: "Glisse les cartes depuis la réserve vers les 4 emplacements. Chaque carte a un mot sur chacune de ses faces — tourne-la (↻) pour que les mots pointent vers les bons indices. L'orientation compte autant que la position.",
   },
   {
     anchor: 'footer-center',
@@ -262,6 +262,12 @@ export default function PlayPage() {
     })
   }
 
+  function handleTrayRotate(cardId) {
+    setTrayCards(prev => prev.map(c =>
+      c.card.id === cardId ? { ...c, rotation: ((c.rotation ?? 0) + 90) % 360 } : c
+    ))
+  }
+
   async function handleSubmit() {
     setIsSubmitting(true)
     setSubmitError(false)
@@ -383,6 +389,7 @@ export default function PlayPage() {
                   card={card}
                   rotation={rotation ?? 0}
                   colorIndex={colorIndex ?? 0}
+                  onRotate={() => handleTrayRotate(card.id)}
                   draggable
                 />
               </div>
@@ -457,7 +464,7 @@ export default function PlayPage() {
                   <div className="pfd-tile-content">
                     <div className="pfd-tile-title-row">
                       <span className="pfd-tile-dot" />
-                      <span className="pfd-tile-title">Bonne orientation</span>
+                      <span className="pfd-tile-title">Partiellement correct</span>
                       <button
                         className="pfd-tile-info-btn"
                         type="button"
@@ -465,13 +472,14 @@ export default function PlayPage() {
                         aria-label="En savoir plus"
                       >ⓘ
                         {tileTooltipOpen && (
-                          <span className="pfd-custom-tooltip pfd-custom-tooltip--left">
-                            Bonne position et mauvaise orientation, ou bonne orientation et mauvaise position
+                          <span className="pfd-custom-tooltip pfd-custom-tooltip--left pfd-custom-tooltip--center">
+                            <strong>Mauvaise position et bonne orientation</strong>
+                            <strong>Mauvaise orientation et bonne position</strong>
                           </span>
                         )}
                       </button>
                     </div>
-                    <span className="pfd-tile-subtitle">Bien orientée, mais au mauvais emplacement</span>
+                    <span className="pfd-tile-subtitle">Un seul critère sur deux est bon</span>
                   </div>
                 </div>
 

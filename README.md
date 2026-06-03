@@ -58,7 +58,7 @@ src/
 │   ├── game/        WordCard, CloverGrid, CloverWithInputs
 │   └── ui/          Header, GridCard, CreatedGridCard, StaticMiniGrid,
 │                    CollectiveGauge, LevelsModal, ReplayModal, StreakModal,
-│                    TutorialModal, NotificationsPanel, TourOverlay, RequireAuth
+│                    NotificationsPanel, TourOverlay, RequireAuth
 ├── lib/             supabase, cardColors, scoring, levels, creatures,
 │                    marineItems, useBodyScrollLock
 ├── stores/          authStore (Zustand)

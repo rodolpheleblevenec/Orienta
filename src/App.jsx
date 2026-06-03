@@ -11,13 +11,11 @@ import DashboardPage from './pages/dashboard/DashboardPage'
 import DailyAdminPage from './pages/admin/DailyAdminPage'
 import ClassementPage from './pages/classement/ClassementPage'
 import TutorielPage from './pages/tutoriel/TutorielPage'
-import TutorialModal from './components/ui/TutorialModal'
 import './index.css'
 
 export default function App() {
   return (
     <BrowserRouter>
-      <TutorialModal />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<Navigate to="/hub" replace />} />
