@@ -436,7 +436,7 @@ export default function PlayPage() {
         useAuthStore.getState().fetchNotifCount()
       }
       setGameOver(true)
-      navigate(`/result/${gridId}`, { state: { score: finalScore, xp: totalXp, success: true, baseXp, bonusXp, timeSeconds: elapsed, attemptCount: attemptNumber, streakCurrent: user.streak_current } })
+      navigate(`/result/${gridId}`, { state: { score: finalScore, xp: totalXp, success: true, baseXp, bonusXp, timeSeconds: elapsed, attemptCount: attemptNumber, streakCurrent: user.streak_current, justPlayed: true } })
     } else {
       const next = attemptNumber + 1
       setAttemptNumber(next)
@@ -455,7 +455,7 @@ export default function PlayPage() {
         await supabase.rpc('award_xp_on_play', { p_grid_id: gridId, p_player_id: user.id, p_success: false, p_streak_bonus: 0 })
         await refreshUser()
         setGameOver(true)
-        navigate(`/result/${gridId}`, { state: { score: 0, xp: participationXp, success: false } })
+        navigate(`/result/${gridId}`, { state: { score: 0, xp: participationXp, success: false, justPlayed: true } })
       } else {
         // Mise à jour intermédiaire : Hub affiche le bon nb d'essais en cours
         supabase.from('orienta_plays').update({ attempts_count: attemptNumber }).eq('id', playId)

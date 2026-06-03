@@ -2655,15 +2655,17 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   display: flex; justify-content: center; align-items: center;
   gap: 18px; flex-wrap: wrap;
 }
-/* Lien discret « rejouer pour le fun » — visible seulement si déjà jouée */
+/* Accès « rejouer » volontairement hors design system :
+   lien texte brut (police système, souligné, gris), pas de pill ni couleur
+   de marque. Affiché seulement lors d'un retour sur une grille déjà jouée. */
 .result-replay-link {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-family: var(--sans); font-size: 13px; font-weight: 600;
-  color: var(--ink-3); text-decoration: none;
-  padding: 6px 10px; border-radius: var(--r-pill);
-  transition: color 0.15s, background 0.15s;
+  font-family: system-ui, sans-serif;
+  font-size: 12px; font-weight: 400;
+  color: #9aa0a6; text-decoration: underline;
+  text-underline-offset: 2px;
+  opacity: 0.7;
 }
-.result-replay-link:hover { color: var(--teal); background: var(--teal-soft); }
+.result-replay-link:hover { opacity: 1; color: #6b7075; }
 .result-footer-cta {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 200px;

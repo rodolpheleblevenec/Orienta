@@ -66,6 +66,7 @@ export default function ResultPage() {
     score = 0, xp = 0, success = false,
     baseXp = 0, bonusXp = 0,
     timeSeconds = 0, attemptCount = 1, streakCurrent = 0,
+    justPlayed = false,
   } = location.state ?? {}
 
   const [leaderboard, setLeaderboard] = useState([])
@@ -607,9 +608,9 @@ export default function ResultPage() {
 
       <footer className="result-footer">
         <Link to="/hub" className="btn-primary result-footer-cta">Retour au Hub</Link>
-        {play && (
+        {play && !justPlayed && (
           <Link to={`/play/${gridId}?replay=1`} className="result-replay-link" title="Rejouer cette grille, juste pour le fun — sans XP">
-            🔁 Rejouer pour le fun
+            rejouer cette grille
           </Link>
         )}
       </footer>
