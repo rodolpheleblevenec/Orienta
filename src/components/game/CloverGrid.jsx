@@ -1,8 +1,12 @@
+import { useState } from 'react'
 import { useDroppable } from '@dnd-kit/core'
+import { motion } from 'framer-motion'
 import WordCard from './WordCard'
 
 export function DroppableSlot({ pos, card, rotation, colorIndex, feedback, onRotate, disableTransition, slotAction }) {
   const { isOver, setNodeRef } = useDroppable({ id: `slot-${pos}` })
+  // Pendant le glissement d'un swap : on élève la carte et on déclenche un halo teal.
+  const [moving, setMoving] = useState(false)
 
   return (
     <div
@@ -10,16 +14,26 @@ export function DroppableSlot({ pos, card, rotation, colorIndex, feedback, onRot
       className={`clover-slot${isOver ? ' clover-slot--over' : ''}${!card ? ' clover-slot--empty' : ''}${slotAction ? ' clover-slot--action' : ''}`}
     >
       {card ? (
-        <WordCard
-          id={`placed-${card.id}-${pos}`}
-          card={card}
-          rotation={rotation}
-          colorIndex={colorIndex}
-          feedback={feedback ?? 'neutral'}
-          onRotate={onRotate}
-          draggable
-          disableTransition={disableTransition}
-        />
+        // layoutId stable par carte → quand deux cartes échangent de slot,
+        // framer-motion les fait glisser visiblement vers leur nouvelle position.
+        <motion.div
+          layoutId={`clovercard-${card.id}`}
+          transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+          onLayoutAnimationStart={() => setMoving(true)}
+          onLayoutAnimationComplete={() => setMoving(false)}
+          className={`clovercard-motion${moving ? ' clovercard-motion--moving' : ''}`}
+        >
+          <WordCard
+            id={`placed-${card.id}-${pos}`}
+            card={card}
+            rotation={rotation}
+            colorIndex={colorIndex}
+            feedback={feedback ?? 'neutral'}
+            onRotate={onRotate}
+            draggable
+            disableTransition={disableTransition}
+          />
+        </motion.div>
       ) : (
         <div className="clover-slot-placeholder" />
       )}

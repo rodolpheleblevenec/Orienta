@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   DndContext, DragOverlay, closestCorners,
-  PointerSensor, TouchSensor, useSensor, useSensors,
+  PointerSensor, TouchSensor, useSensor, useSensors, useDroppable,
 } from '@dnd-kit/core'
 import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
@@ -67,6 +67,23 @@ const CLUE_SIDES = [
   { key: 'bottom', label: 'Bas' },
   { key: 'left',   label: 'Gauche' },
 ]
+
+// Réserve « droppable » : on peut y ramener une carte depuis la grille (phase placement)
+function TrayDropZone({ empty, disabled, children }) {
+  const { isOver, setNodeRef } = useDroppable({ id: 'tray', disabled })
+  return (
+    <aside
+      ref={setNodeRef}
+      className={[
+        'play-tray-drawer',
+        empty ? 'play-tray-drawer--empty' : '',
+        isOver && !disabled ? 'play-tray-drawer--over' : '',
+      ].filter(Boolean).join(' ')}
+    >
+      {children}
+    </aside>
+  )
+}
 
 export default function CreatePage() {
   const navigate = useNavigate()
@@ -185,6 +202,20 @@ export default function CreatePage() {
   function handleDragEnd({ active, over }) {
     setActiveCard(null)
     if (!over || expired) return
+
+    // Drop sur la réserve : une carte de la grille y retourne (phase placement uniquement)
+    if (over.id === 'tray') {
+      if (phase !== 'placement') return
+      for (const [pos, item] of Object.entries(placements)) {
+        if (item && `placed-${item.card.id}-${pos}` === active.id) {
+          setPlacements(prev => ({ ...prev, [pos]: null }))
+          setTrayCards(prev => [...prev, item])
+          return
+        }
+      }
+      return
+    }
+
     const targetSlot = parseInt(over.id.replace('slot-', ''), 10)
     if (isNaN(targetSlot)) return
 
@@ -218,13 +249,14 @@ export default function CreatePage() {
     setPlacements(prev => {
       const item = prev[pos]
       if (!item) return prev
-      return { ...prev, [pos]: { ...item, rotation: (item.rotation + 90) % 360 } }
+      // Rotation cumulative ; normalisée (% 360) à la publication.
+      return { ...prev, [pos]: { ...item, rotation: item.rotation + 90 } }
     })
   }
 
   function handleTrayRotate(cardId) {
     setTrayCards(prev => prev.map(c =>
-      c.card.id === cardId ? { ...c, rotation: ((c.rotation ?? 0) + 90) % 360 } : c
+      c.card.id === cardId ? { ...c, rotation: (c.rotation ?? 0) + 90 } : c
     ))
   }
 
@@ -249,7 +281,7 @@ export default function CreatePage() {
       .filter(([, v]) => v)
       .map(([pos, { card, rotation }]) => ({
         grid_id: grid.id, card_id: card.id,
-        position: parseInt(pos), rotation,
+        position: parseInt(pos), rotation: ((rotation % 360) + 360) % 360,
       }))
 
     if (difficulty === 'difficile' && trayCards.length === 1) {
@@ -384,7 +416,7 @@ export default function CreatePage() {
         onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
 
         {/* ── Drawer gauche — réserve ── */}
-        <aside className={`play-tray-drawer${allPlaced ? ' play-tray-drawer--empty' : ''}`}>
+        <TrayDropZone empty={allPlaced} disabled={phase !== 'placement' || expired}>
           <div className="tray-header">
             <span className="tray-header-label">Réserve</span>
             <span className="tray-header-count">{trayCards.length} carte{trayCards.length !== 1 ? 's' : ''}</span>
@@ -403,11 +435,11 @@ export default function CreatePage() {
               </div>
             ))}
           </div>
-        </aside>
+        </TrayDropZone>
 
         {/* ── Centre — grille ── */}
         <main className="play-main">
-          {!expired && phase === 'placement' && (
+          {!expired && (
             <button
               className="btn-reset"
               onClick={handleReset}

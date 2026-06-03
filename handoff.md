@@ -4,8 +4,22 @@
 
 - **Projet** : Orienta
 - **Branche** : master
-- **Fichiers clés touchés** : `src/pages/hub/HubPage.jsx`, `src/index.css`, `supabase/migrations/009_add_community_unlocked_seen.sql`, `.env`, `src/pages/play/PlayPage.jsx`, `src/pages/create/CreatePage.jsx`, `src/components/game/WordCard.jsx`, `src/lib/cardColors.js`, `src/pages/login/LoginPage.jsx`, `src/pages/result/ResultPage.jsx`
-- **État** : WIP — redesign Play/Create committé (commits `redesign` + `favicon` du 2026-06-02), plus diff **non committé** dans le working tree (redesign Play/Create + gating onboarding communauté ci-dessous)
+- **Fichiers clés touchés** : `src/pages/admin/DailyAdminPage.jsx`, `src/components/game/CloverWithInputs.jsx`, `src/components/game/CloverGrid.jsx`, `src/index.css`, `src/pages/hub/HubPage.jsx`, `src/pages/play/PlayPage.jsx`, `src/pages/create/CreatePage.jsx`, `src/pages/login/LoginPage.jsx`, `src/pages/result/ResultPage.jsx`, `supabase/migrations/008-010_*.sql`
+- **État** : **Working tree committé** dans `e6c8d29` (« Refonte mobile /admin + réutilisation du plateau partagé », 2026-06-03) — regroupe la refonte admin mobile ci-dessous **+** les WIP préexistants (gating communauté, redesign Play/Create, migrations community). **Non poussé** (`git push origin master` en attente).
+
+---
+
+## Travail réalisé (session 2026-06-03 — refonte mobile /admin)
+
+- **Calendrier mensuel** dans `DailyAdminPage.jsx` (remplace la liste de 14 jours) : navigation mois ‹ ›, indicateur ✓ validée / vide par jour, surlignage « aujourd'hui », légende. Données chargées **par mois affiché** (`fetchMonth`) via `gridsByDate` (Map).
+- **Navigation mobile** : sidebar masquée → barre sticky « 📅 [date] · Calendrier › » qui ouvre le calendrier en **bottom-sheet** (`.admin-cal-drawer` + backdrop). Sélection d'une date → ferme le tiroir, révèle l'éditeur.
+- **Filtre « à remplir »** (`onlyEmpty`) : grise les jours validés + compteur de jours vides.
+- **Actions sticky** en bas d'écran sur mobile + **polish tactile** (bouton repioche 36px, cases agrandies).
+- **Réutilisation du plateau partagé** : l'admin utilisait un plateau dupliqué à la main (~80 lignes). Remplacé par le composant partagé **`CloverWithInputs`** (le même que `/create`) → indices, boutons latéraux mobile, overlay de saisie, et **boutons de rotation** strictement identiques à `/play` / `/create`.
+  - Ajout d'une prop optionnelle `slotAction(pos)` sur `CloverWithInputs` + `DroppableSlot` (render-prop d'overlay par carte) ; non fournie → comportement `/play`/`/create` inchangé.
+  - Bouton de **repioche par carte** = 🎲 (`.admin-slot-refresh`), volontairement **distinct** du `↻` de rotation (les deux flèches circulaires se confondaient).
+- **Règle « un seul mot par indice »** (espaces bloqués) **centralisée dans `CloverWithInputs`** → s'applique désormais aussi à `/create` (demande explicite utilisateur).
+- **Fix débordement grille admin** : `--slot-size` (jamais défini sur `.admin-page` → fallback 210px qui débordait) maintenant **responsive** en 2 paliers (≤768px / ≤680px) suivant la largeur dispo.
 
 ---
 
@@ -45,6 +59,9 @@
 - [tech] Classe `pfd-*` introduite pour tout le panneau feedback redesigné — l'ancien `.play-feedback-dot` et `.play-history-panel` restent dans le CSS mais ne sont plus référencés dans le JSX ; à nettoyer
 - [prod] Les onglets verrouillés affichent `🔒` côté client uniquement — pas de changement DB ni de logique métier
 - [tech] Même layout footer (left/center/right) partagé entre PlayPage et CreatePage — pas de composant commun créé pour l'instant
+- [prod] Admin **sans drag & drop** : on garde le modèle de repioche 🎲 par carte (pas de tray à glisser) — choisi par l'utilisateur. `slotAction` a quand même été câblé sur `DroppableSlot` pour activer le drag plus tard sans refacto.
+- [prod] Règle « un seul mot par indice » étendue à `/create` (et pas seulement l'admin) — placée dans `CloverWithInputs` pour ne pas dupliquer. **Impact** : `/create` n'accepte plus les indices multi-mots.
+- [tech] Calendrier admin construit en **UTC** (`ymd`/`buildMonthCells` via `Date.UTC`) pour éviter le décalage de jour ; cohérent avec le stockage `daily_date` (YYYY-MM-DD).
 
 ---
 
@@ -52,7 +69,9 @@
 
 - **Doublons de lignes `play` (cause racine non corrigée)** : `PlayPage` crée parfois plusieurs lignes `orienta_plays` pour le même couple (joueur, grille) — 9 couples concernés en base au 2026-06-03. Le Hub y est désormais robuste, mais ces doublons peuvent fausser stats/classements ailleurs. À traquer (où PlayPage duplique l'insert) + nettoyer les doublons existants.
 - **Migration 009 hors pipeline CLI** : appliquée par connexion Postgres directe (`pg`), pas par `supabase db push` (qui échoue sur mismatch d'historique). Le fichier `009_*.sql` n'est donc pas enregistré dans la table d'historique de migrations distante — à garder en tête si on réconcilie l'historique un jour.
-- **Working tree non committé** : ~1 140 lignes de diff (PlayPage + CreatePage + CSS) — risque de perte si checkout ou reset sans commit préalable
+- **Commit fourre-tout `e6c8d29`** : regroupe la refonte admin mobile **et** des WIP non liés (hub, result, login, TourOverlay, suppression TutorialModal, migrations 008-010). Non poussé. Si on veut un historique propre, envisager un re-split avant push.
+- **Régression possible `/create`** : la règle anti-espace s'y applique maintenant — vérifier qu'aucun usage légitime d'indice multi-mots n'existait.
+- **Bouton rotation hover-only sur mobile** : `.word-card-rotate` est `opacity:0` sauf survol (comportement hérité de `/play`/`/create`, inchangé). Sur tactile il reste cliquable au centre mais invisible — limitation commune aux 3 pages, pas spécifique à l'admin.
 - **CSS orphelins** : classes `.play-feedback-dot`, `.play-feedback-rows`, `.play-history-panel` potentiellement mortes depuis le refactor tuiles — à vérifier avant nettoyage
 - **Mockups non trackés** : `mockup/play-v2.html`, `mockup/play-tweaks.jsx` etc. sont untracked — décider si on les committe ou on les supprime
 - **`ResultPage.jsx`** et **`LoginPage.jsx`** modifiés dans le diff mais changements mineurs — vérifier qu'il n'y a pas de régressions inattendues
@@ -65,7 +84,9 @@
 - [ ] Tester en navigateur les 3 états du gating communauté : nouveau joueur (teaser) → terminer 1 grille en échec (déblocage + bandeau 🎉) → recharger (bandeau disparu). Cas réel dispo : joueur **Manu** (`community_unlocked_seen=false`, 1 défaite terminée).
 - [ ] Traquer la duplication de lignes `play` dans `PlayPage` + nettoyer les 9 doublons existants en base
 - [ ] Lancer le dev server (`npm run dev`) et tester PlayPage : drawer feedback (3 tentatives), tabs verrouillés, chip essai, chrono, bouton "Valider l'essai"
-- [ ] Committer les changements du working tree une fois validés — un seul commit "play/create UI refactor"
+- [x] ~~Committer les changements du working tree~~ → fait dans `e6c8d29` (fourre-tout). Reste à **`git push origin master`**.
+- [ ] Tester `/admin` sur mobile : ouverture du tiroir calendrier, sélection de date, plateau (rotation `↻` vs repioche 🎲), actions sticky, filtre « à remplir ». Vérifier aussi que la grille ne déborde plus (`--slot-size`).
+- [ ] Vérifier `/create` : indices désormais limités à un seul mot (espaces bloqués).
 - [ ] Nettoyer les classes CSS orphelines (`play-feedback-dot`, `play-feedback-rows`, `play-history-panel`) si elles ne sont plus utilisées
 - [ ] Décider du sort des fichiers `mockup/play-*.jsx/js/html` (commit dans mockup/ ou suppression)
 - [ ] Reprendre Phase 1 roadmap : XP progression + créatures + leaderboard (voir `project_roadmap.md`)

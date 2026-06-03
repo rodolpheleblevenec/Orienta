@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
+import confetti from 'canvas-confetti'
 import {
   DndContext, DragOverlay, closestCorners,
-  PointerSensor, TouchSensor, useSensor, useSensors,
+  PointerSensor, TouchSensor, useSensor, useSensors, useDroppable,
 } from '@dnd-kit/core'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
@@ -45,6 +46,33 @@ import WordCard from '../../components/game/WordCard'
 
 const MAX_ATTEMPTS = 3
 
+// Pluie de trèfles 🍀 — célébration légère d'une victoire en mode rejeu
+function rainCloversBurst() {
+  const clover = confetti.shapeFromText ? confetti.shapeFromText({ text: '🍀', scalar: 2.4 }) : undefined
+  const opts = clover
+    ? { shapes: [clover], scalar: 2.4, particleCount: 26, spread: 70, startVelocity: 38, ticks: 220, gravity: 1, origin: { y: 0.55 } }
+    : { particleCount: 90, spread: 70, origin: { y: 0.6 } }
+  confetti(opts)
+  setTimeout(() => confetti(opts), 220)
+}
+
+// Réserve « droppable » : on peut y ramener une carte depuis la grille
+function TrayDropZone({ empty, children }) {
+  const { isOver, setNodeRef } = useDroppable({ id: 'tray' })
+  return (
+    <aside
+      ref={setNodeRef}
+      className={[
+        'play-tray-drawer',
+        empty ? 'play-tray-drawer--empty' : '',
+        isOver ? 'play-tray-drawer--over' : '',
+      ].filter(Boolean).join(' ')}
+    >
+      {children}
+    </aside>
+  )
+}
+
 export default function PlayPage() {
   const { gridId } = useParams()
   const navigate = useNavigate()
@@ -54,6 +82,11 @@ export default function PlayPage() {
   const challengeFrom = searchParams.get('from')
   const challengeScore = searchParams.get('score')
   const [challengeDismissed, setChallengeDismissed] = useState(false)
+
+  // Mode rejeu : on rejoue une grille déjà terminée « juste pour le fun ».
+  // Aucune écriture en base, aucun XP, aucun commentaire.
+  const isReplay = searchParams.get('replay') === '1'
+  const [replayResult, setReplayResult] = useState(null) // 'won' | 'lost' | null
 
   const [showTour, setShowTour] = useState(false)
   const [grid, setGrid] = useState(null)
@@ -108,7 +141,7 @@ export default function PlayPage() {
         .eq('player_id', user.id)
         .maybeSingle()
 
-      if (existingPlay?.completed_at) {
+      if (existingPlay?.completed_at && !isReplay) {
         navigate(`/result/${gridId}`, {
           replace: true,
           state: {
@@ -146,7 +179,10 @@ export default function PlayPage() {
 
       const cardMap = new Map(shuffled.map(({ card, colorIndex }) => [card.id, { card, colorIndex }]))
 
-      if (existingPlay) {
+      if (isReplay) {
+        // Mode rejeu : partie neuve, on n'écrit rien et on ne restaure
+        // aucun historique. playId reste null.
+      } else if (existingPlay) {
         setPlayId(existingPlay.id)
 
         const { data: prevAttempts } = await supabase
@@ -184,7 +220,7 @@ export default function PlayPage() {
       }
     }
     fetchGrid()
-  }, [gridId, user, navigate])
+  }, [gridId, user, navigate, isReplay])
 
   useEffect(() => {
     if (!user?.id) return
@@ -208,6 +244,31 @@ export default function PlayPage() {
     setPlacements({ 0: null, 1: null, 2: null, 3: null })
   }
 
+  // Mode rejeu : relance une partie neuve avec les mêmes cartes, rebattues.
+  function restartReplay() {
+    const all = [...trayCards, ...Object.values(placements).filter(Boolean)]
+    for (let i = all.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [all[i], all[j]] = [all[j], all[i]]
+    }
+    const ROTATIONS = [0, 90, 180, 270]
+    setTrayCards(all.map((it, i) => ({
+      card: it.card,
+      rotation: ROTATIONS[Math.floor(Math.random() * 4)],
+      colorIndex: i,
+    })))
+    setPlacements({ 0: null, 1: null, 2: null, 3: null })
+    setAttemptHistory([])
+    setActiveHistoryTab(0)
+    setAttemptNumber(1)
+    setAttemptsFailed(0)
+    setFeedbackOpen(false)
+    setGameOver(false)
+    setReplayResult(null)
+    startTimeRef.current = Date.now()
+    setElapsed(0)
+  }
+
   function handleDragStart({ active }) {
     const fromTray = trayCards.find(c => `tray-${c.card.id}` === active.id)
     if (fromTray) { setActiveCard(fromTray); return }
@@ -221,6 +282,19 @@ export default function PlayPage() {
   function handleDragEnd({ active, over }) {
     setActiveCard(null)
     if (!over) return
+
+    // Drop sur la réserve : une carte de la grille y retourne
+    if (over.id === 'tray') {
+      for (const [pos, item] of Object.entries(placements)) {
+        if (item && `placed-${item.card.id}-${pos}` === active.id) {
+          setPlacements(prev => ({ ...prev, [pos]: null }))
+          setTrayCards(prev => [...prev, item])
+          return
+        }
+      }
+      return
+    }
+
     const slotIdx = parseInt(over.id.replace('slot-', ''), 10)
     if (isNaN(slotIdx)) return
 
@@ -258,13 +332,15 @@ export default function PlayPage() {
     setPlacements(prev => {
       const item = prev[pos]
       if (!item) return prev
-      return { ...prev, [pos]: { ...item, rotation: (item.rotation + 90) % 360 } }
+      // Rotation cumulative (90→180→270→360…) pour toujours tourner en avant ;
+      // on normalise (% 360) seulement à la soumission.
+      return { ...prev, [pos]: { ...item, rotation: item.rotation + 90 } }
     })
   }
 
   function handleTrayRotate(cardId) {
     setTrayCards(prev => prev.map(c =>
-      c.card.id === cardId ? { ...c, rotation: ((c.rotation ?? 0) + 90) % 360 } : c
+      c.card.id === cardId ? { ...c, rotation: (c.rotation ?? 0) + 90 } : c
     ))
   }
 
@@ -277,11 +353,13 @@ export default function PlayPage() {
       .map(([pos, { card, rotation }]) => ({
         card_id: card.id,
         position: parseInt(pos, 10),
-        rotation,
+        rotation: ((rotation % 360) + 360) % 360,
       }))
 
     const { data: result, error } = await supabase.functions.invoke('check-attempt', {
-      body: { play_id: playId, attempt_number: attemptNumber, answer },
+      body: isReplay
+        ? { grid_id: gridId, attempt_number: attemptNumber, answer, replay: true }
+        : { play_id: playId, attempt_number: attemptNumber, answer },
     })
 
     if (error || !result) {
@@ -292,14 +370,17 @@ export default function PlayPage() {
 
     const { correctFull, correctRotation, neither, success: won } = result
 
-    await supabase.from('orienta_play_attempts').insert({
-      play_id: playId,
-      attempt_number: attemptNumber,
-      answer,
-      correct_full: correctFull,
-      correct_rotation: correctRotation,
-      neither,
-    })
+    // En mode rejeu, on n'enregistre aucune tentative en base.
+    if (!isReplay) {
+      await supabase.from('orienta_play_attempts').insert({
+        play_id: playId,
+        attempt_number: attemptNumber,
+        answer,
+        correct_full: correctFull,
+        correct_rotation: correctRotation,
+        neither,
+      })
+    }
 
     const placementsSnapshot = { ...placements }
     setAttemptHistory(prev => {
@@ -308,6 +389,25 @@ export default function PlayPage() {
       setFeedbackOpen(true)
       return next
     })
+
+    // Mode rejeu : aucun XP, aucune écriture, on reste sur la page.
+    if (isReplay) {
+      if (won) {
+        rainCloversBurst()
+        setGameOver(true)
+        setReplayResult('won')
+      } else {
+        const next = attemptNumber + 1
+        setAttemptNumber(next)
+        setAttemptsFailed(f => f + 1)
+        setIsSubmitting(false)
+        if (next > MAX_ATTEMPTS) {
+          setGameOver(true)
+          setReplayResult('lost')
+        }
+      }
+      return
+    }
 
     if (won) {
       const finalScore = computeScore(elapsed, attemptsFailed)
@@ -376,7 +476,7 @@ export default function PlayPage() {
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
 
         {/* ── Drawer gauche — réserve ── */}
-        <aside className={`play-tray-drawer${trayCards.length === 0 ? ' play-tray-drawer--empty' : ''}`}>
+        <TrayDropZone empty={trayCards.length === 0}>
           <div className="tray-header">
             <span className="tray-header-label">Réserve</span>
             <span className="tray-header-count">{trayCards.length} carte{trayCards.length !== 1 ? 's' : ''}</span>
@@ -395,7 +495,7 @@ export default function PlayPage() {
               </div>
             ))}
           </div>
-        </aside>
+        </TrayDropZone>
 
         {/* ── Centre — grille ── */}
         <main className="play-main">
@@ -544,6 +644,36 @@ export default function PlayPage() {
         <div className="challenge-banner">
           <span>🍀 <strong>{challengeFrom}</strong> te défie — bats ses <strong>{parseInt(challengeScore).toLocaleString()} pts</strong> !</span>
           <button className="challenge-banner-close" onClick={() => setChallengeDismissed(true)} type="button">✕</button>
+        </div>
+      )}
+
+      {isReplay && !replayResult && (
+        <div className="replay-banner">
+          🔁 Mode rejeu — juste pour le fun, aucun XP en jeu
+        </div>
+      )}
+
+      {replayResult && (
+        <div className="replay-end-overlay">
+          <div className="replay-end-card">
+            <div className="replay-end-icon">{replayResult === 'won' ? '🍀' : '🙂'}</div>
+            <h2 className="replay-end-title">
+              {replayResult === 'won' ? 'Rejoué avec brio !' : 'Bien tenté !'}
+            </h2>
+            <p className="replay-end-sub">
+              {replayResult === 'won'
+                ? 'Juste pour le plaisir — rien n’a été enregistré.'
+                : 'C’était juste pour le fun. Tu peux retenter ta chance.'}
+            </p>
+            <div className="replay-end-actions">
+              <button className="replay-end-btn replay-end-btn--primary" onClick={restartReplay} type="button">
+                🔁 Rejouer
+              </button>
+              <Link to={`/result/${gridId}`} className="replay-end-btn replay-end-btn--ghost">
+                Retour aux résultats
+              </Link>
+            </div>
+          </div>
         </div>
       )}
 

@@ -40,6 +40,24 @@ function rainClovers() {
   burst(0); burst(220); burst(end)
 }
 
+// Chute douce depuis le haut de l'écran (défaite) — pluie / feuilles
+function fallFromTop({ text, scalar, count, gravity, ticks, drift }) {
+  const shape = confetti.shapeFromText ? confetti.shapeFromText({ text, scalar }) : undefined
+  const cols = [0.2, 0.5, 0.8]
+  cols.forEach((x, i) => setTimeout(() => confetti({
+    shapes: shape ? [shape] : undefined,
+    scalar, particleCount: count, ticks,
+    angle: 270, spread: 50, startVelocity: 10, gravity, drift,
+    origin: { x, y: 0 },
+  }), i * 180))
+}
+
+// Animations de défaite — l'une des trois tirée au hasard
+const LOSS_ANIMS = ['wilt', 'rain', 'leaves']
+function pickLossAnim() { return LOSS_ANIMS[Math.floor(Math.random() * LOSS_ANIMS.length)] }
+function rainDrops()  { fallFromTop({ text: '💧', scalar: 1.5, count: 16, gravity: 1.1, ticks: 200, drift: 0 }) }
+function fallLeaves() { fallFromTop({ text: '🍂', scalar: 2,   count: 12, gravity: 0.7, ticks: 280, drift: 1 }) }
+
 export default function ResultPage() {
   const { gridId } = useParams()
   const location = useLocation()
@@ -67,6 +85,7 @@ export default function ResultPage() {
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [reactions, setReactions] = useState({})     // { [playId]: { [emoji]: count } }
   const [myReactions, setMyReactions] = useState(new Set()) // `${playId}:${emoji}`
+  const [lossAnim] = useState(() => (success ? null : pickLossAnim()))
 
   const isOwnGrid = grid?.creator_id && user?.id === grid.creator_id
 
@@ -91,8 +110,11 @@ export default function ResultPage() {
   }
 
   useEffect(() => {
-    if (success) rainClovers()
-  }, [success])
+    if (success) { rainClovers(); return }
+    if (lossAnim === 'rain') rainDrops()
+    else if (lossAnim === 'leaves') fallLeaves()
+    // 'wilt' : animation CSS du trèfle, gérée au rendu
+  }, [success, lossAnim])
 
   // Ferme la palette d'emojis au clic extérieur
   useEffect(() => {
@@ -322,7 +344,11 @@ export default function ResultPage() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ type: 'spring', duration: 0.5 }}>
-            <div className="result-icon">{congrats.icon}</div>
+            <div className="result-icon">
+              {lossAnim === 'wilt'
+                ? <span className="result-wilt" role="img" aria-label="trèfle fané">🍀</span>
+                : congrats.icon}
+            </div>
             <h1 className="result-title">{congrats.title}</h1>
             {congrats.subtitle && <p className="result-congrats-sub">{congrats.subtitle}</p>}
 
@@ -402,7 +428,7 @@ export default function ResultPage() {
                         <div className="pfd-tile-content">
                           <div className="pfd-tile-title-row">
                             <span className="pfd-tile-dot" />
-                            <span className="pfd-tile-title">Bonne orientation</span>
+                            <span className="pfd-tile-title">Partiellement correct</span>
                             <button
                               className="pfd-tile-info-btn"
                               type="button"
@@ -410,13 +436,14 @@ export default function ResultPage() {
                               aria-label="En savoir plus"
                             >ⓘ
                               {tileTooltipOpen && (
-                                <span className="pfd-custom-tooltip pfd-custom-tooltip--left">
-                                  Bonne position et mauvaise orientation, ou bonne orientation et mauvaise position
+                                <span className="pfd-custom-tooltip pfd-custom-tooltip--left pfd-custom-tooltip--center">
+                                  <strong>Mauvaise position et bonne orientation</strong>
+                                  <strong>Mauvaise orientation et bonne position</strong>
                                 </span>
                               )}
                             </button>
                           </div>
-                          <span className="pfd-tile-subtitle">Bien orientée, mais au mauvais emplacement</span>
+                          <span className="pfd-tile-subtitle">Un seul critère sur deux est bon</span>
                         </div>
                       </div>
                       <div className="pfd-tile pfd-tile--red">
@@ -580,6 +607,11 @@ export default function ResultPage() {
 
       <footer className="result-footer">
         <Link to="/hub" className="btn-primary result-footer-cta">Retour au Hub</Link>
+        {play && (
+          <Link to={`/play/${gridId}?replay=1`} className="result-replay-link" title="Rejouer cette grille, juste pour le fun — sans XP">
+            🔁 Rejouer pour le fun
+          </Link>
+        )}
       </footer>
     </div>
   )

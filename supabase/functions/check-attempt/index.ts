@@ -29,27 +29,44 @@ serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   )
 
-  const { play_id, attempt_number, answer } = await req.json()
+  const { play_id, grid_id, attempt_number, answer, replay } = await req.json()
 
-  // Load play and grid
-  const { data: play } = await supabase
-    .from('orienta_plays')
-    .select('*, orienta_grids(id, creator_id)')
-    .eq('id', play_id)
-    .single()
+  // Mode rejeu : on évalue juste la tentative pour le fun, sans aucun
+  // effet de bord (pas de play, pas d'XP, pas de streak, pas de notif).
+  let play: { player_id?: string; xp_earned?: number; orienta_grids: { id: string; creator_id?: string } } | null = null
+  let gridId: string
 
-  if (!play) {
-    return new Response(JSON.stringify({ error: 'Play not found' }), {
-      status: 404,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+  if (replay) {
+    if (!grid_id) {
+      return new Response(JSON.stringify({ error: 'grid_id required for replay' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    gridId = grid_id
+  } else {
+    // Load play and grid
+    const { data } = await supabase
+      .from('orienta_plays')
+      .select('*, orienta_grids(id, creator_id)')
+      .eq('id', play_id)
+      .single()
+
+    if (!data) {
+      return new Response(JSON.stringify({ error: 'Play not found' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    play = data
+    gridId = data.orienta_grids.id
   }
 
   // Load the official solution (server-side only)
   const { data: solution } = await supabase
     .from('orienta_grid_cards')
     .select('card_id, position, rotation')
-    .eq('grid_id', play.orienta_grids.id)
+    .eq('grid_id', gridId)
 
   if (!solution) {
     return new Response(JSON.stringify({ error: 'Solution not found' }), {
@@ -91,8 +108,9 @@ serve(async (req) => {
   const success = correctFull === 4
 
   // If last attempt or success: update collective XP
+  // (jamais en mode rejeu — aucun gain ni effet de bord)
   const isLastAttempt = attempt_number >= 3
-  if (success || isLastAttempt) {
+  if (!replay && play && (success || isLastAttempt)) {
     const xpGained = success ? Math.max(10, Math.round(play.xp_earned ?? 50)) : 5
 
     const { data: collective } = await supabase
