@@ -1,41 +1,94 @@
 import { Link } from 'react-router-dom'
 import Header from '../../components/ui/Header'
+import StaticMiniGrid from '../../components/ui/StaticMiniGrid'
 
-function DemoBoard() {
+const DEMO_PLACEMENTS = {
+  0: { card: { word_top: 'BALEINE', word_right: 'GÂTEAU', word_bottom: 'FOIE', word_left: 'POLICIER' }, rotation: 0, colorIndex: 0 },
+  1: { card: { word_top: 'TABLE', word_right: 'KETCHUP', word_bottom: 'CHAPEAU', word_left: 'TÉLÉPHONE' }, rotation: 0, colorIndex: 1 },
+  2: { card: { word_top: 'CHEVAL', word_right: 'RIDEAU', word_bottom: 'BOUCHE', word_left: 'MAILLOT' }, rotation: 0, colorIndex: 2 },
+  3: { card: { word_top: 'REINE', word_right: 'FLEUR', word_bottom: 'MELON', word_left: 'BUS' }, rotation: 0, colorIndex: 3 },
+}
+const DEMO_CLUES = { top: 'Sel', right: 'Tomate', bottom: 'Vantard', left: 'Uniforme' }
+
+function DemoGrid() {
   return (
-    <div className="tuto-board">
-      <div className="tuto-board-clue tuto-board-clue--top">ÉCURIE</div>
-      <div className="tuto-board-middle">
-        <div className="tuto-board-clue tuto-board-clue--side">MCU</div>
-        <div className="tuto-board-grid">
-          <div className="tuto-board-card tuto-board-card--a">
-            <span className="tbc-top">ÉTABLE</span>
-            <span className="tbc-left">NATURE</span>
-            <span className="tbc-right">CHEVAL</span>
-            <span className="tbc-bot">PAILLE</span>
-          </div>
-          <div className="tuto-board-card tuto-board-card--b">
-            <span className="tbc-top">ÉTALON</span>
-            <span className="tbc-left">CAMÉRA</span>
-            <span className="tbc-right">BLOND</span>
-            <span className="tbc-bot">RAPIDE</span>
-          </div>
-          <div className="tuto-board-card tuto-board-card--c">
-            <span className="tbc-top">PRAIRIE</span>
-            <span className="tbc-left">HERBE</span>
-            <span className="tbc-right">FOIN</span>
-            <span className="tbc-bot">VERT</span>
-          </div>
-          <div className="tuto-board-card tuto-board-card--d">
-            <span className="tbc-top">GALOP</span>
-            <span className="tbc-left">COURSE</span>
-            <span className="tbc-right">VITESSE</span>
-            <span className="tbc-bot">PISTE</span>
+    <div className="tuto-demo-grid">
+      <StaticMiniGrid placements={DEMO_PLACEMENTS} clues={DEMO_CLUES} />
+    </div>
+  )
+}
+
+function StaticFeedback() {
+  return (
+    <div className="tuto-callout" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="tuto-pfd-header">
+        <p className="tuto-callout-title">Retour après chaque essai</p>
+      </div>
+      <div className="pfd-tiles">
+        <div className="pfd-tile pfd-tile--green">
+          <span className="pfd-tile-num">2</span>
+          <div className="pfd-tile-content">
+            <div className="pfd-tile-title-row">
+              <span className="pfd-tile-dot" />
+              <span className="pfd-tile-title">Bien placés et orientés</span>
+            </div>
+            <span className="pfd-tile-subtitle">Bon emplacement et bonne orientation</span>
           </div>
         </div>
-        <div className="tuto-board-clue tuto-board-clue--side">FILM</div>
+        <div className="pfd-tile pfd-tile--orange">
+          <span className="pfd-tile-num">1</span>
+          <div className="pfd-tile-content">
+            <div className="pfd-tile-title-row">
+              <span className="pfd-tile-dot" />
+              <span className="pfd-tile-title">Bonne orientation</span>
+            </div>
+            <span className="pfd-tile-subtitle">Bien orientée, mais au mauvais emplacement</span>
+          </div>
+        </div>
+        <div className="pfd-tile pfd-tile--red">
+          <span className="pfd-tile-num">1</span>
+          <div className="pfd-tile-content">
+            <div className="pfd-tile-title-row">
+              <span className="pfd-tile-dot" />
+              <span className="pfd-tile-title">À revoir</span>
+            </div>
+            <span className="pfd-tile-subtitle">Ni le bon emplacement, ni la bonne orientation</span>
+          </div>
+        </div>
       </div>
-      <div className="tuto-board-clue tuto-board-clue--bot">VELOURS</div>
+    </div>
+  )
+}
+
+function StaticCreatePanel() {
+  return (
+    <div className="tuto-callout" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="create-phase-panel">
+        <div className="create-step-header tuto-create-step-header">
+          <span className="create-step-badge">Étape 2</span>
+          <p className="create-step-title">Écris tes 4 indices</p>
+        </div>
+        <div className="create-timer-block">
+          <div className="timer-bar-track">
+            <div className="timer-bar-fill" style={{ width: '65%', backgroundColor: 'var(--accent)' }} />
+          </div>
+          <span className="timer-value" style={{ color: 'var(--accent)' }}>0:58</span>
+        </div>
+        <div className="create-clues-check">
+          {[
+            { key: 'top',    label: 'Haut',    done: true,  value: 'Sel' },
+            { key: 'right',  label: 'Droite',  done: true,  value: 'Tomate' },
+            { key: 'bottom', label: 'Bas',     done: false, value: '' },
+            { key: 'left',   label: 'Gauche',  done: false, value: '' },
+          ].map(({ key, label, done, value }) => (
+            <div key={key} className={`create-clue-item${done ? ' create-clue-item--done' : ''}`}>
+              <span className="create-clue-icon">{done ? '✓' : '○'}</span>
+              <span className="create-clue-label">{label}</span>
+              {done && <span className="create-clue-value">« {value} »</span>}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
@@ -67,7 +120,7 @@ export default function TutorielPage() {
             </p>
             <h1 className="tuto-hero-title">Un jeu quotidien<br />à deux rôles</h1>
             <p className="tuto-hero-sub">
-              Chaque jour, tes collègues publient des grilles. Tu peux en jouer autant que tu veux — ou en créer une toi-même. Le principe : cacher 4 cartes de mots dans une grille et écrire des indices pour aider les autres à les retrouver.
+              Chaque jour, tes collègues publient des grilles. Tu peux en jouer autant que tu veux — ou en créer une toi-même. Le principe : placer 4 cartes de mots dans une grille 2×2 et écrire des indices pour aider les autres à les retrouver.
             </p>
             <div className="tuto-hero-actions">
               <Link to="/" className="hub-btn-play">
@@ -78,7 +131,7 @@ export default function TutorielPage() {
             </div>
           </div>
           <div className="tuto-hero-visual">
-            <DemoBoard />
+            <DemoGrid />
           </div>
         </section>
 
@@ -96,40 +149,15 @@ export default function TutorielPage() {
                 Sur chaque bord extérieur de la grille, un indice relie les mots de deux cartes voisines. Ces 4 mots sont tes seules informations — commence par en tirer le maximum avant de placer quoi que ce soit.
               </StepItem>
               <StepItem n="2" title="Glisse et oriente les cartes">
-                Tu disposes de 4 cartes à placer sur les 4 emplacements. Chaque carte a un mot sur chacune de ses faces — tourne-la pour que les mots pointent vers les bons indices. L'orientation compte autant que la position.
+                Tu disposes de 4 cartes dans la réserve à gauche. Glisse chaque carte vers un emplacement de la grille et tourne-la (↻) pour que ses mots pointent vers les bons indices. L'orientation compte autant que la position.
               </StepItem>
               <StepItem n="3" title="Soumets ta réponse">
-                Tu as <strong>3 essais</strong>. Après chaque tentative, le jeu te donne un retour façon Mastermind sur chacune de tes 4 cartes.
+                Tu as <strong>3 essais</strong>. Après chaque tentative, le jeu te donne un retour façon Mastermind — le nombre de cartes correctes pour chaque catégorie, à droite.
               </StepItem>
             </div>
 
             <div className="tuto-aside-col">
-              <div className="tuto-callout">
-                <p className="tuto-callout-title">Retour après chaque essai</p>
-                <div className="tuto-feedback-list">
-                  <div className="tuto-feedback-row">
-                    <span className="tuto-fdot tuto-fdot--green" />
-                    <div>
-                      <strong>Vert</strong>
-                      <p>Bon emplacement <em>et</em> bonne orientation.</p>
-                    </div>
-                  </div>
-                  <div className="tuto-feedback-row">
-                    <span className="tuto-fdot tuto-fdot--orange" />
-                    <div>
-                      <strong>Orange</strong>
-                      <p>Bonne orientation, mais mauvais emplacement.</p>
-                    </div>
-                  </div>
-                  <div className="tuto-feedback-row">
-                    <span className="tuto-fdot tuto-fdot--red" />
-                    <div>
-                      <strong>Rouge</strong>
-                      <p>Ni le bon emplacement, ni la bonne orientation.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <StaticFeedback />
 
               <div className="tuto-callout tuto-callout--tip">
                 <p className="tuto-callout-title">Astuce</p>
@@ -153,39 +181,36 @@ export default function TutorielPage() {
                 L'app te distribue 4 cartes aléatoires. Chaque carte est un carré avec un mot différent sur chacun de ses 4 bords. C'est ce matériau brut que tu vas transformer en puzzle.
               </StepItem>
               <StepItem n="2" title="Arrange la grille comme tu veux">
-                Dispose les 4 cartes sur le trèfle 2×2 et oriente-les à ta guise. Tourne chaque carte jusqu'à ce que les mots adjacents des cartes voisines créent une connexion intéressante. C'est <em>toi</em> qui décides de la solution finale.
+                Glisse les 4 cartes sur les emplacements et oriente-les à ta guise. Tourne chaque carte jusqu'à ce que les mots adjacents des cartes voisines créent une connexion intéressante. C'est <em>toi</em> qui décides de la solution finale.
               </StepItem>
-              <StepItem n="3" title="1 min 30 pour écrire tes indices">
-                Le chrono démarre dès que tu vois ta grille arrangée. Tu as <strong>90 secondes</strong> pour trouver un mot par bord qui relie les deux mots qui se font face. Anticipe tes indices avant de lancer le timer.
+              <StepItem n="3" title="90 secondes pour écrire tes indices">
+                Le chrono démarre dès que tu vois ta grille arrangée. Tu as <strong>90 secondes</strong> pour trouver un mot par bord qui relie les deux mots qui se font face. Anticipe tes indices avant de lancer le timer — en mode Facile, pas de chrono.
               </StepItem>
             </div>
 
             <div className="tuto-aside-col">
-              <div className="tuto-callout tuto-callout--creator">
+              <StaticCreatePanel />
+
+              <div className="tuto-callout tuto-callout--tip">
                 <p className="tuto-callout-title">Faire de bons indices</p>
                 <ul className="tuto-tips-list">
                   <li>
                     <span className="tuto-tips-icon tuto-tips-icon--yes">✓</span>
-                    <span>L'indice doit relier <em>les deux mots en même temps</em>, pas juste l'un des deux.</span>
+                    <span>L'indice doit relier <em>les deux mots en même temps</em>, pas juste l'un des deux. <strong>POLICIER</strong> et <strong>MAILLOT</strong> → <strong>Uniforme</strong> : les deux en portent un.</span>
+                  </li>
+                  <li>
+                    <span className="tuto-tips-icon tuto-tips-icon--yes">✓</span>
+                    <span><strong>KETCHUP</strong> et <strong>FLEUR</strong> → <strong>Tomate</strong> : le ketchup vient de la tomate, et la tomate est une fleur avant d'être un fruit.</span>
+                  </li>
+                  <li>
+                    <span className="tuto-tips-icon tuto-tips-icon--yes">✓</span>
+                    <span><strong>BOUCHE</strong> et <strong>MELON</strong> → <strong>Vantard</strong> : grande bouche et avoir le melon — deux façons de dire qu'on se la raconte.</span>
                   </li>
                   <li>
                     <span className="tuto-tips-icon tuto-tips-icon--no">✕</span>
-                    <span>Évite les dérivés directs — si un mot est NAGER, NATATION est trop facile.</span>
-                  </li>
-                  <li>
-                    <span className="tuto-tips-icon tuto-tips-icon--yes">✓</span>
-                    <span>Pense à ton audience : une référence partagée peut être magnifique si tout le monde la capte.</span>
-                  </li>
-                  <li>
-                    <span className="tuto-tips-icon tuto-tips-icon--yes">✓</span>
-                    <span>Teste mentalement ta grille. Si tu peux imaginer un joueur plausible qui se tromperait, l'indice est trop ambigu.</span>
+                    <span>Évite les dérivés directs — si un mot de la carte est NAGER, NATATION est trop facile et sera refusé.</span>
                   </li>
                 </ul>
-              </div>
-
-              <div className="tuto-callout tuto-callout--tip">
-                <p className="tuto-callout-title">Exemple</p>
-                <p>Si <strong>ÉTABLE</strong> et <strong>ÉTALON</strong> se font face sur le bord du haut, <strong>ÉCURIE</strong> est parfait. Si <strong>CAMÉRA</strong> et <strong>BLOND</strong> se font face à droite, <strong>MCU</strong> peut fonctionner pour qui connaît Thor.</p>
               </div>
             </div>
           </div>

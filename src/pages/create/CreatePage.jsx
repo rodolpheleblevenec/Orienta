@@ -15,37 +15,41 @@ const CREATE_PLACEMENT_STEPS = [
   {
     anchor: 'center',
     title: 'Crée ta grille',
-    description: "Tu vas placer des cartes dans une grille en trèfle, puis écrire 4 indices pour que d'autres joueurs la résolvent.",
+    description: "Tu vas recevoir 4 cartes aléatoires à disposer sur la grille, puis écrire 4 indices pour que tes collègues la résolvent.",
   },
   {
     anchor: 'tray-right',
-    zone: '← Plateau de cartes',
-    title: 'Tes cartes disponibles',
-    description: "Glisse les cartes depuis le plateau vers les 4 emplacements de la grille. En mode Difficile, une 5e carte reste en réserve : c'est le leurre pour les joueurs !",
+    target: '.play-tray-drawer',
+    zone: 'Plateau de cartes',
+    title: 'Reçois tes 4 cartes',
+    description: "L'app te distribue 4 cartes aléatoires. Chaque carte a un mot différent sur chacun de ses 4 bords. En mode Difficile, une 5e carte reste en réserve : c'est le leurre pour les joueurs !",
   },
   {
     anchor: 'tray-right',
-    zone: '← Bouton ↻',
-    title: 'Oriente les cartes',
-    description: "Utilise ↻ pour tourner chaque carte. La position d'un mot dans la carte correspond au côté de la grille, et donc à l'indice que tu vas écrire.",
+    target: '.play-grid-area',
+    zone: 'Grille 2×2',
+    title: 'Arrange comme tu veux',
+    description: "Glisse les cartes vers les 4 emplacements et oriente-les (↻). Tourne chaque carte jusqu'à ce que les mots adjacents créent une connexion intéressante — c'est toi qui décides de la solution finale !",
   },
 ]
 
 const CREATE_CLUES_STEPS = [
   {
     anchor: 'center',
-    zone: 'Indices de grille',
+    target: '.play-grid-area',
+    zone: 'Grille et indices',
     title: 'Écris tes 4 indices',
-    description: "Un indice par côté de la grille. Chaque indice doit évoquer la carte placée de ce côté, sans être trop évident pour les joueurs !",
+    description: "Un indice par bord de la grille. Il doit relier les deux mots qui se font face — les deux en même temps, pas juste l'un des deux.",
   },
   {
     anchor: 'center',
     zone: '⚠ Règle importante',
-    title: 'Mots interdits',
-    description: "Ton indice ne peut pas être l'un des mots présents sur les cartes. Trop facile ! Le jeu te préviendra si tu essaies.",
+    title: 'Anticipe avant le timer',
+    description: "Le chrono de 90 secondes démarre dès que tu vois ta grille. Anticipe tes indices avant de lancer ! Évite aussi les dérivés directs — le jeu te préviendra si ton indice reprend un mot des cartes.",
   },
   {
     anchor: 'footer-center',
+    target: '.play-submit-btn',
     zone: 'Bouton Publier',
     title: 'Publie ta grille',
     description: "Quand tes 4 indices sont validés, publie ! Ta grille sera visible 48h et tu gagneras de l'XP pour chaque joueur qui la réussit.",
@@ -574,7 +578,7 @@ export default function CreatePage() {
       )}
       {showCluesTour && (
         <TourOverlay
-          steps={CREATE_CLUES_STEPS}
+          steps={difficulty === 'facile' ? CREATE_CLUES_STEPS.filter(s => s.zone !== '⚠ Règle importante') : CREATE_CLUES_STEPS}
           onDone={() => {
             markTourDone('tour_create_clues_done')
             setShowCluesTour(false)

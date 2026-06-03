@@ -6,6 +6,7 @@ import Header from '../../components/ui/Header'
 import CollectiveGauge from '../../components/ui/CollectiveGauge'
 import GridCard from '../../components/ui/GridCard'
 import CreatedGridCard from '../../components/ui/CreatedGridCard'
+import DailyLeaderboardModal from '../../components/ui/DailyLeaderboardModal'
 
 function formatDayLabel(dateStr) {
   const today = new Date().toISOString().split('T')[0]
@@ -41,6 +42,7 @@ export default function HubPage() {
   const [loading, setLoading] = useState(true)
   const [dailyGrids, setDailyGrids] = useState([])
   const [showAllCommunity, setShowAllCommunity] = useState(false)
+  const [showDailyLeaderboard, setShowDailyLeaderboard] = useState(false)
   const [livePlayStats, setLivePlayStats] = useState(null)
 
   useEffect(() => {
@@ -166,6 +168,11 @@ export default function HubPage() {
   const successfulDailyPlays = livePlayStats?.successful ?? (todayDaily ? (todayDaily.orienta_plays ?? []).filter(p => p.success).length : 0)
   const dailySuccessRate = totalDailyPlayers > 0 ? Math.round((successfulDailyPlays / totalDailyPlayers) * 100) : null
 
+  const hasCompletedDaily = !!myDailyPlay
+  const hasSucceededDaily = myDailyPlay?.success === true
+  const statusSpillClass = hasSucceededDaily ? 'hub-spill--teal' : hasCompletedDaily ? 'hub-spill--coral' : ''
+  const statusText = hasSucceededDaily ? 'Terminé ✓' : hasCompletedDaily ? 'Échoué' : statusLabel(dailyPlayInfo)
+
   return (
     <div className="hub-page">
       <Header />
@@ -205,22 +212,37 @@ export default function HubPage() {
                   Une nouvelle grille chaque matin.
                 </p>
                 <div className="hub-stat-row">
-                  <div className="hub-spill">
+                  <div className={`hub-spill ${statusSpillClass}`}>
                     <span className="hub-spill-k">Statut</span>
-                    <span className="hub-spill-v">{statusLabel(dailyPlayInfo)}</span>
+                    <span className="hub-spill-v">{statusText}</span>
                   </div>
                   <div className={`hub-spill ${DIFF_COLOR_CLASS[todayDaily.difficulty] ?? 'hub-spill--teal'}`}>
                     <span className="hub-spill-k">Niveau</span>
                     <span className="hub-spill-v">{DIFF_LABEL[todayDaily.difficulty] ?? '—'}</span>
                   </div>
-                  <div className="hub-spill">
-                    <span className="hub-spill-k hub-spill-k--live"><span className="hub-ldot" />Joueurs</span>
-                    <span className="hub-spill-v">{totalDailyPlayers}</span>
-                  </div>
-                  <div className="hub-spill">
-                    <span className="hub-spill-k hub-spill-k--live"><span className="hub-ldot" />Réussite</span>
-                    <span className="hub-spill-v">{dailySuccessRate !== null ? `${dailySuccessRate}%` : '—'}</span>
-                  </div>
+                  {hasCompletedDaily ? (
+                    <>
+                      <div className="hub-spill">
+                        <span className="hub-spill-k">Ton score</span>
+                        <span className="hub-spill-v">{myDailyPlay.score ?? 0}<span className="hub-spill-unit"> pts</span></span>
+                      </div>
+                      <div className="hub-spill">
+                        <span className="hub-spill-k">Ton rang</span>
+                        <span className="hub-spill-v">{hasSucceededDaily && myDailyRank ? `#${myDailyRank}` : '—'}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="hub-spill">
+                        <span className="hub-spill-k hub-spill-k--live"><span className="hub-ldot" />Joueurs</span>
+                        <span className="hub-spill-v">{totalDailyPlayers}</span>
+                      </div>
+                      <div className="hub-spill">
+                        <span className="hub-spill-k hub-spill-k--live"><span className="hub-ldot" />Réussite</span>
+                        <span className="hub-spill-v">{dailySuccessRate !== null ? `${dailySuccessRate}%` : '—'}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="hub-actions">
                   <Link to={`/play/${todayDaily.id}`} className="hub-btn-play">
@@ -308,7 +330,7 @@ export default function HubPage() {
                   <h2 className="hub-rank-title">Classement du jour</h2>
                   <p className="hub-rank-sub">Les meilleurs scores sur la grille d'aujourd'hui</p>
                 </div>
-                <Link to="/classement" className="hub-rank-see">Tout voir</Link>
+                <button className="hub-rank-see" onClick={() => setShowDailyLeaderboard(true)} type="button">Tout voir</button>
               </div>
               {dailyTop3.length === 0 ? (
                 <div className="daily-lb-empty">
@@ -445,6 +467,14 @@ export default function HubPage() {
           )}
         </section>
       </main>
+
+      {showDailyLeaderboard && todayDaily && (
+        <DailyLeaderboardModal
+          todayDaily={todayDaily}
+          user={user}
+          onClose={() => setShowDailyLeaderboard(false)}
+        />
+      )}
     </div>
   )
 }

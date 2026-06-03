@@ -42,38 +42,48 @@ export default function LoginPage() {
 
   return (
     <div className="login-page">
+      <div className="login-bg-glow" />
+
       <motion.div
         className="login-card"
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
+        initial={{ opacity: 0, y: 28, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
         <div className="login-brand">
-          <div className="login-brand-dot">
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-              <path d="M7 1v12M1 7h12"/>
-            </svg>
-          </div>
+          <img src="/favicon.svg" alt="Orienta" className="login-logo" />
           <span className="login-brand-name">Orienta</span>
         </div>
-        <p className="login-tagline">Le jeu de mots quotidien de l'équipe WeFiiT</p>
+
+        <h1 className="login-headline">Le jeu de mots<br />de l'équipe WeFiiT</h1>
+        <p className="login-tagline">Joue chaque jour, progresse ensemble, monte de niveau.</p>
 
         {collective && (() => {
           const { currentLevel } = getLevelProgressCollective(collective.total_xp)
           const creature = getCreature(currentLevel.level)
           return (
-            <div className="login-mascot-preview">
+            <motion.div
+              className="login-mascot-preview"
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.22, duration: 0.38 }}
+            >
               <span className="mascot-emoji">{creature.emoji}</span>
-              <span className="mascot-label">Niveau {currentLevel.level} — {currentLevel.name}</span>
-            </div>
+              <div className="mascot-info">
+                <span className="mascot-level-badge">Niveau {currentLevel.level}</span>
+                <span className="mascot-creature-name">{currentLevel.name}</span>
+              </div>
+            </motion.div>
           )
         })()}
 
         <form onSubmit={handleSubmit} className="login-form">
+          <label className="login-label" htmlFor="pseudo-input">Ton pseudo</label>
           <input
+            id="pseudo-input"
             className="pseudo-input"
             type="text"
-            placeholder="Ton pseudo…"
+            placeholder="Entre ton pseudo…"
             value={pseudo}
             onChange={e => setPseudo(e.target.value)}
             maxLength={32}
@@ -82,12 +92,21 @@ export default function LoginPage() {
           />
           {error && <p className="login-error">{error}</p>}
           <button className="login-btn" type="submit" disabled={submitting}>
-            {submitting ? 'Connexion…' : 'Jouer →'}
+            {submitting ? (
+              <span>Connexion…</span>
+            ) : (
+              <>
+                <span>Jouer maintenant</span>
+                <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18" aria-hidden="true">
+                  <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </>
+            )}
           </button>
         </form>
 
         <p className="login-hint">
-          Nouveau pseudo = nouveau compte. Même pseudo = même profil.
+          Nouveau pseudo = nouveau compte · Même pseudo = même profil
         </p>
       </motion.div>
     </div>

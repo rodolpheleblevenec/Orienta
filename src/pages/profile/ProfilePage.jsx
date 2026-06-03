@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
-import { LEVELS, getLevelProgress, getLevelProgressCollective } from '../../lib/levels'
-import { getCreature } from '../../lib/creatures'
+import { getLevelProgress, getLevelProgressCollective } from '../../lib/levels'
 import { MARINE_ITEMS, getMarineItem } from '../../lib/marineItems'
 import Header from '../../components/ui/Header'
 
 export default function ProfilePage() {
-  const { user, logout, refreshUser } = useAuthStore()
+  const { user, refreshUser } = useAuthStore()
+  const [activeTab, setActiveTab] = useState('profil')
+  const [activityTab, setActivityTab] = useState('jouees')
   const [stats, setStats] = useState(null)
   const [playHistory, setPlayHistory] = useState([])
   const [createdGrids, setCreatedGrids] = useState([])
@@ -23,11 +24,13 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user) return
     Promise.all([
-      supabase.from('orienta_plays').select('id, grid_id, score, success, completed_at, attempts_count, time_seconds, xp_earned, orienta_grids(clue_top, clue_right, clue_bottom, clue_left, difficulty)')
+      supabase.from('orienta_plays')
+        .select('id, grid_id, score, success, completed_at, attempts_count, time_seconds, xp_earned, orienta_grids(clue_top, clue_right, clue_bottom, clue_left, difficulty)')
         .eq('player_id', user.id).not('completed_at', 'is', null)
         .order('completed_at', { ascending: false }).limit(20),
 
-      supabase.from('orienta_grids').select('id, clue_top, created_at, status, difficulty, orienta_plays(success)')
+      supabase.from('orienta_grids')
+        .select('id, clue_top, created_at, status, difficulty, orienta_plays(success)')
         .eq('creator_id', user.id).order('created_at', { ascending: false }).limit(20),
 
       supabase.from('orienta_collective_progress').select('*').eq('id', 1).single(),
@@ -44,8 +47,8 @@ export default function ProfilePage() {
         bestScore: plays.reduce((m, p) => Math.max(m, p.score ?? 0), 0),
       })
       if (collectiveRes.data) {
-        const collectiveProgress = getLevelProgressCollective(collectiveRes.data.total_xp)
-        setCollectiveLevel(collectiveProgress.currentLevel.level)
+        const cp = getLevelProgressCollective(collectiveRes.data.total_xp)
+        setCollectiveLevel(cp.currentLevel.level)
       }
     })
   }, [user])
@@ -62,12 +65,13 @@ export default function ProfilePage() {
 
   const DIFF_LABEL = { facile: 'Facile', moyen: 'Moyen', difficile: 'Difficile' }
   const DIFF_COLOR = { facile: '#00A889', moyen: '#E89010', difficile: '#F0440A' }
+  const STATUS_LABEL = { published: 'Publié', draft: 'Brouillon', archived: 'Archivé' }
 
   function relativeDate(dateStr) {
     const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000)
     if (days === 0) return "Aujourd'hui"
     if (days === 1) return 'Hier'
-    return `Il y a ${days} jours`
+    return `Il y a ${days}j`
   }
 
   function formatTime(secs) {
@@ -75,188 +79,228 @@ export default function ProfilePage() {
     return secs < 60 ? `${secs}s` : `${Math.floor(secs / 60)}m${secs % 60 > 0 ? String(secs % 60).padStart(2, '0') : ''}`
   }
 
+  const avatarContent = selectedSkin > 1
+    ? getMarineItem(selectedSkin).name.split(' ')[0]
+    : user.pseudo[0].toUpperCase()
+
   return (
     <div className="profile-page">
       <Header />
       <main className="profile-main">
-        <div className="profile-header-block">
-          <div className="profile-avatar">
-            {selectedSkin > 1 ? (
-              getMarineItem(selectedSkin).name.split(' ')[0]
-            ) : (
-              user.pseudo[0].toUpperCase()
-            )}
-          </div>
-          <div>
-            <h1 className="profile-name">{user.pseudo}</h1>
-            <div className="profile-xp-bar">
-              <div className="profile-xp-info">
-                <span className="profile-xp-label">Niveau {user.level} — {userLevelProgress.currentLevel.name}</span>
-                <span className="profile-xp-amount">{user.xp.toLocaleString()} XP</span>
+
+        <div className="profile-tabs">
+          {[['profil', 'Profil'], ['activite', 'Activité']].map(([id, label]) => (
+            <button
+              key={id}
+              className={`profile-tab${activeTab === id ? ' profile-tab--active' : ''}`}
+              onClick={() => setActiveTab(id)}
+              type="button"
+            >{label}</button>
+          ))}
+        </div>
+
+        {activeTab === 'profil' && (
+          <>
+            <div className="profile-header-block">
+              <div className="profile-avatar-wrap">
+                <div className="profile-avatar">{avatarContent}</div>
+                <div className="profile-level-badge">{user.level}</div>
               </div>
-              <div className="profile-xp-track">
-                <motion.div
-                  className="profile-xp-fill"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${userLevelProgress.pct}%` }}
-                  transition={{ duration: 1, ease: 'easeOut' }}
-                />
-              </div>
-              {userLevelProgress.nextLevel && (
-                <div className="profile-xp-next">
-                  {(userLevelProgress.nextLevel.xp - user.xp).toLocaleString()} XP pour {userLevelProgress.nextLevel.name}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="profile-name-row">
+                  <h1 className="profile-name">{user.pseudo}</h1>
+                  <div className="profile-streak-pills">
+                    <span className="profile-streak-pill">🔥 {user.streak_current}</span>
+                    <span className="profile-streak-pill">🏆 {user.streak_best}</span>
+                  </div>
                 </div>
-              )}
+                <div className="profile-xp-bar">
+                  <div className="profile-xp-info">
+                    <span className="profile-xp-label">{userLevelProgress.currentLevel.name}</span>
+                    <span className="profile-xp-amount">{user.xp.toLocaleString()} XP</span>
+                  </div>
+                  <div className="profile-xp-track">
+                    <motion.div
+                      className="profile-xp-fill"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${userLevelProgress.pct}%` }}
+                      transition={{ duration: 1, ease: 'easeOut' }}
+                    />
+                  </div>
+                  {userLevelProgress.nextLevel && (
+                    <div className="profile-xp-next">
+                      {(userLevelProgress.nextLevel.xp - user.xp).toLocaleString()} XP pour {userLevelProgress.nextLevel.name}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
-        <div className="profile-streak">
-          <span>🔥 Streak actuel : <strong>{user.streak_current}</strong></span>
-          <span>🏆 Record : <strong>{user.streak_best}</strong></span>
-        </div>
+            {stats && (
+              <div className="profile-stats-card">
+                <div className="profile-stats-grid">
+                  {[
+                    { label: 'Parties',  value: stats.played },
+                    { label: 'Réussite', value: `${stats.winRate}%` },
+                    { label: 'Moy.',     value: stats.avgScore },
+                    { label: 'Meilleur', value: stats.bestScore },
+                  ].map((s, i) => (
+                    <motion.div key={s.label} className="profile-stat-item"
+                      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}>
+                      <span className="profile-stat-value">{s.value}</span>
+                      <span className="profile-stat-label">{s.label}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        {stats && (
-          <div className="profile-stats-block">
-            <h2 className="profile-stats-title">Statistiques</h2>
-          <div className="profile-stats">
-            {[
-              { label: 'Parties',     value: stats.played },
-              { label: 'Réussite',    value: `${stats.winRate}%` },
-              { label: 'Score moyen', value: stats.avgScore },
-              { label: 'Meilleur',    value: stats.bestScore },
-            ].map((s, i) => (
-              <motion.div key={s.label} className="stat-card"
-                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}>
-                <span className="stat-value">{s.value}</span>
-                <span className="stat-label">{s.label}</span>
-              </motion.div>
-            ))}
-          </div>
-          </div>
+            <section className="profile-section">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
+                <h2 style={{ marginBottom: 0 }}>Ton bestiaire</h2>
+                <span style={{ fontSize: '12px', color: 'var(--ink-3)' }}>Déverrouillés avec ton XP</span>
+              </div>
+              <div className="skin-grid">
+                {MARINE_ITEMS.map((item) => {
+                  const isUnlocked = user.level >= item.level || collectiveLevel >= item.level
+                  const isSelected = selectedSkin === item.level
+                  return (
+                    <motion.div
+                      key={item.level}
+                      className={`skin-card ${isUnlocked ? 'skin-card--unlocked' : 'skin-card--locked'} ${isSelected ? 'skin-card--active' : ''}`}
+                      whileHover={isUnlocked && !isSelected ? { scale: 1.05 } : {}}
+                      onClick={() => isUnlocked && !isSelected && handleSelectSkin(item.level)}
+                    >
+                      <div className="skin-creature">
+                        {isUnlocked ? (
+                          <span style={{ fontSize: '44px', lineHeight: 1 }}>{item.name.split(' ')[0]}</span>
+                        ) : (
+                          <>
+                            <span style={{ fontSize: '44px', lineHeight: 1, opacity: 0.3 }}>{item.name.split(' ')[0]}</span>
+                            <div className="skin-lock">🔒</div>
+                          </>
+                        )}
+                      </div>
+                      <div className="skin-info">
+                        <div className="skin-name">{item.name}</div>
+                        <div className="skin-xp-threshold">{item.xpThreshold.toLocaleString()} XP</div>
+                        {isSelected && <div className="skin-badge">✓ Actif</div>}
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </section>
+          </>
         )}
 
-        <section className="profile-section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
-            <h2 style={{ marginBottom: 0 }}>Ton bestiaire</h2>
-            <span style={{ fontSize: '12px', color: 'var(--ink-3)' }}>Déverrouillés avec ton XP</span>
-          </div>
-          <div className="skin-grid">
-            {MARINE_ITEMS.map((item) => {
-              const isUnlocked = user.level >= item.level || collectiveLevel >= item.level
-              const isSelected = selectedSkin === item.level
+        {activeTab === 'activite' && (
+          <>
+            <div className="activity-tabs">
+              <button
+                className={`activity-tab${activityTab === 'jouees' ? ' activity-tab--active' : ''}`}
+                onClick={() => setActivityTab('jouees')}
+                type="button"
+              >
+                Grilles jouées
+                <span className="activity-tab-count">{playHistory.length}</span>
+              </button>
+              <button
+                className={`activity-tab${activityTab === 'creees' ? ' activity-tab--active' : ''}`}
+                onClick={() => setActivityTab('creees')}
+                type="button"
+              >
+                Mes grilles
+                <span className="activity-tab-count">{createdGrids.length}</span>
+              </button>
+            </div>
 
-              return (
-                <motion.div
-                  key={item.level}
-                  className={`skin-card ${isUnlocked ? 'skin-card--unlocked' : 'skin-card--locked'} ${isSelected ? 'skin-card--active' : ''}`}
-                  whileHover={isUnlocked && !isSelected ? { scale: 1.05 } : {}}
-                  onClick={() => isUnlocked && !isSelected && handleSelectSkin(item.level)}
-                >
-                  <div className="skin-creature">
-                    {isUnlocked ? (
-                      <span style={{ fontSize: '44px', lineHeight: 1 }}>{item.name.split(' ')[0]}</span>
-                    ) : (
-                      <>
-                        <span style={{ fontSize: '44px', lineHeight: 1, opacity: 0.3 }}>{item.name.split(' ')[0]}</span>
-                        <div className="skin-lock">🔒</div>
-                      </>
-                    )}
-                  </div>
-                  <div className="skin-info">
-                    <div className="skin-name">{item.name}</div>
-                    <div className="skin-xp-threshold">{item.xpThreshold.toLocaleString()} XP</div>
-                    {isSelected && <div className="skin-badge">✓ Actif</div>}
-                  </div>
-                </motion.div>
-              )
-            })}
-          </div>
-        </section>
-
-        <section className="profile-section">
-          <h2>Grilles jouées</h2>
-          {playHistory.length === 0 ? <p className="profile-empty">Aucune partie jouée encore.</p> : (
-            <ul className="history-list">
-              {playHistory.map((p, i) => {
-                const diff = p.orienta_grids?.difficulty
-                const time = formatTime(p.time_seconds)
-                return (
-                  <li key={i} className="history-item history-item--rich">
-                    <div className="history-item-main">
-                      <div className="history-item-top">
-                        <span className="history-clue">
-                          {[p.orienta_grids?.clue_top, p.orienta_grids?.clue_right, p.orienta_grids?.clue_bottom, p.orienta_grids?.clue_left].filter(Boolean).join(' · ')}
-                        </span>
-                        {diff && <span className="history-diff-badge" style={{ color: DIFF_COLOR[diff] }}>{DIFF_LABEL[diff]}</span>}
-                      </div>
-                      <div className="history-item-meta">
-                        <span>{p.attempts_count} essai{p.attempts_count > 1 ? 's' : ''}</span>
-                        {time && <span>{time}</span>}
-                        <span className="history-date">{relativeDate(p.completed_at)}</span>
-                      </div>
-                    </div>
-                    <div className="history-item-right">
-                      <span className={`history-result ${p.success ? 'success' : 'fail'}`}>
-                        {p.success ? '✓' : '✗'} {p.score} pts
-                      </span>
-                      <Link
-                        to={`/result/${p.grid_id}`}
-                        state={{ score: p.score ?? 0, success: p.success ?? false, timeSeconds: p.time_seconds ?? 0, attemptCount: p.attempts_count ?? 1, xp: p.xp_earned ?? 0, baseXp: p.xp_earned ?? 0, bonusXp: 0, streakCurrent: 0 }}
-                        className="history-replay-btn"
-                      >Voir les essais →</Link>
-                    </div>
-                  </li>
+            {activityTab === 'jouees' && (
+              playHistory.length === 0
+                ? <p className="profile-empty">Aucune partie jouée encore.</p>
+                : (
+                  <ul className="grid-list">
+                    {playHistory.map((p, i) => {
+                      const diff = p.orienta_grids?.difficulty
+                      const time = formatTime(p.time_seconds)
+                      const clues = [
+                        p.orienta_grids?.clue_top,
+                        p.orienta_grids?.clue_right,
+                        p.orienta_grids?.clue_bottom,
+                        p.orienta_grids?.clue_left,
+                      ].filter(Boolean)
+                      return (
+                        <li key={i} className="grid-card">
+                          <div className="grid-card-top">
+                            <div className="grid-card-clues">
+                              {clues.map((c, ci) => <span key={ci} className="grid-card-clue-pill">{c}</span>)}
+                            </div>
+                            <span className={`grid-card-result ${p.success ? 'success' : 'fail'}`}>
+                              {p.success ? '✓' : '✗'} {p.score}
+                            </span>
+                          </div>
+                          <div className="grid-card-meta">
+                            {diff && <span style={{ color: DIFF_COLOR[diff], fontWeight: 700 }}>{DIFF_LABEL[diff]}</span>}
+                            <span>{p.attempts_count} essai{p.attempts_count > 1 ? 's' : ''}</span>
+                            {time && <span>{time}</span>}
+                            <span>{relativeDate(p.completed_at)}</span>
+                          </div>
+                          <Link
+                            to={`/result/${p.grid_id}`}
+                            state={{ score: p.score ?? 0, success: p.success ?? false, timeSeconds: p.time_seconds ?? 0, attemptCount: p.attempts_count ?? 1, xp: p.xp_earned ?? 0, baseXp: p.xp_earned ?? 0, bonusXp: 0, streakCurrent: 0 }}
+                            className="grid-card-link"
+                          >Voir les essais →</Link>
+                        </li>
+                      )
+                    })}
+                  </ul>
                 )
-              })}
-            </ul>
-          )}
-        </section>
+            )}
 
-        <section className="profile-section">
-          <h2>Grilles créées</h2>
-          {createdGrids.length === 0 ? <p className="profile-empty">Aucune grille créée encore.</p> : (
-            <ul className="history-list">
-              {createdGrids.map(g => {
-                const plays = g.orienta_plays ?? []
-                const completedPlays = plays.filter(p => p.success !== null)
-                const successRate = completedPlays.length > 0
-                  ? Math.round((completedPlays.filter(p => p.success).length / completedPlays.length) * 100)
-                  : null
-                return (
-                  <li key={g.id} className="history-item history-item--rich">
-                    <div className="history-item-main">
-                      <div className="history-item-top">
-                        <span className="history-clue">{g.clue_top ?? '—'}</span>
-                        {g.difficulty && <span className="history-diff-badge" style={{ color: DIFF_COLOR[g.difficulty] }}>{DIFF_LABEL[g.difficulty]}</span>}
-                      </div>
-                      <div className="history-item-meta">
-                        <span>{completedPlays.length} joueur{completedPlays.length !== 1 ? 's' : ''}</span>
-                        {successRate !== null && <span>{successRate}% réussite</span>}
-                        <span className="history-date">{relativeDate(g.created_at)}</span>
-                      </div>
-                    </div>
-                    <div className="history-item-right">
-                      <Link to={`/dashboard/${g.id}`} className="history-link">Dashboard →</Link>
-                    </div>
-                  </li>
+            {activityTab === 'creees' && (
+              createdGrids.length === 0
+                ? <p className="profile-empty">Aucune grille créée encore.</p>
+                : (
+                  <ul className="grid-list">
+                    {createdGrids.map(g => {
+                      const plays = g.orienta_plays ?? []
+                      const completedPlays = plays.filter(p => p.success !== null)
+                      const successRate = completedPlays.length > 0
+                        ? Math.round((completedPlays.filter(p => p.success).length / completedPlays.length) * 100)
+                        : null
+                      return (
+                        <li key={g.id} className="grid-card">
+                          <div className="grid-card-top">
+                            <span className="grid-card-title">{g.clue_top ?? '—'}</span>
+                            <div className="grid-card-badges">
+                              {g.difficulty && (
+                                <span className="grid-card-diff-badge" style={{ color: DIFF_COLOR[g.difficulty] }}>
+                                  {DIFF_LABEL[g.difficulty]}
+                                </span>
+                              )}
+                              {g.status && (
+                                <span className={`grid-card-status grid-card-status--${g.status}`}>
+                                  {STATUS_LABEL[g.status] ?? g.status}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="grid-card-meta">
+                            <span>{completedPlays.length} joueur{completedPlays.length !== 1 ? 's' : ''}</span>
+                            {successRate !== null && <span>{successRate}% réussite</span>}
+                            <span>{relativeDate(g.created_at)}</span>
+                          </div>
+                          <Link to={`/dashboard/${g.id}`} className="grid-card-link">Dashboard →</Link>
+                        </li>
+                      )
+                    })}
+                  </ul>
                 )
-              })}
-            </ul>
-          )}
-        </section>
+            )}
+          </>
+        )}
 
-        <section className="profile-section profile-logout-section">
-          <button className="profile-logout-btn" onClick={logout} type="button">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-            Se déconnecter
-          </button>
-        </section>
       </main>
     </div>
   )

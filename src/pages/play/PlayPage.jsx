@@ -19,28 +19,25 @@ const PLAY_TOUR_STEPS = [
     description: "Tu dois placer 4 cartes dans les bons emplacements de la grille, bien orientées. Les indices autour de la grille sont tes seuls repères.",
   },
   {
-    anchor: 'tray-right',
-    zone: '← Plateau de cartes',
-    title: 'Tes cartes à jouer',
-    description: "Glisse les cartes depuis le plateau gauche vers les emplacements de la grille. Chaque carte a 4 mots.",
-  },
-  {
     anchor: 'center',
+    target: '.play-grid-area',
     zone: 'Grille centrale',
     title: 'Lis les indices',
     description: "Les 4 mots autour de la grille sont les indices du créateur. Ils t'indiquent quelle carte va dans quel emplacement — et dans quel sens !",
   },
   {
-    anchor: 'center',
-    zone: 'Bouton ↻',
-    title: 'Oriente les cartes',
-    description: "Appuie sur ↻ pour tourner une carte. Le mot de la carte doit pointer dans la bonne direction pour correspondre à l'indice de ce côté.",
+    anchor: 'tray-right',
+    target: '.play-tray-drawer',
+    zone: 'Plateau de cartes',
+    title: 'Glisse et oriente les cartes',
+    description: "Glisse les cartes depuis le plateau vers les 4 emplacements. Chaque carte a un mot sur chacune de ses faces — tourne-la (↻) pour que les mots pointent vers les bons indices. L'orientation compte autant que la position.",
   },
   {
     anchor: 'footer-center',
-    zone: '↓ Bouton Soumettre',
+    target: '.play-submit-btn',
+    zone: 'Bouton Soumettre',
     title: 'Soumets et observe',
-    description: "Une fois tes 4 cartes placées, soumets ta réponse. Tu as 3 essais. Après chaque essai : ✓ bien placée, ↻ mal orientée, ✗ mauvaise carte.",
+    description: "Tu as 3 essais. Après chaque tentative : vert = bon emplacement et bonne orientation · orange = bonne orientation, mauvais emplacement · rouge = ni l'un ni l'autre.",
   },
 ]
 import CloverGrid from '../../components/game/CloverGrid'

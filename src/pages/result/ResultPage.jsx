@@ -171,42 +171,8 @@ export default function ResultPage() {
       <Header />
       <main className="result-main">
 
-        {/* ── Colonne 1 — Messages & Commentaires ── */}
-        <div className="result-col result-col--messages">
-          <div className="result-section-title">💬 Messages</div>
-
-          {!commentSent && play ? (
-            <div className="result-comment">
-              <textarea className="comment-input"
-                placeholder="Laisser un message aux autres joueurs…"
-                value={comment} onChange={e => setComment(e.target.value)}
-                rows={3} maxLength={280} />
-              <button className="result-comment-btn" onClick={handleCommentSubmit} disabled={!comment.trim()}>
-                Envoyer
-              </button>
-            </div>
-          ) : commentSent ? (
-            <p className="result-comment-sent">Message envoyé ✓</p>
-          ) : null}
-
-          {comments.length > 0 ? (
-            <ul className="comments-list">
-              {comments.map((c, i) => (
-                <motion.li key={i} className="comment-item"
-                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}>
-                  <span className="comment-pseudo">{c.orienta_users?.pseudo ?? '?'}</span>
-                  <p className="comment-text">{c.comment}</p>
-                </motion.li>
-              ))}
-            </ul>
-          ) : (
-            <p className="result-empty-state">Sois le premier à laisser un message !</p>
-          )}
-        </div>
-
-        {/* ── Colonne 2 — Score & Classement ── */}
-        <div className="result-col result-col--score">
+        {/* ── Colonne principale — Score + Partage + Solution ── */}
+        <div className="result-col result-col--primary">
           <motion.div className="result-card"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -242,47 +208,12 @@ export default function ResultPage() {
             ) : (
               <div className="result-xp">+{xp} XP pour la participation</div>
             )}
-
-            <button className="result-share-btn" onClick={copyChallenge} type="button">
-              {copied ? '✓ Copié !' : success ? '🍀 Défier mes collègues' : '🍀 Partager cette grille'}
-            </button>
           </motion.div>
 
-          {leaderboard.length > 0 && (
-            <div className="result-leaderboard">
-              <h2>Top 5</h2>
-              <ol className="leaderboard-list">
-                {leaderboard.map((row, i) => {
-                  const isMe = row.orienta_users?.pseudo === user?.pseudo
-                  return (
-                    <motion.li key={i}
-                      className={`leaderboard-row ${isMe ? 'leaderboard-row--me' : ''}`}
-                      initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 + i * 0.06 }}>
-                      <span className="leaderboard-rank">#{i + 1}</span>
-                      <span className="leaderboard-name">{row.orienta_users?.pseudo ?? '?'}</span>
-                      <span className="leaderboard-score">{row.score} pts</span>
-                    </motion.li>
-                  )
-                })}
-              </ol>
+          <button className="result-share-btn" onClick={copyChallenge} type="button">
+            {copied ? '✓ Copié !' : success ? '🍀 Défier mes collègues' : '🍀 Partager cette grille'}
+          </button>
 
-              {success && playerRank && !playerInTop5 && (
-                <>
-                  <div className="leaderboard-separator">···</div>
-                  <div className="leaderboard-row leaderboard-row--me">
-                    <span className="leaderboard-rank">#{playerRank}</span>
-                    <span className="leaderboard-name">{user?.pseudo}</span>
-                    <span className="leaderboard-score">{score} pts</span>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* ── Colonne 3 — Feedback & Solution ── */}
-        <div className="result-col result-col--feedback">
           {grid && (
             <div className="result-feedback-panel">
               <div className="result-feedback-tabs">
@@ -363,6 +294,74 @@ export default function ResultPage() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* ── Colonne secondaire — Classement + Messages ── */}
+        <div className="result-col result-col--secondary">
+          {leaderboard.length > 0 && (
+            <div className="result-leaderboard">
+              <h2>Top 5</h2>
+              <ol className="leaderboard-list">
+                {leaderboard.map((row, i) => {
+                  const isMe = row.orienta_users?.pseudo === user?.pseudo
+                  return (
+                    <motion.li key={i}
+                      className={`leaderboard-row ${isMe ? 'leaderboard-row--me' : ''}`}
+                      initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 + i * 0.06 }}>
+                      <span className="leaderboard-rank">#{i + 1}</span>
+                      <span className="leaderboard-name">{row.orienta_users?.pseudo ?? '?'}</span>
+                      <span className="leaderboard-score">{row.score} pts</span>
+                    </motion.li>
+                  )
+                })}
+              </ol>
+
+              {success && playerRank && !playerInTop5 && (
+                <>
+                  <div className="leaderboard-separator">···</div>
+                  <div className="leaderboard-row leaderboard-row--me">
+                    <span className="leaderboard-rank">#{playerRank}</span>
+                    <span className="leaderboard-name">{user?.pseudo}</span>
+                    <span className="leaderboard-score">{score} pts</span>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          <div className="result-messages">
+            <div className="result-section-title">💬 Messages</div>
+
+            {!commentSent && play ? (
+              <div className="result-comment">
+                <textarea className="comment-input"
+                  placeholder="Laisser un message aux autres joueurs…"
+                  value={comment} onChange={e => setComment(e.target.value)}
+                  rows={3} maxLength={280} />
+                <button className="result-comment-btn" onClick={handleCommentSubmit} disabled={!comment.trim()}>
+                  Envoyer
+                </button>
+              </div>
+            ) : commentSent ? (
+              <p className="result-comment-sent">Message envoyé ✓</p>
+            ) : null}
+
+            {comments.length > 0 ? (
+              <ul className="comments-list">
+                {comments.map((c, i) => (
+                  <motion.li key={i} className="comment-item"
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}>
+                    <span className="comment-pseudo">{c.orienta_users?.pseudo ?? '?'}</span>
+                    <p className="comment-text">{c.comment}</p>
+                  </motion.li>
+                ))}
+              </ul>
+            ) : (
+              <p className="result-empty-state">Sois le premier à laisser un message !</p>
+            )}
+          </div>
         </div>
 
       </main>
