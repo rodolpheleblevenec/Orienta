@@ -41,6 +41,7 @@ export default function HubPage() {
   const [loading, setLoading] = useState(true)
   const [dailyGrids, setDailyGrids] = useState([])
   const [showAllCommunity, setShowAllCommunity] = useState(false)
+  const [livePlayStats, setLivePlayStats] = useState(null)
 
   useEffect(() => {
     if (!user) return
@@ -98,6 +99,29 @@ export default function HubPage() {
 
   const utcToday = new Date().toISOString().split('T')[0]
   const todayDaily = dailyGrids.find(g => g.daily_date === utcToday)
+
+  useEffect(() => {
+    if (!todayDaily?.id) return
+
+    const plays = todayDaily.orienta_plays ?? []
+    setLivePlayStats({ total: plays.length, successful: plays.filter(p => p.success).length })
+
+    const channel = supabase
+      .channel(`daily-plays-${todayDaily.id}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'orienta_plays', filter: `grid_id=eq.${todayDaily.id}` },
+        async () => {
+          const { data } = await supabase
+            .from('orienta_plays')
+            .select('success')
+            .eq('grid_id', todayDaily.id)
+          if (data) setLivePlayStats({ total: data.length, successful: data.filter(p => p.success).length })
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [todayDaily?.id])
   const archiveDailies = dailyGrids.filter(g => g.daily_date !== utcToday)
 
   const dailyTop3 = todayDaily
@@ -138,8 +162,8 @@ export default function HubPage() {
   const visibleGroups = showAllCommunity ? communityGroups : recentGroups
 
   const dailyPlayInfo = todayDaily ? (playsMap.get(todayDaily.id) ?? null) : null
-  const totalDailyPlayers = todayDaily ? (todayDaily.orienta_plays ?? []).length : 0
-  const successfulDailyPlays = todayDaily ? (todayDaily.orienta_plays ?? []).filter(p => p.success).length : 0
+  const totalDailyPlayers = livePlayStats?.total ?? (todayDaily ? (todayDaily.orienta_plays ?? []).length : 0)
+  const successfulDailyPlays = livePlayStats?.successful ?? (todayDaily ? (todayDaily.orienta_plays ?? []).filter(p => p.success).length : 0)
   const dailySuccessRate = totalDailyPlayers > 0 ? Math.round((successfulDailyPlays / totalDailyPlayers) * 100) : null
 
   return (
@@ -190,11 +214,11 @@ export default function HubPage() {
                     <span className="hub-spill-v">{DIFF_LABEL[todayDaily.difficulty] ?? '—'}</span>
                   </div>
                   <div className="hub-spill">
-                    <span className="hub-spill-k">Joueurs</span>
+                    <span className="hub-spill-k hub-spill-k--live"><span className="hub-ldot" />Joueurs</span>
                     <span className="hub-spill-v">{totalDailyPlayers}</span>
                   </div>
                   <div className="hub-spill">
-                    <span className="hub-spill-k">Réussite</span>
+                    <span className="hub-spill-k hub-spill-k--live"><span className="hub-ldot" />Réussite</span>
                     <span className="hub-spill-v">{dailySuccessRate !== null ? `${dailySuccessRate}%` : '—'}</span>
                   </div>
                 </div>

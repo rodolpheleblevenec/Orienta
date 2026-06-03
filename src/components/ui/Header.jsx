@@ -8,7 +8,7 @@ import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 const ADMIN_PSEUDO = 'Rodolphe LE BLEVENEC'
 
 export default function Header() {
-  const { user, notifCount } = useAuthStore()
+  const { user, notifCount, logout } = useAuthStore()
   const [showStreakModal, setShowStreakModal] = useState(false)
   const [showNotifs, setShowNotifs] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
@@ -31,6 +31,14 @@ export default function Header() {
           <NavLink to="/hub"        className={({ isActive }) => `nlink${isActive ? ' nlink--active' : ''}`} onClick={() => setNavOpen(false)}>Hub</NavLink>
           <NavLink to="/classement" className={({ isActive }) => `nlink${isActive ? ' nlink--active' : ''}`} onClick={() => setNavOpen(false)}>Classement</NavLink>
           <NavLink to="/tutoriel"   className={({ isActive }) => `nlink${isActive ? ' nlink--active' : ''}`} onClick={() => setNavOpen(false)}>Tutoriel</NavLink>
+          <button className="nlink nlink-logout-mobile" type="button" onClick={() => { setNavOpen(false); logout() }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" style={{marginRight: '6px', flexShrink: 0}}>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Se déconnecter
+          </button>
         </nav>
 
         <span className="nav-spacer" />
@@ -65,6 +73,14 @@ export default function Header() {
           <span className="me-ava">{initial}</span>
           <span className="me-name">{user?.pseudo}</span>
         </Link>
+
+        <button className="icon-btn logout-btn" type="button" title="Se déconnecter" onClick={logout}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
 
         <button className="icon-btn burger-btn" type="button" aria-label="Menu" onClick={() => setNavOpen(v => !v)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

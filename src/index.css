@@ -517,7 +517,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   flex-shrink: 0;
 }
 .brand-mark {
-  width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0;
+  width: 34px; height: 34px; border-radius: 6px; flex-shrink: 0;
 }
 
 .top-nav { display: flex; align-items: center; gap: 4px; }
@@ -570,6 +570,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .me-name { font-size: 14px; font-weight: 600; color: var(--ink); }
 
 .burger-btn { display: none; }
+.nlink-logout-mobile { display: none; }
 
 @media (max-width: 560px) {
   .topbar-in { padding: 11px 16px; gap: 8px; }
@@ -582,10 +583,17 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
     gap: 2px; z-index: 200;
   }
   .top-nav--open .nlink { padding: 12px 14px; }
-  .burger-btn  { display: flex; }
-  .me-name     { display: none; }
+  .nlink-logout-mobile {
+    display: flex; align-items: center;
+    margin-top: 4px; border-top: 1px solid var(--line); padding-top: 8px;
+    color: var(--red, #e05) !important; background: none; border-left: none; border-right: none; border-bottom: none;
+    cursor: pointer; width: 100%; text-align: left;
+  }
+  .logout-btn   { display: none; }
+  .burger-btn   { display: flex; }
+  .me-name      { display: none; }
   .topbar-divider { display: none; }
-  .streak-txt  { display: none; }
+  .streak-txt   { display: none; }
 }
 
 /* ── Hub v2 ──────────────────────────────────────── */
@@ -639,6 +647,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   min-width: 88px; flex: 1;
 }
 .hub-spill-k { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; }
+.hub-spill-k--live { display: inline-flex; align-items: center; gap: 5px; }
+.hub-spill-k--live .hub-ldot { width: 5px; height: 5px; flex-shrink: 0; }
 .hub-spill-v { font-family: var(--display); font-weight: 700; font-size: 18px; white-space: nowrap; color: var(--ink); }
 .hub-spill--teal { background: var(--teal-soft); }
 .hub-spill--teal .hub-spill-v { color: var(--teal-700); }
@@ -763,7 +773,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 
 /* Create block */
 .hub-create-block {
-  background: var(--card); border: 1.6px dashed rgba(10,158,132,0.4);
+  background: var(--card);
   border-radius: var(--r); padding: 28px 32px;
   display: flex; align-items: center; justify-content: space-between; gap: 22px;
   box-shadow: var(--shadow-xs);
@@ -773,14 +783,22 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .hub-create-desc  { font-size: 14.5px; color: var(--ink-2); }
 .hub-btn-create {
   display: inline-flex; align-items: center; gap: 10px;
-  background: var(--ink); color: #fff; border: none;
+  background: var(--teal); color: #fff; border: none;
   font-family: var(--display); font-size: 15px; font-weight: 700;
   padding: 14px 24px; border-radius: var(--r-pill); cursor: pointer;
   white-space: nowrap; transition: transform .15s, background .15s;
   text-decoration: none; flex-shrink: 0;
 }
-.hub-btn-create:hover { transform: translateY(-2px); background: var(--teal); }
+.hub-btn-create:hover { transform: translateY(-2px); background: var(--teal-700); }
 .hub-btn-create--disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+/* My created grid card */
+.hub-mycreated-left  { flex: 1; min-width: 0; }
+.hub-mycreated-stats { margin: 14px 0 0; }
+.hub-mycreated-right {
+  display: flex; flex-direction: column; gap: 10px;
+  align-items: stretch; flex-shrink: 0; min-width: 148px;
+}
 
 /* Community section header */
 .hub-sec-head {
@@ -812,6 +830,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   .hub-ghost-link { text-align: center; }
   .hub-create-block { flex-direction: column; align-items: flex-start; }
   .hub-btn-create { width: 100%; justify-content: center; }
+  .hub-mycreated-right { width: 100%; }
   .hub-rank-head { flex-direction: column; gap: 8px; }
 }
 

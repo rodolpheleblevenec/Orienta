@@ -22,7 +22,6 @@ export const useAuthStore = create((set, get) => ({
     set({ user: data ?? null, loading: false })
     if (data) {
       get().fetchNotifCount(data.id)
-      get().checkStreakDanger()
       if (!data.tutorial_modal_done) set({ tutorialOpen: true })
     }
   },
@@ -41,7 +40,6 @@ export const useAuthStore = create((set, get) => ({
       localStorage.setItem(STORAGE_KEY, existing.id)
       set({ user: existing })
       get().fetchNotifCount(existing.id)
-      get().checkStreakDanger()
       if (!existing.tutorial_modal_done) set({ tutorialOpen: true })
       return { user: existing, isNew: false }
     }
@@ -84,32 +82,6 @@ export const useAuthStore = create((set, get) => ({
       .eq('user_id', id)
       .eq('read', false)
     set({ notifCount: count ?? 0 })
-  },
-
-  checkStreakDanger: async () => {
-    const { user } = get()
-    if (!user?.last_played_at || !user?.streak_current) return
-
-    const yesterday = new Date(Date.now() - 86400000).toDateString()
-    const lastPlayed = new Date(user.last_played_at).toDateString()
-    if (lastPlayed !== yesterday) return
-
-    const todayStart = new Date()
-    todayStart.setHours(0, 0, 0, 0)
-    const { count } = await supabase
-      .from('orienta_notifications')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .contains('payload', { type: 'streak_danger' })
-      .gte('created_at', todayStart.toISOString())
-    if ((count ?? 0) > 0) return
-
-    await supabase.from('orienta_notifications').insert({
-      user_id: user.id,
-      type: 'streak_danger',
-      payload: { streak_current: user.streak_current },
-    })
-    get().fetchNotifCount()
   },
 
   markNotifsRead: async () => {

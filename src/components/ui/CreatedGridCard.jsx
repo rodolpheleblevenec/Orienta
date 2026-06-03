@@ -3,40 +3,6 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '../../stores/authStore'
 
-const IconClock = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="12" cy="12" r="10"></circle>
-    <path d="M12 6v6l4 2"></path>
-  </svg>
-)
-
-const IconStar = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-    <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 20.16 24.02 12 18.35 3.84 24.02 6.23 16.01 0 10.35 8.91 10.26"></polygon>
-  </svg>
-)
-
-const IconPeople = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-    <circle cx="12" cy="7" r="4"></circle>
-  </svg>
-)
-
-const IconChart = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <line x1="18" y1="20" x2="18" y2="10"></line>
-    <line x1="12" y1="20" x2="12" y2="4"></line>
-    <line x1="6" y1="20" x2="6" y2="14"></line>
-  </svg>
-)
-
-const ChevronIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-    <polyline points="9 18 15 12 9 6"></polyline>
-  </svg>
-)
-
 const DIFFICULTY_LABEL = { facile: 'Facile', moyen: 'Moyen', difficile: 'Difficile' }
 
 export default function CreatedGridCard({ grid, index }) {
@@ -49,7 +15,7 @@ export default function CreatedGridCard({ grid, index }) {
   const successRate = totalPlays > 0 ? Math.round((successPlays / totalPlays) * 100) : 0
   const avgAttempts = totalPlays > 0
     ? (plays.reduce((sum, p) => sum + (p.attempts_count ?? 0), 0) / totalPlays).toFixed(1)
-    : 0
+    : '—'
 
   function copyShareLink(e) {
     e.preventDefault()
@@ -66,49 +32,48 @@ export default function CreatedGridCard({ grid, index }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
-      className="created-grid-card-wrap"
+      className="hub-create-block hub-mycreated"
     >
-      <Link to={`/dashboard/${grid.id}`} className="card-v2">
-        <div className="card-v2-header" style={{ backgroundColor: '#287162' }}>
-          <div className="card-v2-name">Ma Grille</div>
-          <div className="card-v2-icon">
-            <ChevronIcon />
+      <div className="hub-mycreated-left">
+        <div className="hub-eyebrow" style={{ marginBottom: 8 }}>
+          <span className="hub-eyebrow-dot" /> Ma grille
+        </div>
+        <h3 className="hub-create-title">Ta grille du jour</h3>
+        <p className="hub-create-desc">Suis les stats en temps réel et partage-la à ta communauté.</p>
+        <div className="hub-stat-row hub-mycreated-stats">
+          <div className="hub-spill">
+            <span className="hub-spill-k">Joueurs</span>
+            <span className="hub-spill-v">{totalPlays}</span>
+          </div>
+          <div className="hub-spill hub-spill--teal">
+            <span className="hub-spill-k">Réussite</span>
+            <span className="hub-spill-v">{successRate}%</span>
+          </div>
+          <div className="hub-spill">
+            <span className="hub-spill-k">Essais moy.</span>
+            <span className="hub-spill-v">{avgAttempts}</span>
+          </div>
+          <div className="hub-spill">
+            <span className="hub-spill-k">Niveau</span>
+            <span className="hub-spill-v">{DIFFICULTY_LABEL[grid.difficulty] || '—'}</span>
           </div>
         </div>
-        <div className="card-v2-body">
-          <div className="card-v2-cell">
-            <div className="card-v2-cell-label">
-              <IconClock />
-              Essais moyens
-            </div>
-            <div className="card-v2-cell-value">{avgAttempts}</div>
-          </div>
-          <div className="card-v2-cell">
-            <div className="card-v2-cell-label">
-              <IconStar />
-              Niveau
-            </div>
-            <div className="card-v2-cell-value">{DIFFICULTY_LABEL[grid.difficulty] || '-'}</div>
-          </div>
-          <div className="card-v2-cell">
-            <div className="card-v2-cell-label">
-              <IconPeople />
-              Joueurs
-            </div>
-            <div className="card-v2-cell-value">{totalPlays}</div>
-          </div>
-          <div className="card-v2-cell">
-            <div className="card-v2-cell-label">
-              <IconChart />
-              Réussi
-            </div>
-            <div className="card-v2-cell-value">{successRate}%</div>
-          </div>
-        </div>
-      </Link>
-      <button className="created-grid-share-btn" onClick={copyShareLink} type="button">
-        {copied ? '✓ Lien copié !' : '🍀 Partager ma grille'}
-      </button>
+      </div>
+
+      <div className="hub-mycreated-right">
+        <Link to={`/dashboard/${grid.id}`} className="hub-btn-create">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+          Dashboard
+        </Link>
+        <button className="created-grid-share-btn" onClick={copyShareLink} type="button">
+          {copied ? '✓ Lien copié !' : '🍀 Partager'}
+        </button>
+      </div>
     </motion.div>
   )
 }

@@ -25,6 +25,7 @@ export default function NotificationsPanel({ onClose }) {
       .from('orienta_notifications')
       .select('*')
       .eq('user_id', user.id)
+      .neq('type', 'streak_danger')
       .order('created_at', { ascending: false })
       .limit(30)
       .then(({ data }) => {
@@ -71,10 +72,6 @@ export default function NotificationsPanel({ onClose }) {
                   } else if (type === 'play') {
                     icon = n.payload.success ? '🎉' : '🎮'
                     text = <><strong>{n.payload.player_pseudo ?? 'Quelqu\'un'}</strong> {n.payload.success ? 'a réussi' : 'a joué'} ta grille</>
-                  } else if (type === 'streak_danger') {
-                    icon = '🔥'
-                    text = <>Ton streak de <strong>{n.payload.streak_current} jour{n.payload.streak_current > 1 ? 's' : ''}</strong> est en danger !</>
-                    link = null
                   } else {
                     text = <><strong>{n.payload?.player_pseudo ?? 'Quelqu\'un'}</strong> a commenté ta grille</>
                     comment = n.payload?.comment

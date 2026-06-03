@@ -13,31 +13,34 @@ export default function StreakModal({ onClose }) {
 
         <div className="streak-modal-content">
           <div className="streak-section">
-            <h3>Comment ça marche ?</h3>
+            <h3>C'est quoi un streak ?</h3>
             <p>
-              Votre streak représente le nombre de jours consécutifs où vous vous êtes connecté ET avez créé une grille.
+              Votre streak, c'est le nombre de jours consécutifs où vous avez <strong>joué une grille</strong>.
+              Chaque jour joué fait monter votre streak. Un jour sans jouer le remet à zéro.
             </p>
           </div>
 
           <div className="streak-section">
-            <h3>Maintenir votre streak</h3>
+            <h3>Bonus XP streak</h3>
+            <p>
+              À chaque grille réussie, votre streak vous rapporte des XP supplémentaires :
+            </p>
             <ul className="streak-list">
-              <li>✓ Connectez-vous tous les jours</li>
-              <li>✓ Créez une grille chaque jour</li>
-              <li>→ Votre streak augmente de 1 jour</li>
+              <li>+2 XP par jour de streak</li>
+              <li>Plafonné à +30 XP maximum (15 jours et plus)</li>
             </ul>
           </div>
 
           <div className="streak-section">
-            <h3>Coefficient multiplicateur</h3>
+            <h3>La grâce du week-end</h3>
             <p>
-              Plus votre streak est élevé, plus vous gagnez d'XP ! Chaque jour de streak augmente votre coefficient multiplicateur.
+              Pas de stress le samedi et dimanche : si vous jouez le vendredi et de nouveau le lundi, votre streak continue comme si de rien n'était.
             </p>
           </div>
 
           <div className="streak-section highlight">
             <p>
-              💡 Gardez votre streak actif pour maximiser vos gains d'expérience !
+              💡 Jouez chaque jour pour faire grimper votre streak et maximiser vos gains d'XP !
             </p>
           </div>
         </div>
