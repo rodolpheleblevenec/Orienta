@@ -36,7 +36,7 @@ function buildMonthCells(year, month) {
 }
 
 async function fetchCardPool() {
-  const { data } = await supabase.from('orienta_word_cards').select('*').limit(200)
+  const { data } = await supabase.from('orienta_word_cards').select('*').limit(1000)
   return data ?? []
 }
 

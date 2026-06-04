@@ -168,7 +168,7 @@ export default function CreatePage() {
 
   useEffect(() => {
     if (phase !== 'placement' || !difficulty) return
-    supabase.from('orienta_word_cards').select('*').limit(200)
+    supabase.from('orienta_word_cards').select('*').limit(1000)
       .then(({ data }) => {
         if (!data) return
         const cardCount = difficulty === 'difficile' ? 5 : 4
