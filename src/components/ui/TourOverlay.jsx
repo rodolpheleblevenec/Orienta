@@ -24,6 +24,9 @@ export default function TourOverlay({ steps, onDone }) {
         const el = document.querySelector(sel)
         if (!el) continue
         const r = el.getBoundingClientRect()
+        // Ignore les éléments masqués (ex. variantes desktop/mobile en display:none) :
+        // ils renverraient un rect 0×0 qui créerait un highlight fantôme et fausserait le centrage.
+        if (r.width === 0 || r.height === 0) continue
         rs.push({
           top: r.top - PADDING,
           left: r.left - PADDING,

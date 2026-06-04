@@ -35,8 +35,12 @@ const CREATE_PLACEMENT_STEPS = [
 
 const CREATE_CLUES_STEPS = [
   {
-    anchor: 'center',
-    target: '.play-grid-area',
+    anchor: 'targets-center',
+    targets: [
+      '.clue-input--top', '.clue-input--bottom',
+      '.clue-input--left', '.clue-input--right',         // desktop
+      '.clue-side-btn--left', '.clue-side-btn--right',   // mobile
+    ],
     zone: 'Grille et indices',
     title: 'Écris tes 4 indices',
     description: "Un indice par bord de la grille. Il doit relier les deux mots qui se font face — les deux en même temps, pas juste l'un des deux.",
