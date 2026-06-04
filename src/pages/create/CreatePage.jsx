@@ -8,6 +8,7 @@ import { motion } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
+import { sample } from '../../lib/shuffle'
 import Header from '../../components/ui/Header'
 import TourOverlay from '../../components/ui/TourOverlay'
 
@@ -172,12 +173,7 @@ export default function CreatePage() {
       .then(({ data }) => {
         if (!data) return
         const cardCount = difficulty === 'difficile' ? 5 : 4
-        const arr = [...data]
-        for (let i = arr.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [arr[i], arr[j]] = [arr[j], arr[i]]
-        }
-        const shuffled = arr.slice(0, cardCount)
+        const shuffled = sample(data, cardCount)
         setTrayCards(shuffled.map((card, i) => ({ card, rotation: 0, colorIndex: i })))
       })
   }, [phase, difficulty])

@@ -4,6 +4,7 @@ import { DndContext, closestCorners, PointerSensor, TouchSensor, useSensor, useS
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import { getAdminSecret, clearAdminSecret } from '../../lib/adminSecret'
+import { sample } from '../../lib/shuffle'
 import Header from '../../components/ui/Header'
 import CloverWithInputs from '../../components/game/CloverWithInputs'
 import SuggestionsAdmin from './SuggestionsAdmin'
@@ -139,9 +140,8 @@ export default function DailyAdminPage() {
     } else {
       setEditingGrid(null)
       setClues({ top: '', right: '', bottom: '', left: '' })
-      const shuffled = [...pool].sort(() => Math.random() - 0.5)
       const p = {}
-      shuffled.slice(0, 4).forEach((card, i) => { p[i] = { card, rotation: 0, colorIndex: i } })
+      sample(pool, 4).forEach((card, i) => { p[i] = { card, rotation: 0, colorIndex: i } })
       setPlacements(p)
     }
   }
@@ -149,9 +149,8 @@ export default function DailyAdminPage() {
   async function handleRefreshAll() {
     setIsRefreshing(true)
     const pool = cardPool.length ? cardPool : await fetchCardPool().then(p => { setCardPool(p); return p })
-    const shuffled = [...pool].sort(() => Math.random() - 0.5)
     const p = {}
-    shuffled.slice(0, 4).forEach((card, i) => { p[i] = { card, rotation: 0, colorIndex: i } })
+    sample(pool, 4).forEach((card, i) => { p[i] = { card, rotation: 0, colorIndex: i } })
     setPlacements(p)
     setClues({ top: '', right: '', bottom: '', left: '' })
     setIsRefreshing(false)

@@ -7,6 +7,7 @@ import {
 } from '@dnd-kit/core'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
+import { shuffle } from '../../lib/shuffle'
 import Header from '../../components/ui/Header'
 import StaticMiniGrid from '../../components/ui/StaticMiniGrid'
 import TourOverlay from '../../components/ui/TourOverlay'
@@ -178,13 +179,8 @@ export default function PlayPage() {
         return
       }
 
-      const arr = [...(data.cards ?? [])]
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]]
-      }
       const ROTATIONS = [0, 90, 180, 270]
-      const shuffled = arr.map((card, i) => ({
+      const shuffled = shuffle(data.cards ?? []).map((card, i) => ({
         card,
         rotation: ROTATIONS[Math.floor(Math.random() * 4)],
         colorIndex: i,
@@ -246,11 +242,7 @@ export default function PlayPage() {
 
   // Mode rejeu : relance une partie neuve avec les mêmes cartes, rebattues.
   function restartReplay() {
-    const all = [...trayCards, ...Object.values(placements).filter(Boolean)]
-    for (let i = all.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [all[i], all[j]] = [all[j], all[i]]
-    }
+    const all = shuffle([...trayCards, ...Object.values(placements).filter(Boolean)])
     const ROTATIONS = [0, 90, 180, 270]
     setTrayCards(all.map((it, i) => ({
       card: it.card,
