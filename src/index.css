@@ -274,6 +274,22 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .streak-section.highlight { background: var(--teal-soft); border: 1.5px solid rgba(10,158,132,0.25); }
 .streak-modal-btn      { width: 100%; margin-top: 8px; }
 
+/* ── Admin Password Modal ────────────────────────────── */
+.admin-pwd-backdrop { position: fixed; inset: 0; background: rgba(28,33,40,0.45); display: flex; align-items: center; justify-content: center; z-index: 1001; padding: 16px; }
+.admin-pwd-modal    { background: var(--card); border-radius: var(--r); padding: 24px; max-width: 360px; width: 100%; box-shadow: var(--shadow); }
+.admin-pwd-header   { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.admin-pwd-title    { margin: 0; font-family: var(--display); font-size: 17px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
+.admin-pwd-close    { background: transparent; border: none; font-size: 18px; cursor: pointer; color: var(--ink-3); padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: var(--r-sm); transition: background 0.15s, color 0.15s; }
+.admin-pwd-close:hover    { background: var(--bg-tint); color: var(--ink); }
+.admin-pwd-close:disabled { opacity: 0.4; cursor: not-allowed; }
+.admin-pwd-desc     { margin: 0 0 16px 0; font-size: 13px; color: var(--ink-2); line-height: 1.5; }
+.admin-pwd-input    { width: 100%; box-sizing: border-box; padding: 11px 14px; font-size: 14px; color: var(--ink); background: var(--bg-tint); border: 1.5px solid transparent; border-radius: var(--r-sm); outline: none; transition: border-color 0.15s, background 0.15s; }
+.admin-pwd-input:focus    { border-color: var(--teal); background: var(--card); }
+.admin-pwd-input:disabled { opacity: 0.6; cursor: not-allowed; }
+.admin-pwd-error    { margin: 10px 0 0 0; font-size: 13px; color: #d64545; font-weight: 600; }
+.admin-pwd-actions  { display: flex; gap: 8px; margin-top: 20px; }
+.admin-pwd-actions button { flex: 1; }
+
 /* ── Login v3 ────────────────────────────────────── */
 .login-page {
   min-height: 100dvh;
@@ -4042,4 +4058,63 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 }
 @media (max-width: 640px) {
   .stats-panel { padding: 16px 14px; border-radius: 0; }
+}
+
+/* ── Stats : sous-onglets ── */
+.stats-subtabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+.stats-subtab {
+  padding: 7px 14px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--card); color: var(--ink-2); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.stats-subtab:hover { border-color: var(--accent); color: var(--accent); }
+.stats-subtab--active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ── Stats : note & spacer ── */
+.stats-note { font-size: 12px; color: var(--ink-3); line-height: 1.5; margin: -4px 2px 4px; }
+.stats-spacer { height: 18px; }
+
+/* ── Stats : tableau ── */
+.stats-table-wrap { overflow-x: auto; }
+.stats-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.stats-table th {
+  text-align: left; font-weight: 600; color: var(--ink-3); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.03em; padding: 6px 10px; border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.stats-table td { padding: 8px 10px; border-bottom: 1px solid var(--line-2); color: var(--ink); white-space: nowrap; }
+.stats-table tbody tr:hover { background: var(--bg-tint); }
+
+.stats-pct { font-weight: 700; }
+.stats-pct--ok  { color: #00A889; }
+.stats-pct--mid { color: #E89010; }
+.stats-pct--bad { color: var(--coral); }
+
+/* ── Stats : funnel ── */
+.stats-funnel { display: flex; flex-direction: column; gap: 12px; }
+.stats-funnel-row { display: grid; grid-template-columns: 140px 1fr 44px; align-items: center; gap: 10px; }
+.stats-funnel-label { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+.stats-funnel-track { background: var(--bg-tint); border-radius: 999px; height: 22px; overflow: hidden; }
+.stats-funnel-bar { height: 100%; border-radius: 999px; min-width: 3px; transition: width 0.4s; }
+.stats-funnel-value { font-family: var(--display); font-weight: 800; color: var(--ink); text-align: right; }
+
+/* ── Stats : breakdown bar ── */
+.stats-breakdown-bar {
+  display: flex; height: 26px; border-radius: 8px; overflow: hidden; background: var(--bg-tint);
+}
+.stats-breakdown-seg { height: 100%; }
+
+/* ── Stats : couverture calendrier ── */
+.stats-coverage {
+  display: flex; align-items: center; gap: 14px; padding: 16px 18px;
+  background: var(--accent-dim); border: 1px solid var(--accent-border); border-radius: var(--r-sm);
+}
+.stats-coverage--warn { background: rgba(242, 96, 63, 0.08); border-color: rgba(242, 96, 63, 0.25); }
+.stats-coverage-icon { font-size: 24px; }
+.stats-coverage-text { display: flex; flex-direction: column; gap: 2px; }
+.stats-coverage-main { font-family: var(--display); font-size: 16px; color: var(--ink); }
+.stats-coverage-sub { font-size: 12px; color: var(--ink-2); }
+
+@media (max-width: 640px) {
+  .stats-funnel-row { grid-template-columns: 110px 1fr 36px; }
 }

@@ -31,9 +31,11 @@ async function sha256Hex(s: string): Promise<string> {
 
 // Opérations ADMIN — protégées par un secret serveur (hash SHA-256 stocké dans
 // orienta_admin_config), et NON par le pseudo client (trivialement contournable).
+//   - verify : confirme le secret (contrôle d'entrée admin)
+//   - get-stats : statistiques admin (KPIs + séries + packs)
 //   - save-daily-grid : créer/mettre à jour la grille du jour + ses cartes
 //   - delete-daily-grid : supprimer une grille du jour + ses cartes
-//   - set-suggestion-status : changer le statut d'une suggestion
+//   - list-suggestions / set-suggestion-status
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -66,25 +68,51 @@ serve(async (req) => {
   const { action } = body
 
   // ─── Vérification simple du secret (contrôle à l'entrée de l'admin) ───
-  // Le secret a déjà été validé par le garde-fou ci-dessus ; on confirme juste.
   if (action === 'verify') return json({ ok: true })
 
-  // ─── Statistiques admin (KPIs + séries journalières) ───
+  // ─── Statistiques admin (KPIs + séries journalières + packs détaillés) ───
   if (action === 'get-stats') {
-    const [usersRes, activeRes, gridsRes, playsRes] = await Promise.all([
-      supabase.from('orienta_users').select('created_at'),
+    const [usersRes, activeRes, gridsRes, playsRes, attemptsRes, upvotesRes, suggRes] = await Promise.all([
+      supabase.from('orienta_users').select('id, created_at, streak_current, streak_best, selected_skin, tutorial_modal_done'),
       supabase.from('orienta_daily_active').select('user_id, active_date'),
-      supabase.from('orienta_grids').select('created_at, daily_date'),
-      supabase.from('orienta_plays').select('success'),
+      supabase.from('orienta_grids').select('id, created_at, daily_date, upvotes_count, edition_number, status'),
+      supabase.from('orienta_plays').select('id, grid_id, player_id, started_at, completed_at, time_seconds, attempts_count, success, comment'),
+      supabase.from('orienta_play_attempts').select('correct_full, correct_rotation, neither'),
+      supabase.from('orienta_grid_upvotes').select('created_at'),
+      supabase.from('orienta_suggestions').select('created_at, status'),
     ])
     const users = usersRes.data ?? []
     const active = activeRes.data ?? []
     const grids = gridsRes.data ?? []
     const plays = playsRes.data ?? []
+    const attempts = attemptsRes.data ?? []
+    const upvotes = upvotesRes.data ?? []
+    const suggestions = suggRes.data ?? []
 
-    // Jour 'YYYY-MM-DD' aussi bien pour un timestamp ('2026-06-04 13:33:..') qu'une date.
-    const dayOf = (v: string) => String(v).slice(0, 10)
+    // ── helpers ──
+    const dayOf = (v: string) => String(v).slice(0, 10) // 'YYYY-MM-DD' (timestamp ou date)
+    const today = new Date().toISOString().slice(0, 10)
+    const addDays = (iso: string, n: number) =>
+      new Date(Date.parse(iso + 'T00:00:00Z') + n * 86400000).toISOString().slice(0, 10)
+    const median = (arr: number[]) => {
+      if (!arr.length) return 0
+      const s = [...arr].sort((a, b) => a - b)
+      const m = Math.floor(s.length / 2)
+      return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2)
+    }
+    // Comble les jours manquants d'une série (du 1er jour connu à aujourd'hui).
+    const fillSeries = <T extends { date: string }>(entries: T[], makeEmpty: (d: string) => T): T[] => {
+      if (!entries.length) return []
+      const byDate = new Map(entries.map(e => [e.date, e]))
+      const out: T[] = []
+      for (let t = Date.parse(entries[0].date + 'T00:00:00Z'); t <= Date.parse(today + 'T00:00:00Z'); t += 86400000) {
+        const d = new Date(t).toISOString().slice(0, 10)
+        out.push(byDate.get(d) ?? makeEmpty(d))
+      }
+      return out
+    }
 
+    // ===== Vue d'ensemble : série activité + KPIs =====
     type Day = { date: string; active: number; new_users: number; grids_daily: number; grids_community: number }
     const map = new Map<string, Day>()
     const ensure = (d: string): Day => {
@@ -92,7 +120,6 @@ serve(async (req) => {
       if (!row) { row = { date: d, active: 0, new_users: 0, grids_daily: 0, grids_community: 0 }; map.set(d, row) }
       return row
     }
-
     for (const u of users) if (u.created_at) ensure(dayOf(u.created_at)).new_users++
     for (const a of active) if (a.active_date) ensure(dayOf(a.active_date)).active++
     for (const g of grids) {
@@ -100,20 +127,12 @@ serve(async (req) => {
       const row = ensure(dayOf(g.created_at))
       if (g.daily_date) row.grids_daily++; else row.grids_community++
     }
+    const series = fillSeries(
+      [...map.values()].sort((a, b) => (a.date < b.date ? -1 : 1)),
+      (d) => ({ date: d, active: 0, new_users: 0, grids_daily: 0, grids_community: 0 }),
+    )
 
-    // Série continue du 1er jour connu jusqu'à aujourd'hui (jours sans activité = 0).
-    const today = new Date().toISOString().slice(0, 10)
-    const keys = [...map.keys()].sort()
-    const series: Day[] = []
-    if (keys.length) {
-      const empty = (d: string): Day => ({ date: d, active: 0, new_users: 0, grids_daily: 0, grids_community: 0 })
-      for (let t = Date.parse(keys[0] + 'T00:00:00Z'); t <= Date.parse(today + 'T00:00:00Z'); t += 86400000) {
-        const d = new Date(t).toISOString().slice(0, 10)
-        series.push(map.get(d) ?? empty(d))
-      }
-    }
-
-    const weekAgo = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10)
+    const weekAgo = addDays(today, -6)
     const active7d = new Set(active.filter(a => a.active_date && dayOf(a.active_date) >= weekAgo).map(a => a.user_id)).size
     const successPlays = plays.filter(p => p.success).length
     const kpis = {
@@ -124,7 +143,140 @@ serve(async (req) => {
       success_rate: plays.length ? Math.round((100 * successPlays) / plays.length) : 0,
     }
 
-    return json({ kpis, series })
+    // ===== Pack 1 : difficulté & grilles =====
+    const playsByGrid = new Map<string, typeof plays>()
+    for (const p of plays) {
+      if (!p.grid_id) continue
+      if (!playsByGrid.has(p.grid_id)) playsByGrid.set(p.grid_id, [])
+      playsByGrid.get(p.grid_id)!.push(p)
+    }
+    const gridLabel = (g: typeof grids[number]) =>
+      g.daily_date ? dayOf(g.daily_date) : (g.edition_number ? `#${g.edition_number}` : 'Communauté')
+    const gridStats = (g: typeof grids[number]) => {
+      const ps = playsByGrid.get(g.id) ?? []
+      const total = ps.length
+      const succ = ps.filter(p => p.success).length
+      const abandoned = ps.filter(p => !p.completed_at).length
+      const times = ps.filter(p => p.completed_at && p.time_seconds != null).map(p => p.time_seconds as number)
+      const att = ps.filter(p => p.attempts_count != null).map(p => p.attempts_count as number)
+      return {
+        grid_id: g.id, label: gridLabel(g), date: g.daily_date ?? null,
+        players: total,
+        success_rate: total ? Math.round((100 * succ) / total) : 0,
+        median_time: median(times),
+        avg_attempts: att.length ? Math.round((10 * att.reduce((a, b) => a + b, 0)) / att.length) / 10 : 0,
+        abandon_rate: total ? Math.round((100 * abandoned) / total) : 0,
+      }
+    }
+    const grids_difficulty = grids
+      .filter(g => g.daily_date)
+      .sort((a, b) => (a.daily_date! < b.daily_date! ? 1 : -1))
+      .slice(0, 21)
+      .map(gridStats)
+
+    let eFull = 0, eRot = 0, eNeither = 0
+    for (const a of attempts) { eFull += a.correct_full || 0; eRot += a.correct_rotation || 0; eNeither += a.neither || 0 }
+    const error_breakdown = { full: eFull, rotation: eRot, neither: eNeither }
+
+    // ===== Pack 2 : rétention & engagement =====
+    const firstActive = new Map<string, string>()
+    const activeDatesByUser = new Map<string, Set<string>>()
+    for (const a of active) {
+      if (!a.user_id || !a.active_date) continue
+      const d = dayOf(a.active_date)
+      if (!activeDatesByUser.has(a.user_id)) activeDatesByUser.set(a.user_id, new Set())
+      activeDatesByUser.get(a.user_id)!.add(d)
+      if (!firstActive.has(a.user_id) || d < firstActive.get(a.user_id)!) firstActive.set(a.user_id, d)
+    }
+    let j1Elig = 0, j1Ret = 0, j7Elig = 0, j7Ret = 0
+    for (const [uid, first] of firstActive) {
+      const set = activeDatesByUser.get(uid)!
+      if (addDays(first, 1) <= today) { j1Elig++; if (set.has(addDays(first, 1))) j1Ret++ }
+      if (addDays(first, 7) <= today) { j7Elig++; if (set.has(addDays(first, 7))) j7Ret++ }
+    }
+    const dau = new Set(active.filter(a => dayOf(a.active_date) === today).map(a => a.user_id)).size
+    const wau = active7d
+    const retention = {
+      j1: j1Elig ? Math.round((100 * j1Ret) / j1Elig) : null,
+      j7: j7Elig ? Math.round((100 * j7Ret) / j7Elig) : null,
+      j1_base: j1Elig, j7_base: j7Elig,
+      dau, wau, stickiness: wau ? Math.round((100 * dau) / wau) : 0,
+    }
+
+    const streakBucket = (s: number) => s >= 7 ? '7+ j' : s >= 4 ? '4-6 j' : s >= 2 ? '2-3 j' : s >= 1 ? '1 j' : '0 j'
+    const streakOrder = ['0 j', '1 j', '2-3 j', '4-6 j', '7+ j']
+    const streakCounts = new Map(streakOrder.map(l => [l, 0]))
+    for (const u of users) { const b = streakBucket(u.streak_current || 0); streakCounts.set(b, (streakCounts.get(b) || 0) + 1) }
+    const streak_buckets = streakOrder.map(label => ({ label, count: streakCounts.get(label) || 0 }))
+
+    const daysBucket = (n: number) => n >= 7 ? '7+ j' : n >= 5 ? '5-6 j' : n >= 3 ? '3-4 j' : n >= 2 ? '2 j' : '1 j'
+    const daysOrder = ['1 j', '2 j', '3-4 j', '5-6 j', '7+ j']
+    const daysCounts = new Map(daysOrder.map(l => [l, 0]))
+    for (const [, set] of activeDatesByUser) { const b = daysBucket(set.size); daysCounts.set(b, (daysCounts.get(b) || 0) + 1) }
+    const days_active_buckets = daysOrder.map(label => ({ label, count: daysCounts.get(label) || 0 }))
+
+    // ===== Pack 3 : onboarding & funnel =====
+    const playersSet = new Set(plays.filter(p => p.player_id).map(p => p.player_id))
+    const tutoDone = users.filter(u => u.tutorial_modal_done).length
+    const returned = [...activeDatesByUser.values()].filter(s => s.size >= 2).length
+    const funnel = [
+      { label: 'Inscrits', count: users.length },
+      { label: 'Tuto terminé', count: tutoDone },
+      { label: 'Ont joué', count: playersSet.size },
+      { label: 'Revenus (2 j+)', count: returned },
+    ]
+    const playDays = new Set<string>()
+    for (const p of plays) if (p.player_id && p.started_at) playDays.add(p.player_id + '|' + dayOf(p.started_at))
+    let playedSignup = 0
+    for (const u of users) if (playDays.has(u.id + '|' + dayOf(u.created_at))) playedSignup++
+    const played_signup_rate = users.length ? Math.round((100 * playedSignup) / users.length) : 0
+
+    // ===== Pack 4 : communauté & contenu =====
+    const futureFilled = new Set(grids.filter(g => g.daily_date && dayOf(g.daily_date) >= today).map(g => dayOf(g.daily_date)))
+    let runway = 0
+    while (futureFilled.has(addDays(today, runway))) runway++
+    const lastFilled = [...futureFilled].sort().pop() ?? null
+    const calendar_coverage = { runway, last_date: lastFilled, future_count: futureFilled.size, today }
+
+    const socialMap = new Map<string, { date: string; upvotes: number; comments: number }>()
+    const ensureSocial = (d: string) => {
+      let r = socialMap.get(d)
+      if (!r) { r = { date: d, upvotes: 0, comments: 0 }; socialMap.set(d, r) }
+      return r
+    }
+    for (const uv of upvotes) if (uv.created_at) ensureSocial(dayOf(uv.created_at)).upvotes++
+    for (const p of plays) if (p.comment && p.comment.trim()) ensureSocial(dayOf(p.completed_at ?? p.started_at)).comments++
+    const social_series = fillSeries(
+      [...socialMap.values()].sort((a, b) => (a.date < b.date ? -1 : 1)),
+      (d) => ({ date: d, upvotes: 0, comments: 0 }),
+    )
+
+    const top_grids = [...grids]
+      .sort((a, b) => (b.upvotes_count || 0) - (a.upvotes_count || 0))
+      .slice(0, 6)
+      .map(g => { const st = gridStats(g); return { label: gridLabel(g), date: g.daily_date ?? null, upvotes: g.upvotes_count || 0, success_rate: st.success_rate, players: st.players } })
+
+    const sugCounts = new Map(SUGGESTION_STATUSES.map(s => [s, 0]))
+    for (const s of suggestions) sugCounts.set(s.status, (sugCounts.get(s.status) || 0) + 1)
+    const suggestions_by_status = SUGGESTION_STATUSES.map(status => ({ status, count: sugCounts.get(status) || 0 }))
+    const sugSeriesMap = new Map<string, number>()
+    for (const s of suggestions) if (s.created_at) { const d = dayOf(s.created_at); sugSeriesMap.set(d, (sugSeriesMap.get(d) || 0) + 1) }
+    const suggestions_series = fillSeries(
+      [...sugSeriesMap.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1)).map(([date, count]) => ({ date, count })),
+      (d) => ({ date: d, count: 0 }),
+    )
+
+    const skinCounts = new Map<number, number>()
+    for (const u of users) { const s = u.selected_skin || 1; skinCounts.set(s, (skinCounts.get(s) || 0) + 1) }
+    const skins = [...skinCounts.entries()].sort((a, b) => a[0] - b[0]).map(([skin, count]) => ({ label: `Skin ${skin}`, skin, count }))
+
+    return json({
+      kpis, series,
+      grids_difficulty, error_breakdown,
+      retention, streak_buckets, days_active_buckets,
+      funnel, played_signup_rate,
+      calendar_coverage, social_series, top_grids, suggestions_by_status, suggestions_series, skins,
+    })
   }
 
   // ─── Liste des suggestions (lecture admin ; la table n'est plus lisible par anon) ───

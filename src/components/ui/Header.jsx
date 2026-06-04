@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { setAdminSecret } from '../../lib/adminSecret'
 import StreakModal from './StreakModal'
 import NotificationsPanel from './NotificationsPanel'
+import AdminPasswordModal from './AdminPasswordModal'
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 
 const ADMIN_PSEUDO = 'Rodolphe LE BLEVENEC'
@@ -15,25 +16,19 @@ export default function Header() {
   const [showStreakModal, setShowStreakModal] = useState(false)
   const [showNotifs, setShowNotifs] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
-  const [verifyingAdmin, setVerifyingAdmin] = useState(false)
+  const [showAdminModal, setShowAdminModal] = useState(false)
   useBodyScrollLock(showStreakModal || showNotifs)
 
-  // Contrôle du mot de passe admin AU CLIC sur la roue crantée : on vérifie le
-  // secret côté serveur, et on n'ouvre l'interface que s'il est correct.
-  async function openAdmin() {
-    if (verifyingAdmin) return
-    const secret = window.prompt('Mot de passe administrateur :')
-    if (!secret) return
-    setVerifyingAdmin(true)
+  // Contrôle du mot de passe admin AU CLIC sur la roue crantée : la modal appelle
+  // verifyAdminSecret, qui valide le secret côté serveur. L'interface ne s'ouvre
+  // que si le mot de passe est correct.
+  async function verifyAdminSecret(secret) {
     const { data, error } = await supabase.functions.invoke('admin', {
       body: { admin_secret: secret, action: 'verify' },
     })
-    setVerifyingAdmin(false)
-    if (error || data?.error) {
-      alert('Mot de passe administrateur incorrect.')
-      return
-    }
+    if (error || data?.error) return 'Mot de passe incorrect.'
     setAdminSecret(secret)
+    setShowAdminModal(false)
     navigate('/admin/daily')
   }
 
@@ -82,7 +77,7 @@ export default function Header() {
         </button>
 
         {isAdmin && (
-          <button className="icon-btn" type="button" title="Administration" onClick={openAdmin} disabled={verifyingAdmin}>
+          <button className="icon-btn" type="button" title="Administration" onClick={() => setShowAdminModal(true)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="3"/>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -117,6 +112,7 @@ export default function Header() {
     </header>
     {showStreakModal && <StreakModal onClose={() => setShowStreakModal(false)} />}
     {showNotifs && <NotificationsPanel onClose={() => setShowNotifs(false)} />}
+    {showAdminModal && <AdminPasswordModal onClose={() => setShowAdminModal(false)} onSubmit={verifyAdminSecret} />}
     </>
   )
 }
