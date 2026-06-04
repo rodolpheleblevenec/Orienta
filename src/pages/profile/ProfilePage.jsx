@@ -16,6 +16,9 @@ export default function ProfilePage() {
   const [createdGrids, setCreatedGrids] = useState([])
   const [collectiveLevel, setCollectiveLevel] = useState(1)
   const [selectedSkin, setSelectedSkin] = useState(user?.selected_skin ?? 1)
+  const [suggestion, setSuggestion] = useState('')
+  const [suggestionSending, setSuggestionSending] = useState(false)
+  const [suggestionSent, setSuggestionSent] = useState(false)
 
   useEffect(() => {
     if (user?.selected_skin != null) setSelectedSkin(user.selected_skin)
@@ -59,6 +62,20 @@ export default function ProfilePage() {
     await supabase.from('orienta_users').update({ selected_skin: level }).eq('id', user.id)
     await refreshUser()
     setSelectedSkin(level)
+  }
+
+  const handleSendSuggestion = async () => {
+    const content = suggestion.trim()
+    if (!content || suggestionSending) return
+    setSuggestionSending(true)
+    await supabase.from('orienta_suggestions').insert({
+      user_id: user.id,
+      pseudo: user.pseudo,
+      content,
+    })
+    setSuggestionSending(false)
+    setSuggestionSent(true)
+    setSuggestion('')
   }
 
   const userLevelProgress = getLevelProgress(user.xp)
@@ -191,6 +208,52 @@ export default function ProfilePage() {
                   )
                 })}
               </div>
+            </section>
+
+            <section className="profile-section">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
+                <h2 style={{ marginBottom: 0 }}>💡 Boîte à idées</h2>
+              </div>
+              <p style={{ fontSize: '13px', color: 'var(--ink-3)', marginBottom: '12px' }}>
+                Une idée pour améliorer le jeu ? Un bug, une envie, une suggestion ? Partage-la ici, je lis tout !
+              </p>
+
+              {suggestionSent ? (
+                <div className="suggestion-sent">
+                  <span className="suggestion-sent-icon">✅</span>
+                  <div>
+                    <p className="suggestion-sent-title">Merci, ton idée a bien été envoyée !</p>
+                    <button
+                      type="button"
+                      className="suggestion-again"
+                      onClick={() => setSuggestionSent(false)}
+                    >
+                      Proposer une autre idée
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="suggestion-box">
+                  <textarea
+                    className="suggestion-textarea"
+                    value={suggestion}
+                    onChange={e => setSuggestion(e.target.value.slice(0, 1000))}
+                    placeholder="Écris ton idée ici…"
+                    rows={4}
+                  />
+                  <div className="suggestion-footer">
+                    <span className="suggestion-count">{suggestion.length}/1000</span>
+                    <button
+                      type="button"
+                      className="btn-primary suggestion-send"
+                      onClick={handleSendSuggestion}
+                      disabled={!suggestion.trim() || suggestionSending}
+                    >
+                      {suggestionSending ? '…' : 'Envoyer'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </section>
           </>
         )}

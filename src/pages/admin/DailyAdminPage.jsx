@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import Header from '../../components/ui/Header'
 import CloverWithInputs from '../../components/game/CloverWithInputs'
+import SuggestionsAdmin from './SuggestionsAdmin'
 
 const ADMIN_PSEUDO = 'Rodolphe LE BLEVENEC'
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
@@ -48,6 +49,7 @@ export default function DailyAdminPage() {
   const { user } = useAuthStore()
   const navigate = useNavigate()
 
+  const [adminTab, setAdminTab] = useState('grilles')
   const today = isoToday()
   const [viewMonth, setViewMonth] = useState(() => {
     const d = new Date()
@@ -287,6 +289,23 @@ export default function DailyAdminPage() {
   return (
     <div className="admin-page">
       <Header />
+
+      <div className="admin-tabs">
+        {[['grilles', '📅 Grilles du jour'], ['idees', '💡 Boîte à idées']].map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            className={`admin-tab${adminTab === id ? ' admin-tab--active' : ''}`}
+            onClick={() => setAdminTab(id)}
+          >{label}</button>
+        ))}
+      </div>
+
+      {adminTab === 'idees' ? (
+        <main className="admin-main admin-main--single">
+          <SuggestionsAdmin />
+        </main>
+      ) : (
       <main className="admin-main">
 
         {/* ── Barre mobile : ouvre le calendrier ── */}
@@ -392,6 +411,7 @@ export default function DailyAdminPage() {
           )}
         </section>
       </main>
+      )}
     </div>
   )
 }

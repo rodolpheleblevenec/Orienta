@@ -75,6 +75,10 @@ export default function NotificationsPanel({ onClose }) {
                   } else if (type === 'upvote') {
                     icon = '👍'
                     text = <><strong>{n.payload?.player_pseudo ?? 'Quelqu\'un'}</strong> a recommandé ta grille</>
+                  } else if (type === 'suggestion') {
+                    icon = '💡'
+                    text = <><strong>{n.payload?.player_pseudo ?? 'Quelqu\'un'}</strong> a proposé une idée</>
+                    link = '/admin'
                   } else {
                     text = <><strong>{n.payload?.player_pseudo ?? 'Quelqu\'un'}</strong> a commenté ta grille</>
                     comment = n.payload?.comment
