@@ -28,30 +28,18 @@ export const useAuthStore = create((set, get) => ({
     const trimmed = pseudo.trim()
     if (!trimmed) return { error: 'Pseudo vide' }
 
-    const { data: existing } = await supabase
-      .from('orienta_users')
-      .select('*')
-      .eq('pseudo', trimmed)
-      .single()
-
-    if (existing) {
-      localStorage.setItem(STORAGE_KEY, existing.id)
-      set({ user: existing })
-      get().fetchNotifCount(existing.id)
-      return { user: existing, isNew: false }
+    // Get-or-create côté serveur (atomique) — le client n'écrit plus en base.
+    const { data, error } = await supabase.functions.invoke('account', {
+      body: { action: 'login', pseudo: trimmed },
+    })
+    if (error || !data || data.error || !data.user) {
+      return { error: 'Ce pseudo est déjà pris ou invalide.' }
     }
 
-    const { data: created, error } = await supabase
-      .from('orienta_users')
-      .insert({ pseudo: trimmed })
-      .select()
-      .single()
-
-    if (error) return { error: 'Ce pseudo est déjà pris ou invalide.' }
-
-    localStorage.setItem(STORAGE_KEY, created.id)
-    set({ user: created })
-    return { user: created, isNew: true }
+    localStorage.setItem(STORAGE_KEY, data.user.id)
+    set({ user: data.user })
+    get().fetchNotifCount(data.user.id)
+    return { user: data.user, isNew: data.isNew }
   },
 
   logout: () => {
@@ -84,18 +72,20 @@ export const useAuthStore = create((set, get) => ({
   markNotifsRead: async () => {
     const { user } = get()
     if (!user) return
-    await supabase
-      .from('orienta_notifications')
-      .update({ read: true })
-      .eq('user_id', user.id)
-      .eq('read', false)
     set({ notifCount: 0 })
+    const { data, error } = await supabase.functions.invoke('account', {
+      body: { action: 'notifs-read', user_id: user.id },
+    })
+    if (error || data?.error) get().fetchNotifCount(user.id) // resynchronise si échec
   },
 
   markTourDone: async (flag) => {
     const { user } = get()
     if (!user) return
-    await supabase.from('orienta_users').update({ [flag]: true }).eq('id', user.id)
     set({ user: { ...user, [flag]: true } })
+    const { data, error } = await supabase.functions.invoke('account', {
+      body: { action: 'flag', user_id: user.id, flag },
+    })
+    if (error || data?.error) get().refreshUser() // resynchronise si échec
   },
 }))

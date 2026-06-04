@@ -1,28 +1,35 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { useAuthStore } from '../../stores/authStore'
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 
 export default function ReplayModal({ playId, gridId, onClose }) {
   useBodyScrollLock()
+  const { user } = useAuthStore()
   const [grid, setGrid] = useState(null)
+  const [solutionCards, setSolutionCards] = useState([])
   const [attempts, setAttempts] = useState([])
   const [play, setPlay] = useState(null)
   const [selectedAttempt, setSelectedAttempt] = useState(null)
 
   useEffect(() => {
+    if (!user) return
     Promise.all([
-      supabase.from('orienta_grids').select('*, orienta_grid_cards(*, orienta_word_cards(*))').eq('id', gridId).single(),
+      supabase.from('orienta_grids').select('id, clue_top, clue_right, clue_bottom, clue_left').eq('id', gridId).single(),
       supabase.from('orienta_play_attempts').select('*').eq('play_id', playId).order('attempt_number'),
       supabase.from('orienta_plays').select('*').eq('id', playId).single(),
-    ]).then(([gridRes, attemptsRes, playRes]) => {
+      // Solution servie par get-solution (anti-triche ; orienta_grid_cards plus lue en direct)
+      supabase.functions.invoke('get-solution', { body: { grid_id: gridId, player_id: user.id } }),
+    ]).then(([gridRes, attemptsRes, playRes, solRes]) => {
       setGrid(gridRes.data)
+      setSolutionCards(solRes.data?.cards ?? [])
       setAttempts(attemptsRes.data ?? [])
       setPlay(playRes.data)
       if (attemptsRes.data?.length > 0) {
         setSelectedAttempt(attemptsRes.data[attemptsRes.data.length - 1])
       }
     })
-  }, [playId, gridId])
+  }, [playId, gridId, user])
 
   if (!grid || !selectedAttempt) {
     return (
@@ -34,7 +41,7 @@ export default function ReplayModal({ playId, gridId, onClose }) {
     )
   }
 
-  const gridCards = grid.orienta_grid_cards ?? []
+  const gridCards = solutionCards
 
   const cardMap = {}
   for (const gc of gridCards) {

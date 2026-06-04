@@ -11,30 +11,56 @@ export default function DashboardPage() {
   const { user } = useAuthStore()
   const [grid, setGrid] = useState(null)
   const [plays, setPlays] = useState([])
-  const [notOwner, setNotOwner] = useState(false)
+  const [solutionCards, setSolutionCards] = useState([])
+  const [denied, setDenied] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!user) return
-    supabase.from('orienta_grids').select('*, orienta_grid_cards(*, orienta_word_cards(*))').eq('id', gridId).single()
-      .then(async ({ data: g }) => {
-        if (!g) { setLoading(false); return }
-        if (g.creator_id !== user.id) { setNotOwner(true); setLoading(false); return }
-        setGrid(g)
+    let cancelled = false
 
-        const { data: playsData } = await supabase
-          .from('orienta_plays')
-          .select('*, orienta_users(pseudo)')
-          .eq('grid_id', gridId)
-          .not('completed_at', 'is', null)
-          .order('completed_at', { ascending: false })
+    const load = async () => {
+      const { data: g } = await supabase
+        .from('orienta_grids')
+        .select('*')
+        .eq('id', gridId)
+        .single()
+      if (cancelled) return
+      if (!g) { setLoading(false); return }
 
-        setPlays(playsData ?? [])
-        setLoading(false)
+      const { data: playsData } = await supabase
+        .from('orienta_plays')
+        .select('*, orienta_users(pseudo)')
+        .eq('grid_id', gridId)
+        .not('completed_at', 'is', null)
+        .order('completed_at', { ascending: false })
+      if (cancelled) return
+
+      const allPlays = playsData ?? []
+      // Accès : créateur de la grille, ou joueur ayant terminé sa partie
+      // (la page révèle la solution → réservée aux finishers, anti-triche).
+      const isOwner = g.creator_id === user.id
+      const isFinisher = allPlays.some(p => p.player_id === user.id)
+      if (!isOwner && !isFinisher) { setDenied(true); setLoading(false); return }
+
+      setGrid(g)
+      setPlays(allPlays)
+
+      // La solution (positions/rotations) ne sort du serveur que via get-solution,
+      // qui revérifie l'autorisation côté serveur.
+      const { data: sol, error } = await supabase.functions.invoke('get-solution', {
+        body: { grid_id: gridId, player_id: user.id },
       })
+      if (cancelled) return
+      if (!error && sol?.cards) setSolutionCards(sol.cards)
+      setLoading(false)
+    }
+
+    load()
+    return () => { cancelled = true }
   }, [gridId, user])
 
-  if (notOwner) return <Navigate to="/hub" replace />
+  if (denied) return <Navigate to="/hub" replace />
   if (loading) return <div className="dashboard-loading">Chargement…</div>
   if (!grid) return <Navigate to="/hub" replace />
 
@@ -53,6 +79,10 @@ export default function DashboardPage() {
   const comments = plays.filter(p => p.comment?.trim())
 
   const clueTitle = [grid.clue_top, grid.clue_right, grid.clue_bottom, grid.clue_left].filter(Boolean).join(' · ')
+
+  const isOwner = grid.creator_id === user?.id
+  const isDaily = grid.daily_date != null
+  const eyebrowLabel = isOwner ? 'Ma grille' : isDaily ? 'Grille du jour' : 'Statistiques'
 
   const sortedPlays = [...plays].sort((a, b) => {
     if (a.success && !b.success) return -1
@@ -74,9 +104,9 @@ export default function DashboardPage() {
           <div className="db-hero-text">
             <div className="hub-eyebrow" style={{ marginBottom: 8 }}>
               <span className="hub-eyebrow-dot" />
-              Ma grille
+              {eyebrowLabel}
             </div>
-            <h1 className="db-title">{clueTitle || 'Ma grille'}</h1>
+            <h1 className="db-title">{clueTitle || eyebrowLabel}</h1>
           </div>
         </div>
 
@@ -107,7 +137,7 @@ export default function DashboardPage() {
             <div className="dashboard-solution-card-bg">
               <StaticMiniGrid
                 placements={Object.fromEntries(
-                  (grid.orienta_grid_cards ?? [])
+                  solutionCards
                     .filter(gc => gc.position >= 0 && gc.position <= 3)
                     .map(gc => [gc.position, { card: gc.orienta_word_cards, rotation: gc.rotation ?? 0, colorIndex: gc.position }])
                 )}

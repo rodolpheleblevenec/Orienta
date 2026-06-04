@@ -107,6 +107,8 @@ export default function CreatePage() {
   const [timeLeft, setTimeLeft] = useState(TIMER_DURATION)
   const [expired, setExpired] = useState(false)
   const [isSwappingSlots, setIsSwappingSlots] = useState(false)
+  const [publishing, setPublishing] = useState(false)
+  const [publishError, setPublishError] = useState(false)
   const startTimeRef = useRef(null)
   const timerRef = useRef(null)
 
@@ -261,34 +263,42 @@ export default function CreatePage() {
   }
 
   async function publishGrid(usedTime) {
+    if (publishing) return
+    setPublishing(true)
+    setPublishError(false)
     const creatorTime = difficulty === 'facile' ? null : usedTime ?? (TIMER_DURATION - timeLeft)
 
-    const { data: grid, error: gridError } = await supabase.from('orienta_grids').insert({
-      creator_id: user.id,
-      status: 'published',
-      difficulty,
-      clue_top:    clues.top.trim(),
-      clue_right:  clues.right.trim(),
-      clue_bottom: clues.bottom.trim(),
-      clue_left:   clues.left.trim(),
-      creator_time_seconds: creatorTime,
-      expires_at: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
-    }).select().single()
-
-    if (gridError || !grid) { console.error('Grid insert error:', gridError); return }
-
-    const gridCardInserts = Object.entries(placements)
+    const gridPlacements = Object.entries(placements)
       .filter(([, v]) => v)
       .map(([pos, { card, rotation }]) => ({
-        grid_id: grid.id, card_id: card.id,
-        position: parseInt(pos), rotation: ((rotation % 360) + 360) % 360,
+        card_id: card.id,
+        position: parseInt(pos),
+        rotation: ((rotation % 360) + 360) % 360,
       }))
 
-    if (difficulty === 'difficile' && trayCards.length === 1) {
-      gridCardInserts.push({ grid_id: grid.id, card_id: trayCards[0].card.id, position: -1, rotation: 0 })
+    const decoyCardId = (difficulty === 'difficile' && trayCards.length === 1)
+      ? trayCards[0].card.id
+      : null
+
+    // Création serveur (validations + écritures côté Edge Function)
+    const { data, error } = await supabase.functions.invoke('create-grid', {
+      body: {
+        user_id: user.id,
+        difficulty,
+        clues: { top: clues.top, right: clues.right, bottom: clues.bottom, left: clues.left },
+        placements: gridPlacements,
+        decoy_card_id: decoyCardId,
+        creator_time_seconds: creatorTime,
+      },
+    })
+
+    if (error || !data || data.error) {
+      console.error('create-grid error:', error || data?.error)
+      setPublishError(true)
+      setPublishing(false)
+      return
     }
 
-    await supabase.from('orienta_grid_cards').insert(gridCardInserts)
     await refreshUser()
     navigate('/hub')
   }
@@ -586,13 +596,18 @@ export default function CreatePage() {
 
         {/* Centre : bouton publier */}
         {!expired && phase === 'clues' && (
-          <button
-            className={`play-submit-btn${allCluesFilled && !hasClueConflict ? ' play-submit-btn--ready' : ''}`}
-            onClick={handleSubmit}
-            disabled={!allCluesFilled || hasClueConflict}
-          >
-            {!allCluesFilled ? 'Remplis les 4 indices' : hasClueConflict ? 'Mot interdit dans un indice' : 'Publier ma grille'}
-          </button>
+          <div className="create-publish-wrap">
+            {publishError && (
+              <p className="play-submit-error">La publication a échoué — réessaie.</p>
+            )}
+            <button
+              className={`play-submit-btn${allCluesFilled && !hasClueConflict ? ' play-submit-btn--ready' : ''}`}
+              onClick={handleSubmit}
+              disabled={!allCluesFilled || hasClueConflict || publishing}
+            >
+              {publishing ? 'Publication…' : !allCluesFilled ? 'Remplis les 4 indices' : hasClueConflict ? 'Mot interdit dans un indice' : 'Publier ma grille'}
+            </button>
+          </div>
         )}
         {(!expired && phase === 'placement') && <div />}
 

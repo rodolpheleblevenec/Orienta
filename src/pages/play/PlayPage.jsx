@@ -7,8 +7,6 @@ import {
 } from '@dnd-kit/core'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
-import { computeScore, computeXp, xpStreakBonus } from '../../lib/scoring'
-import { getLevelFromXp } from '../../lib/levels'
 import Header from '../../components/ui/Header'
 import StaticMiniGrid from '../../components/ui/StaticMiniGrid'
 import TourOverlay from '../../components/ui/TourOverlay'
@@ -96,7 +94,6 @@ export default function PlayPage() {
 
   const [playId, setPlayId] = useState(null)
   const [attemptNumber, setAttemptNumber] = useState(1)
-  const [attemptsFailed, setAttemptsFailed] = useState(0)
   const [attemptHistory, setAttemptHistory] = useState([])
   const [activeHistoryTab, setActiveHistoryTab] = useState(0)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
@@ -134,89 +131,70 @@ export default function PlayPage() {
       if (!gridData) { navigate('/hub'); return }
       setGrid(gridData)
 
-      const { data: existingPlay } = await supabase
-        .from('orienta_plays')
-        .select('id, completed_at, score, xp_earned, success, time_seconds, attempts_count')
-        .eq('grid_id', gridId)
-        .eq('player_id', user.id)
-        .maybeSingle()
+      // Démarre/reprend la partie côté serveur : crée la ligne de jeu et
+      // renvoie les cartes SANS leur solution (position/rotation jamais exposées).
+      const { data, error } = await supabase.functions.invoke('start-play', {
+        body: { grid_id: gridId, player_id: user.id, replay: isReplay },
+      })
+      if (error || !data || data.error) { navigate('/hub'); return }
 
-      if (existingPlay?.completed_at && !isReplay) {
+      // Partie déjà terminée → page de résultats
+      if (data.completed && !isReplay) {
         navigate(`/result/${gridId}`, {
           replace: true,
           state: {
-            score: existingPlay.score ?? 0,
-            xp: existingPlay.xp_earned ?? 0,
-            success: existingPlay.success ?? false,
-            baseXp: existingPlay.xp_earned ?? 0,
+            score: data.play.score ?? 0,
+            xp: data.play.xp_earned ?? 0,
+            success: data.play.success ?? false,
+            baseXp: data.play.xp_earned ?? 0,
             bonusXp: 0,
-            timeSeconds: existingPlay.time_seconds ?? 0,
-            attemptCount: existingPlay.attempts_count ?? 1,
+            timeSeconds: data.play.time_seconds ?? 0,
+            attemptCount: data.play.attempts_count ?? 1,
             streakCurrent: 0,
           },
         })
         return
       }
 
-      const { data: gridCards } = await supabase
-        .from('orienta_grid_cards')
-        .select('card_id, orienta_word_cards(*)')
-        .eq('grid_id', gridId)
-
-      const arr = [...(gridCards ?? [])]
+      const arr = [...(data.cards ?? [])]
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [arr[i], arr[j]] = [arr[j], arr[i]]
       }
       const ROTATIONS = [0, 90, 180, 270]
-      const shuffled = arr.map((gc, i) => ({
-        card: gc.orienta_word_cards,
+      const shuffled = arr.map((card, i) => ({
+        card,
         rotation: ROTATIONS[Math.floor(Math.random() * 4)],
         colorIndex: i,
       }))
       setTrayCards(shuffled)
       startTimeRef.current = Date.now()
 
-      const cardMap = new Map(shuffled.map(({ card, colorIndex }) => [card.id, { card, colorIndex }]))
+      // Mode rejeu : partie neuve, rien à restaurer (playId reste null).
+      if (isReplay) return
 
-      if (isReplay) {
-        // Mode rejeu : partie neuve, on n'écrit rien et on ne restaure
-        // aucun historique. playId reste null.
-      } else if (existingPlay) {
-        setPlayId(existingPlay.id)
+      if (data.play_id) setPlayId(data.play_id)
 
-        const { data: prevAttempts } = await supabase
-          .from('orienta_play_attempts')
-          .select('attempt_number, answer, correct_full, correct_rotation, neither')
-          .eq('play_id', existingPlay.id)
-          .order('attempt_number', { ascending: true })
-
-        if (prevAttempts?.length > 0) {
-          const history = prevAttempts.map(attempt => {
-            const placements = {}
-            attempt.answer.forEach(({ card_id, position, rotation }) => {
-              const entry = cardMap.get(card_id)
-              if (entry) placements[position] = { ...entry, rotation }
-            })
-            return {
-              correctFull: attempt.correct_full,
-              correctRotation: attempt.correct_rotation,
-              neither: attempt.neither,
-              placements,
-            }
+      // Reprise : reconstruit l'historique des tentatives déjà jouées.
+      const prevAttempts = data.attempts ?? []
+      if (prevAttempts.length > 0) {
+        const cardMap = new Map(shuffled.map(({ card, colorIndex }) => [card.id, { card, colorIndex }]))
+        const history = prevAttempts.map(attempt => {
+          const placements = {}
+          attempt.answer.forEach(({ card_id, position, rotation }) => {
+            const entry = cardMap.get(card_id)
+            if (entry) placements[position] = { ...entry, rotation }
           })
-          setAttemptHistory(history)
-          setActiveHistoryTab(history.length - 1)
-          setAttemptNumber(prevAttempts.length + 1)
-          setAttemptsFailed(prevAttempts.length)
-        }
-      } else {
-        const { data: play } = await supabase
-          .from('orienta_plays')
-          .insert({ grid_id: gridId, player_id: user.id })
-          .select()
-          .single()
-        if (play) setPlayId(play.id)
+          return {
+            correctFull: attempt.correct_full,
+            correctRotation: attempt.correct_rotation,
+            neither: attempt.neither,
+            placements,
+          }
+        })
+        setAttemptHistory(history)
+        setActiveHistoryTab(history.length - 1)
+        setAttemptNumber(prevAttempts.length + 1)
       }
     }
     fetchGrid()
@@ -261,7 +239,6 @@ export default function PlayPage() {
     setAttemptHistory([])
     setActiveHistoryTab(0)
     setAttemptNumber(1)
-    setAttemptsFailed(0)
     setFeedbackOpen(false)
     setGameOver(false)
     setReplayResult(null)
@@ -370,18 +347,6 @@ export default function PlayPage() {
 
     const { correctFull, correctRotation, neither, success: won } = result
 
-    // En mode rejeu, on n'enregistre aucune tentative en base.
-    if (!isReplay) {
-      await supabase.from('orienta_play_attempts').insert({
-        play_id: playId,
-        attempt_number: attemptNumber,
-        answer,
-        correct_full: correctFull,
-        correct_rotation: correctRotation,
-        neither,
-      })
-    }
-
     const placementsSnapshot = { ...placements }
     setAttemptHistory(prev => {
       const next = [...prev, { correctFull, correctRotation, neither, placements: placementsSnapshot }]
@@ -399,7 +364,6 @@ export default function PlayPage() {
       } else {
         const next = attemptNumber + 1
         setAttemptNumber(next)
-        setAttemptsFailed(f => f + 1)
         setIsSubmitting(false)
         if (next > MAX_ATTEMPTS) {
           setGameOver(true)
@@ -409,57 +373,30 @@ export default function PlayPage() {
       return
     }
 
-    if (won) {
-      const finalScore = computeScore(elapsed, attemptsFailed)
-      const baseXp = computeXp(finalScore, true)
-      const bonusXp = xpStreakBonus(user.streak_current)
-      const totalXp = baseXp + bonusXp
-      const oldLevel = getLevelFromXp(user.xp || 0).level
-      await supabase.from('orienta_plays').update({
-        completed_at: new Date().toISOString(),
-        time_seconds: elapsed,
-        attempts_count: attemptNumber,
-        success: true,
-        score: finalScore,
-        xp_earned: totalXp,
-      }).eq('id', playId)
-      await supabase.rpc('award_xp_on_play', { p_grid_id: gridId, p_player_id: user.id, p_success: true, p_streak_bonus: bonusXp })
+    // Partie réelle : le serveur (check-attempt) a évalué, enregistré la
+    // tentative, finalisé la partie et attribué l'XP. On ne fait que lire.
+    if (result.finalized) {
+      const r = result.result ?? {}
       await refreshUser()
-      const freshUser = useAuthStore.getState().user
-      const newLevelData = getLevelFromXp(freshUser?.xp || 0)
-      if (newLevelData.level > oldLevel) {
-        await supabase.from('orienta_notifications').insert({
-          user_id: user.id,
-          type: 'level_up',
-          payload: { level: newLevelData.level, level_name: newLevelData.name },
-        })
-        useAuthStore.getState().fetchNotifCount()
-      }
+      if (r.leveledUp) useAuthStore.getState().fetchNotifCount()
       setGameOver(true)
-      navigate(`/result/${gridId}`, { state: { score: finalScore, xp: totalXp, success: true, baseXp, bonusXp, timeSeconds: elapsed, attemptCount: attemptNumber, streakCurrent: user.streak_current, justPlayed: true } })
+      navigate(`/result/${gridId}`, {
+        state: {
+          score: r.score ?? 0,
+          xp: r.xp ?? 0,
+          success: won,
+          baseXp: r.baseXp ?? 0,
+          bonusXp: r.bonusXp ?? 0,
+          timeSeconds: r.timeSeconds ?? elapsed,
+          attemptCount: r.attemptCount ?? attemptNumber,
+          streakCurrent: user.streak_current,
+          justPlayed: true,
+        },
+      })
     } else {
-      const next = attemptNumber + 1
-      setAttemptNumber(next)
-      setAttemptsFailed(f => f + 1)
+      // Échec avec essais restants — le serveur a déjà noté le nb d'essais.
+      setAttemptNumber(attemptNumber + 1)
       setIsSubmitting(false)
-      if (next > MAX_ATTEMPTS) {
-        const participationXp = computeXp(0, false)
-        await supabase.from('orienta_plays').update({
-          completed_at: new Date().toISOString(),
-          time_seconds: elapsed,
-          attempts_count: MAX_ATTEMPTS,
-          success: false,
-          score: 0,
-          xp_earned: participationXp,
-        }).eq('id', playId)
-        await supabase.rpc('award_xp_on_play', { p_grid_id: gridId, p_player_id: user.id, p_success: false, p_streak_bonus: 0 })
-        await refreshUser()
-        setGameOver(true)
-        navigate(`/result/${gridId}`, { state: { score: 0, xp: participationXp, success: false, justPlayed: true } })
-      } else {
-        // Mise à jour intermédiaire : Hub affiche le bon nb d'essais en cours
-        supabase.from('orienta_plays').update({ attempts_count: attemptNumber }).eq('id', playId)
-      }
     }
   }
 

@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { DndContext, closestCorners, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
+import { getAdminSecret, clearAdminSecret } from '../../lib/adminSecret'
 import Header from '../../components/ui/Header'
 import CloverWithInputs from '../../components/game/CloverWithInputs'
 import SuggestionsAdmin from './SuggestionsAdmin'
@@ -91,7 +92,7 @@ export default function DailyAdminPage() {
     const last = ymd(year, month, lastDay)
     const { data: grids } = await supabase
       .from('orienta_grids')
-      .select('id, daily_date, clue_top, clue_right, clue_bottom, clue_left, status, orienta_grid_cards(card_id, position, rotation, orienta_word_cards(*))')
+      .select('id, daily_date, clue_top, clue_right, clue_bottom, clue_left, status')
       .gte('daily_date', first)
       .lte('daily_date', last)
     setGridsByDate(new Map((grids ?? []).map(g => [g.daily_date, g])))
@@ -123,9 +124,14 @@ export default function DailyAdminPage() {
     if (grid) {
       setEditingGrid(grid)
       setClues({ top: grid.clue_top ?? '', right: grid.clue_right ?? '', bottom: grid.clue_bottom ?? '', left: grid.clue_left ?? '' })
+      // Les cartes (solution) sont servies par get-solution — l'admin est le
+      // créateur des grilles du jour, donc autorisé. orienta_grid_cards n'est plus lue en direct.
+      const { data: sol } = await supabase.functions.invoke('get-solution', {
+        body: { grid_id: grid.id, player_id: user.id },
+      })
       const p = {}
-      for (const gc of grid.orienta_grid_cards ?? []) {
-        if (gc.orienta_word_cards) {
+      for (const gc of sol?.cards ?? []) {
+        if (gc.position >= 0 && gc.position <= 3 && gc.orienta_word_cards) {
           p[gc.position] = { card: gc.orienta_word_cards, rotation: gc.rotation ?? 0, colorIndex: gc.position }
         }
       }
@@ -176,39 +182,30 @@ export default function DailyAdminPage() {
     if (!allFilled) return
     setIsSaving(true)
 
-    const gridData = {
-      creator_id: user.id,
-      clue_top: clues.top,
-      clue_right: clues.right,
-      clue_bottom: clues.bottom,
-      clue_left: clues.left,
-      daily_date: selectedDate,
-      status: 'published',
-      difficulty: 'facile',
-      expires_at: new Date(new Date(selectedDate).getTime() + 48 * 60 * 60 * 1000).toISOString(),
-    }
+    const placementRows = Object.entries(placements).map(([pos, item]) => ({
+      card_id: item.card.id,
+      position: parseInt(pos),
+      rotation: item.rotation,
+    }))
 
-    let gridId = editingGrid?.id
-
-    if (editingGrid) {
-      await supabase.from('orienta_grids').update(gridData).eq('id', editingGrid.id)
-      await supabase.from('orienta_grid_cards').delete().eq('grid_id', editingGrid.id)
-    } else {
-      const { data: newGrid } = await supabase.from('orienta_grids').insert(gridData).select().single()
-      gridId = newGrid?.id
-    }
-
-    if (gridId) {
-      const cardRows = Object.entries(placements).map(([pos, item]) => ({
-        grid_id: gridId,
-        card_id: item.card.id,
-        position: parseInt(pos),
-        rotation: item.rotation,
-      }))
-      await supabase.from('orienta_grid_cards').insert(cardRows)
-    }
+    const { data, error } = await supabase.functions.invoke('admin', {
+      body: {
+        admin_secret: getAdminSecret(),
+        action: 'save-daily-grid',
+        creator_id: user.id,
+        date: selectedDate,
+        grid_id: editingGrid?.id,
+        clues,
+        placements: placementRows,
+      },
+    })
 
     setIsSaving(false)
+    if (error || !data || data.error) {
+      if (data?.error === 'unauthorized') { clearAdminSecret(); alert('Mot de passe administrateur incorrect.') }
+      else alert('Échec de l\'enregistrement.')
+      return
+    }
     setSaveSuccess(true)
     fetchMonth(viewMonth.year, viewMonth.month)
   }
@@ -216,8 +213,14 @@ export default function DailyAdminPage() {
   async function handleDelete() {
     if (!editingGrid) return
     if (!window.confirm(`Supprimer la grille du ${formatDate(selectedDate)} ?`)) return
-    await supabase.from('orienta_grid_cards').delete().eq('grid_id', editingGrid.id)
-    await supabase.from('orienta_grids').delete().eq('id', editingGrid.id)
+    const { data, error } = await supabase.functions.invoke('admin', {
+      body: { admin_secret: getAdminSecret(), action: 'delete-daily-grid', grid_id: editingGrid.id },
+    })
+    if (error || !data || data.error) {
+      if (data?.error === 'unauthorized') { clearAdminSecret(); alert('Mot de passe administrateur incorrect.') }
+      else alert('Échec de la suppression.')
+      return
+    }
     setSelectedDate(null)
     setEditingGrid(null)
     fetchMonth(viewMonth.year, viewMonth.month)

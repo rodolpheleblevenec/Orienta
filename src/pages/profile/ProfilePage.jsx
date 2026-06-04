@@ -59,21 +59,27 @@ export default function ProfilePage() {
   if (!user) return null
 
   const handleSelectSkin = async (level) => {
-    await supabase.from('orienta_users').update({ selected_skin: level }).eq('id', user.id)
-    await refreshUser()
+    const prev = selectedSkin
     setSelectedSkin(level)
+    const { data, error } = await supabase.functions.invoke('account', {
+      body: { action: 'skin', user_id: user.id, skin: level },
+    })
+    if (error || data?.error) { setSelectedSkin(prev); return }
+    await refreshUser()
   }
 
   const handleSendSuggestion = async () => {
     const content = suggestion.trim()
     if (!content || suggestionSending) return
     setSuggestionSending(true)
-    await supabase.from('orienta_suggestions').insert({
-      user_id: user.id,
-      pseudo: user.pseudo,
-      content,
+    const { data, error } = await supabase.functions.invoke('account', {
+      body: { action: 'suggestion', user_id: user.id, content },
     })
     setSuggestionSending(false)
+    if (error || !data || data.error) {
+      alert("Échec de l'envoi de ton idée. Réessaie.")
+      return
+    }
     setSuggestionSent(true)
     setSuggestion('')
   }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { getAdminSecret, clearAdminSecret } from '../../lib/adminSecret'
 
 const STATUSES = [
   { id: 'nouveau', label: 'Nouveau', emoji: '🆕' },
@@ -34,17 +35,27 @@ export default function SuggestionsAdmin() {
 
   async function fetchSuggestions() {
     setLoading(true)
-    const { data } = await supabase
-      .from('orienta_suggestions')
-      .select('*')
-      .order('created_at', { ascending: false })
-    setSuggestions(data ?? [])
+    const { data, error } = await supabase.functions.invoke('admin', {
+      body: { admin_secret: getAdminSecret(), action: 'list-suggestions' },
+    })
+    if (error || data?.error) {
+      if (data?.error === 'unauthorized') clearAdminSecret()
+      setSuggestions([])
+    } else {
+      setSuggestions(data.suggestions ?? [])
+    }
     setLoading(false)
   }
 
   async function updateStatus(id, status) {
     setSuggestions(prev => prev.map(s => (s.id === id ? { ...s, status } : s)))
-    await supabase.from('orienta_suggestions').update({ status }).eq('id', id)
+    const { data, error } = await supabase.functions.invoke('admin', {
+      body: { admin_secret: getAdminSecret(), action: 'set-suggestion-status', id, status },
+    })
+    if (error || data?.error) {
+      if (data?.error === 'unauthorized') { clearAdminSecret(); alert('Mot de passe administrateur incorrect.') }
+      fetchSuggestions() // resynchronise en cas d'échec
+    }
   }
 
   const visible = filter === 'tous'

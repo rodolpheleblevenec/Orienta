@@ -23,7 +23,12 @@ function pickAvaColor(str) {
 
 export default function GridCard({ grid, playInfo, index, isDaily = false, isOwnGrid = false }) {
   const { user } = useAuthStore()
-  const linkTo = isOwnGrid ? `/dashboard/${grid.id}` : `/play/${grid.id}`
+  const completed = playInfo?.completed === true
+  // Grille du jour déjà terminée → dashboard de stats (la solution n'y est
+  // révélée qu'aux finishers). Sinon : écran de jeu.
+  const linkTo = (isOwnGrid || (isDaily && completed))
+    ? `/dashboard/${grid.id}`
+    : `/play/${grid.id}`
 
   const plays = (grid.orienta_plays ?? []).filter(p => p.success !== null)
   const totalPlays = plays.length
@@ -37,18 +42,19 @@ export default function GridCard({ grid, playInfo, index, isDaily = false, isOwn
     : creatorPseudo[0]?.toUpperCase() ?? '?'
 
   const inProgress = playInfo && !playInfo.completed
-  const completed = playInfo?.completed === true
 
   const statusLabel = completed ? 'Terminé' : inProgress ? 'En cours' : 'Non joué'
   const avaColor = isDaily ? 'var(--teal)' : pickAvaColor(creatorPseudo)
 
   const ctaLabel = isOwnGrid
     ? 'Gérer ma grille'
-    : isDaily
-      ? 'Jouer le défi'
-      : inProgress
-        ? 'Reprendre la grille'
-        : 'Jouer la grille'
+    : isDaily && completed
+      ? 'Voir les statistiques'
+      : isDaily
+        ? 'Jouer le défi'
+        : inProgress
+          ? 'Reprendre la grille'
+          : 'Jouer la grille'
 
   return (
     <motion.article

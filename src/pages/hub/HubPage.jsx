@@ -6,7 +6,6 @@ import Header from '../../components/ui/Header'
 import CollectiveGauge from '../../components/ui/CollectiveGauge'
 import GridCard from '../../components/ui/GridCard'
 import CreatedGridCard from '../../components/ui/CreatedGridCard'
-import DailyLeaderboardModal from '../../components/ui/DailyLeaderboardModal'
 
 function formatDayLabel(dateStr) {
   const today = new Date().toISOString().split('T')[0]
@@ -43,7 +42,6 @@ export default function HubPage() {
   const [dailyGrids, setDailyGrids] = useState([])
   const [showAllCommunity, setShowAllCommunity] = useState(false)
   const [communitySort, setCommunitySort] = useState('recent') // 'recent' | 'best'
-  const [showDailyLeaderboard, setShowDailyLeaderboard] = useState(false)
   const [livePlayStats, setLivePlayStats] = useState(null)
 
   useEffect(() => {
@@ -274,7 +272,7 @@ export default function HubPage() {
                           Grilles précédentes ({archiveDailies.length})
                         </Link>
                       )}
-                      <button className="hub-ghost-link" onClick={() => setShowDailyLeaderboard(true)} type="button">
+                      <button className="hub-ghost-link" onClick={() => navigate(`/dashboard/${todayDaily.id}`)} type="button">
                         Statistiques du jour →
                       </button>
                     </>
@@ -354,7 +352,9 @@ export default function HubPage() {
                   <h2 className="hub-rank-title">Classement du jour</h2>
                   <p className="hub-rank-sub">Les meilleurs scores sur la grille d'aujourd'hui</p>
                 </div>
-                <button className="hub-rank-see" onClick={() => setShowDailyLeaderboard(true)} type="button">Tout voir</button>
+                {hasCompletedDaily && (
+                  <button className="hub-rank-see" onClick={() => navigate(`/dashboard/${todayDaily.id}`)} type="button">Tout voir</button>
+                )}
               </div>
               {dailyTop3.length === 0 ? (
                 <div className="daily-lb-empty">
@@ -558,14 +558,6 @@ export default function HubPage() {
         </section>
         )}
       </main>
-
-      {showDailyLeaderboard && todayDaily && (
-        <DailyLeaderboardModal
-          todayDaily={todayDaily}
-          user={user}
-          onClose={() => setShowDailyLeaderboard(false)}
-        />
-      )}
     </div>
   )
 }

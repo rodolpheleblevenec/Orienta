@@ -1,13 +1,73 @@
-# Handoff — 2026-06-03
+# Handoff — 2026-06-04
 
 ## Contexte
 
 - **Projet** : Orienta
-- **Branche** : master
-- **Fichiers clés touchés** : `src/pages/admin/DailyAdminPage.jsx`, `src/components/game/CloverWithInputs.jsx`, `src/components/game/CloverGrid.jsx`, `src/index.css`, `src/pages/hub/HubPage.jsx`, `src/pages/play/PlayPage.jsx`, `src/pages/create/CreatePage.jsx`, `src/pages/login/LoginPage.jsx`, `src/pages/result/ResultPage.jsx`, `supabase/migrations/008-010_*.sql`
-- **État** : **Working tree committé** dans `e6c8d29` (« Refonte mobile /admin + réutilisation du plateau partagé », 2026-06-03) — regroupe la refonte admin mobile ci-dessous **+** les WIP préexistants (gating communauté, redesign Play/Create, migrations community). **Non poussé** (`git push origin master` en attente).
+- **Branche** : `securite-edge-rls` (migration sécurité : écritures sensibles déplacées vers des Edge Functions + RLS, par phases — voir mémoire `project_security_rls.md`)
+- **État** : branche **WIP non commitée**. Beaucoup d'Edge Functions sont nouvelles/untracked (`account/`, `admin/`, `create-grid/`, `get-solution/`, `social/`, `start-play/`, `_shared/`) + `src/lib/adminSecret.js`. Plusieurs pages front modifiées en parallèle. **Rien n'est commité ni poussé sur cette branche.**
 
 ---
+
+## Travail réalisé (session 2026-06-04 — redirections des notifications)
+
+Objectif : vérifier que **chaque** notification de la cloche 🔔 redirige bien au clic, puis corriger les trous.
+
+- **Audit** de tous les types de notif réellement créés en base, croisé avec les liens du panneau et les routes de `App.jsx`. Le clic se fait via la flèche `→` (`Link` dans `NotificationsPanel.jsx`), pas sur toute la ligne.
+- **Bug corrigé — `suggestion`** : pointait vers `/admin` (route **inexistante** → catch-all `*` → redirigeait vers `/hub`). Corrigé en **`/admin/daily`** (route où `SuggestionsAdmin` est monté dans `DailyAdminPage`). → `NotificationsPanel.jsx`
+- **Ajout — `level_up`** : avait `link = null` (aucune flèche). Désormais **`/profile`** (page qui affiche badge de niveau, barre XP, créatures débloquées). → `NotificationsPanel.jsx`
+- **Notif `comment` câblée de bout en bout** : le type `comment` était **du code mort** (jamais inséré en base — l'action `comment` ne faisait que `UPDATE` le champ commentaire du play). Ajouté dans `supabase/functions/social/index.ts` (action `comment`) un `insert` dans `orienta_notifications` (type `comment`, payload `{ player_pseudo, grid_id, comment }`) **vers le créateur de la grille, sauf auto-commentaire**. Le payload contient `grid_id` → redirection `/dashboard/:gridId` (déjà câblée par défaut).
+- **Panneau rendu robuste** : cas `comment` rendu **explicite** (`else if (type === 'comment')`) + **fallback neutre** « a interagi avec ta grille » pour tout type futur inconnu. → `NotificationsPanel.jsx`
+- **Déployé** : `social` redéployée via MCP Supabase → **version 3 ACTIVE** (`verify_jwt: false` conservé) sur projet `baqvosadoijsvvelugmp` (« Rental Supervision »). La création de la notif commentaire est donc **live en prod**.
+
+### État final — chaque notif a une redirection valide
+
+| Type | Notif créée | Redirection |
+|------|-------------|-------------|
+| `play` | check-attempt | `/dashboard/:gridId` |
+| `upvote` | trigger DB (008) | `/dashboard/:gridId` |
+| `suggestion` | trigger DB (011) | `/admin/daily` *(corrigé)* |
+| `level_up` | check-attempt | `/profile` *(ajouté)* |
+| `comment` | social *(ajouté + déployé)* | `/dashboard/:gridId` |
+
+> ⚠️ **Désynchro front/back** : la fonction `social` est déployée (v3) mais les modifs front (`NotificationsPanel.jsx`) **ne sont pas commitées**. Tant qu'elles ne sont pas en prod, une notif `comment` créée par le back tombera sur le fallback de l'ancien front (toujours fonctionnel, redirige quand même via `grid_id`).
+
+### Prochaines actions (session 2026-06-04)
+
+- [ ] **Commiter** `NotificationsPanel.jsx` + `social/index.ts` (et déployer le front) pour resynchroniser avec la fonction `social` v3 déjà en prod.
+- [ ] Tester en navigateur : cliquer chaque type de notif et vérifier l'atterrissage (`/dashboard/:gridId`, `/admin/daily`, `/profile`).
+- [ ] Vérifier qu'une notif `comment` est bien générée : commenter une grille **d'un autre joueur** depuis `/result` → le créateur reçoit la cloche + flèche → dashboard.
+- [ ] Poursuivre la migration sécurité `securite-edge-rls` (Edge Functions + RLS) selon les phases de `project_security_rls.md`.
+
+---
+
+## Travail réalisé (session 2026-06-04 — dashboard de stats grille du jour + intégrité `orienta_plays`)
+
+**Feature — dashboard accessible aux finishers.** Demande : depuis « Grilles précédentes » voir aussi la grille du jour ; le bouton stats doit mener à une vraie **page dashboard** (réussites, temps, distribution, classement) ; réservé aux joueurs ayant **terminé** (la solution y est affichée).
+
+- **Edge Function `get-solution`** (nouvelle, v1, `verify_jwt=false`, `supabase/functions/get-solution/index.ts`) : renvoie la solution (`cards` positions/rotations + `clues`) **uniquement** au créateur ou à un finisher (partie `completed_at` non nulle) → `403` sinon. C'est la fonction prévue en Phase 4 du plan sécu ; 1er consommateur = `DashboardPage`. Testée prod (200 finisher / 403 non-finisher / 400 sans grid_id).
+- **`DashboardPage.jsx`** généralisée : n'était accessible qu'au **créateur**, désormais aussi aux **finishers** (sinon redirection `/hub`) ; ne lit plus `orienta_grid_cards` en direct → via `get-solution` ; hero adaptatif (« Grille du jour » / « Ma grille »).
+- **`HubPage.jsx`** : « Statistiques du jour » + « Tout voir » → `/dashboard/:id` ; modale `DailyLeaderboardModal` **supprimée** (composant + fichier) ; « Tout voir » affiché seulement si la grille du jour est terminée (non-finishers : top-3 inline conservé).
+- **`DailyArchivesPage.jsx`** : inclut la grille du jour (`.lte('daily_date', today)`) + sous-titre mis à jour.
+- **`GridCard.jsx`** : grille daily **terminée** → dashboard (CTA « Voir les statistiques »), sinon → écran de jeu.
+- **Vérifié** (Playwright sur app réelle, finisher *Cédric LOZACH* / non-finisher *Pops*) : hub & archives cohérents, dashboard affiche solution + stats, non-finisher redirigé. Build Vite OK.
+
+**Fix cause racine doublons `orienta_plays`** (résout le point de vigilance du 2026-06-03).
+
+- **Backups prod** : `orienta_plays_backup_20260604` (+ `orienta_play_attempts_backup_20260604`, `orienta_comment_reactions_backup_20260604`) — **à `DROP` une fois la prod validée**.
+- **Dédoublonnage** : 128 → **39** lignes (89 non-canoniques supprimées ; cascade -19 essais redondants ; 0 réaction touchée). Canonique = terminée > meilleur score > moins d'essais.
+- **Contrainte** `orienta_plays_grid_player_uniq UNIQUE(grid_id, player_id)` (migration) → doublon désormais **rejeté** (testé : erreur `23505`).
+- **`start-play` v2 (déployée)** : ancien bug = `maybeSingle()` levait sur multi-lignes → réinsérait un doublon. Désormais lookup `order(completed_at).limit(1)` + insert avec repli sur conflit (ne crée plus de doublon). Testé : 2 appels → **même `play_id`**.
+- **Effet** : compteurs `GridCard` (`success!==null`) == `DashboardPage` (`completed_at`) une fois dédoublonné — re-vérifié en UI (carte du jour : 5 joueurs / 60%, identique au dashboard).
+
+### Prochaines actions (session 2026-06-04 — dashboard/intégrité)
+
+- [ ] **Commiter + déployer le front** de cette session (`DashboardPage.jsx`, `HubPage.jsx`, `DailyArchivesPage.jsx`, `GridCard.jsx`, suppression `DailyLeaderboardModal.jsx`) pour resync avec `get-solution` et `start-play` v2 déjà en prod.
+- [ ] `DROP` les 3 tables `*_backup_20260604` une fois la prod confirmée stable.
+- [ ] (Phase 4) migrer `ResultPage` / `ReplayModal` / `DailyAdminPage` vers `get-solution` avant de verrouiller `orienta_grid_cards` en RLS.
+
+---
+
+<!-- ════════ ARCHIVE — sessions antérieures (branche master, 2026-06-03) ════════ -->
 
 ## Travail réalisé (session 2026-06-03 — refonte mobile /admin)
 

@@ -31,7 +31,7 @@ export default function DailyArchivesPage() {
         .select('*, orienta_users(pseudo, selected_skin), orienta_plays(player_id, success, score, completed_at, orienta_users(pseudo))')
         .eq('status', 'published')
         .gte('daily_date', sevenDaysAgo)
-        .lt('daily_date', today)
+        .lte('daily_date', today)
         .order('daily_date', { ascending: false })
 
       const { data: plays } = await supabase
@@ -39,7 +39,17 @@ export default function DailyArchivesPage() {
         .select('grid_id, completed_at, attempts_count')
         .eq('player_id', user.id)
 
-      const playsById = new Map((plays ?? []).map(p => [p.grid_id, { completed: !!p.completed_at, attemptsCount: p.attempts_count ?? 0 }]))
+      // Un joueur peut avoir plusieurs rows de play sur une même grille (doublons
+      // en base). On fusionne par grid_id : une partie terminée ne doit JAMAIS être
+      // écrasée par un doublon non terminé (sinon le statut « Terminé » saute, cf. HubPage).
+      const playsById = new Map()
+      for (const p of plays ?? []) {
+        const prev = playsById.get(p.grid_id)
+        playsById.set(p.grid_id, {
+          completed: (prev?.completed ?? false) || !!p.completed_at,
+          attemptsCount: Math.max(prev?.attemptsCount ?? 0, p.attempts_count ?? 0),
+        })
+      }
       setDailyGrids(dailyGridData ?? [])
       setPlaysMap(playsById)
       setLoading(false)
@@ -69,7 +79,7 @@ export default function DailyArchivesPage() {
             Retour au hub
           </button>
           <h1 className="archives-title">Challenges passés</h1>
-          <p className="archives-subtitle">Rejoue les challenges des 7 derniers jours</p>
+          <p className="archives-subtitle">Rejoue les défis des derniers jours, ou consulte les statistiques de ceux que tu as terminés</p>
         </div>
 
         {loading ? (

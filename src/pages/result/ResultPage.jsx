@@ -74,8 +74,10 @@ export default function ResultPage() {
   const [comments, setComments] = useState([])
   const [comment, setComment] = useState('')
   const [commentSent, setCommentSent] = useState(false)
+  const [commentError, setCommentError] = useState(false)
   const [play, setPlay] = useState(null)
   const [grid, setGrid] = useState(null)
+  const [solutionCards, setSolutionCards] = useState([])
   const [attempts, setAttempts] = useState([])
   const [activeTab, setActiveTab] = useState('solution')
   const [copied, setCopied] = useState(false)
@@ -157,7 +159,7 @@ export default function ResultPage() {
         .single(),
       supabase
         .from('orienta_grids')
-        .select('*, orienta_grid_cards(*, orienta_word_cards(*))')
+        .select('*')
         .eq('id', gridId)
         .single(),
       supabase
@@ -203,6 +205,12 @@ export default function ResultPage() {
       }
       setUpvoteCount(gridRes.data?.upvotes_count ?? 0)
       setHasUpvoted((myUpvoteRes.count ?? 0) > 0)
+
+      // Solution (positions/rotations) servie par get-solution (revérifie l'accès
+      // côté serveur : finisher ou créateur). orienta_grid_cards n'est plus lue en direct.
+      supabase.functions.invoke('get-solution', { body: { grid_id: gridId, player_id: user.id } })
+        .then(({ data }) => { if (!cancelled && data?.cards) setSolutionCards(data.cards) })
+
       if (playRes.data?.id) {
         supabase
           .from('orienta_play_attempts')
@@ -218,10 +226,16 @@ export default function ResultPage() {
 
   async function handleCommentSubmit() {
     if (!play || !comment.trim()) return
-    await supabase.from('orienta_plays').update({ comment: comment.trim() }).eq('id', play.id)
+    setCommentError(false)
+    const text = comment.trim()
+    const { data, error } = await supabase.functions.invoke('social', {
+      body: { action: 'comment', user_id: user.id, play_id: play.id, comment: text },
+    })
+    if (error || data?.error) { setCommentError(true); return }
+    setComment('')
     setCommentSent(true)
     setComments(prev => [
-      { id: play.id, comment: comment.trim(), success: play.success, orienta_users: { pseudo: user?.pseudo ?? 'Moi' } },
+      { id: play.id, comment: text, success: play.success, orienta_users: { pseudo: user?.pseudo ?? 'Moi' } },
       ...prev,
     ])
   }
@@ -261,56 +275,48 @@ export default function ResultPage() {
         return { ...prev, [playId]: forPlay }
       })
     }
-    if (mine) {
-      const { error } = await supabase
-        .from('orienta_comment_reactions')
-        .delete()
-        .eq('play_id', playId).eq('user_id', user.id).eq('emoji', emoji)
-      if (error) rollback()
-    } else {
-      const { error } = await supabase
-        .from('orienta_comment_reactions')
-        .insert({ play_id: playId, user_id: user.id, emoji })
-      if (error) rollback()
-    }
+    // Toggle côté serveur (l'Edge Function bascule selon l'état réel en base).
+    const { data, error } = await supabase.functions.invoke('social', {
+      body: { action: 'react', user_id: user.id, play_id: playId, emoji },
+    })
+    if (error || data?.error) rollback()
   }
 
   async function handleUpvoteToggle() {
     if (!user || !grid || isOwnGrid || upvoteBusy) return
     setUpvoteBusy(true)
-    if (hasUpvoted) {
-      // optimiste : retire
-      setHasUpvoted(false)
-      setUpvoteCount(c => Math.max(c - 1, 0))
-      const { error } = await supabase
-        .from('orienta_grid_upvotes')
-        .delete()
-        .eq('grid_id', grid.id)
-        .eq('user_id', user.id)
-      if (error) { setHasUpvoted(true); setUpvoteCount(c => c + 1) }
+    const wasUpvoted = hasUpvoted
+    // mise à jour optimiste
+    setHasUpvoted(!wasUpvoted)
+    setUpvoteCount(c => Math.max(c + (wasUpvoted ? -1 : 1), 0))
+
+    const { data, error } = await supabase.functions.invoke('social', {
+      body: { action: 'upvote', user_id: user.id, grid_id: grid.id },
+    })
+
+    if (error || data?.error) {
+      // rollback
+      setHasUpvoted(wasUpvoted)
+      setUpvoteCount(c => Math.max(c + (wasUpvoted ? 1 : -1), 0))
     } else {
-      // optimiste : ajoute (le trigger DB incrémente le compteur + notifie le créateur)
-      setHasUpvoted(true)
-      setUpvoteCount(c => c + 1)
-      const { error } = await supabase
-        .from('orienta_grid_upvotes')
-        .insert({ grid_id: grid.id, user_id: user.id })
-      if (error) { setHasUpvoted(false); setUpvoteCount(c => Math.max(c - 1, 0)) }
+      // réconciliation avec l'état serveur (compteur maintenu par trigger DB)
+      setHasUpvoted(data.upvoted)
+      setUpvoteCount(data.count ?? 0)
     }
     setUpvoteBusy(false)
   }
 
-  // Solution correcte
+  // Solution correcte (positions 0–3) — issue de get-solution
   const solutionPlacements = {}
-  for (const gc of grid?.orienta_grid_cards ?? []) {
+  for (const gc of solutionCards) {
     if (gc.position >= 0 && gc.position <= 3) {
       solutionPlacements[gc.position] = { card: gc.orienta_word_cards, rotation: gc.rotation ?? 0, colorIndex: gc.position }
     }
   }
 
-  // Lookup carte par id pour reconstruire les placements d'un essai
+  // Lookup carte par id pour reconstruire les placements d'un essai (inclut le leurre)
   const cardById = {}
-  for (const gc of grid?.orienta_grid_cards ?? []) {
+  for (const gc of solutionCards) {
     if (gc.orienta_word_cards) cardById[gc.card_id] = gc.orienta_word_cards
   }
 
@@ -556,6 +562,9 @@ export default function ResultPage() {
                 <button className="result-comment-btn" onClick={handleCommentSubmit} disabled={!comment.trim()}>
                   Envoyer
                 </button>
+                {commentError && (
+                  <p className="result-comment-error">Échec de l'envoi — réessaie.</p>
+                )}
               </div>
             ) : commentSent ? (
               <p className="result-comment-sent">Message envoyé ✓</p>

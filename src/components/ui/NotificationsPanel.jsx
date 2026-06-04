@@ -68,7 +68,7 @@ export default function NotificationsPanel({ onClose }) {
                   if (type === 'level_up') {
                     icon = '⭐'
                     text = <>Tu passes au niveau <strong>{n.payload.level} — {n.payload.level_name}</strong> !</>
-                    link = null
+                    link = '/profile'
                   } else if (type === 'play') {
                     icon = n.payload.success ? '🎉' : '🎮'
                     text = <><strong>{n.payload.player_pseudo ?? 'Quelqu\'un'}</strong> {n.payload.success ? 'a réussi' : 'a joué'} ta grille</>
@@ -78,10 +78,12 @@ export default function NotificationsPanel({ onClose }) {
                   } else if (type === 'suggestion') {
                     icon = '💡'
                     text = <><strong>{n.payload?.player_pseudo ?? 'Quelqu\'un'}</strong> a proposé une idée</>
-                    link = '/admin'
-                  } else {
+                    link = '/admin/daily'
+                  } else if (type === 'comment') {
                     text = <><strong>{n.payload?.player_pseudo ?? 'Quelqu\'un'}</strong> a commenté ta grille</>
                     comment = n.payload?.comment
+                  } else {
+                    text = <><strong>{n.payload?.player_pseudo ?? 'Quelqu\'un'}</strong> a interagi avec ta grille</>
                   }
 
                   return (
