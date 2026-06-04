@@ -4,7 +4,37 @@
 
 - **Projet** : Orienta
 - **Branche** : `securite-edge-rls` (migration sécurité : écritures sensibles déplacées vers des Edge Functions + RLS, par phases — voir mémoire `project_security_rls.md`)
-- **État** : branche **WIP non commitée**. Beaucoup d'Edge Functions sont nouvelles/untracked (`account/`, `admin/`, `create-grid/`, `get-solution/`, `social/`, `start-play/`, `_shared/`) + `src/lib/adminSecret.js`. Plusieurs pages front modifiées en parallèle. **Rien n'est commité ni poussé sur cette branche.**
+- **État** : ✅ **TERMINÉ & DÉPLOYÉ** (2026-06-04). Tout est **commité (`a50ddb9`), fusionné dans `master`, poussé** → déploiement GitHub Actions (`deploy.yml`) → Firebase Hosting `orienta-d22a3` **réussi**. Site live : https://orienta-d22a3.web.app (HTTP 200). Les 8 Edge Functions sont déployées (MCP) et la RLS est active en prod. `master == securite-edge-rls`.
+
+---
+
+## Travail réalisé (session 2026-06-04 — sécurisation complète Edge Functions + RLS, phases 1–4, DÉPLOYÉE)
+
+Aboutissement de la migration sécurité (plan `project_security_rls.md`). **Commitée `a50ddb9` → `master` → push → déployée** (GitHub Actions `deploy.yml` → Firebase `orienta-d22a3`, run *success*, live https://orienta-d22a3.web.app HTTP 200). Edge Functions déployées via MCP. **Principe** : le client ne fait plus que **lectures + `invoke`** ; toutes les écritures passent par des Edge Functions en `service_role` ; la RLS bloque l'accès direct `anon`.
+
+- **Phase 1 — autorité du jeu** : `start-play` (crée/reprend la partie, renvoie les cartes **sans solution**) + `check-attempt` réécrite (évalue, enregistre la tentative, **finalise atomiquement**, décide score/XP, temps via `started_at`, **n° d'essai calculé serveur** = anti-forge/anti-brute-force). `PlayPage` n'écrit plus. Corrige un **double-comptage XP collectif** préexistant.
+- **Phase 2 — contenu & social** : `create-grid` (validations serveur : limite quotidienne, difficulté débloquée, conflit de mot, intégrité cartes) + `social` (comment/react/upvote en toggle). `CreatePage`/`ResultPage` migrées (UI optimiste conservée + feedback d'erreur ajouté).
+- **Phase 3 — compte & admin** : `account` (login get-or-create, flags *whitelist*, skin, notifs-read, suggestion **pseudo relu serveur**) ; `admin` protégée par **secret serveur hashé SHA-256** stocké dans `orienta_admin_config` (RLS sans policy), comparaison ~temps constant, *fail-closed*. Saisie via `src/lib/adminSecret.js` (sessionStorage + prompt) ; mot de passe = voir mémoire `project_security_rls.md`. `authStore`/`ProfilePage`/`DailyAdminPage`/`SuggestionsAdmin` migrées.
+- **Phase 4 — RLS** : `ENABLE RLS` sur les 12 tables `orienta_*` (+ 3 backups). `SELECT` public **ciblé** ; **aucune** écriture directe `anon` ; `orienta_grid_cards` (solution) + `orienta_suggestions` + `orienta_admin_config` **masquées**. Derniers lecteurs de solution migrés vers `get-solution` (`ResultPage`, `ReplayModal`, `DailyAdminPage`) ; `get-solution` v2 renvoie aussi le leurre. **Trou critique fermé** (révélé par `get_advisors` *après* la RLS) : les RPC `SECURITY DEFINER` (`award_xp_on_play`, `add_user_xp`, `recalculate_*`, `notify_creator_on_comment`) étaient appelables par `anon` via `/rest/v1/rpc` → `REVOKE EXECUTE` de `public`/`anon`/`authenticated`, `GRANT` à `service_role`.
+
+**Revue adversariale** (workflows) phases 1+2 puis 3 : 2 « critiques » écartés comme faux positifs (decoy `-1` réellement autorisé ; `recalculate_user_level` existe bien) ; vrais correctifs appliqués (anti-forge essai, finalisation atomique, validation réponse 4 cartes, self-play = 0 XP, gestion d'erreurs front).
+
+**Vérifié en prod (curl + SQL)** : SELECT autorisés OK ; `grid_cards`/`suggestions`/`admin_config`/backups → `[]` ; INSERT direct anon → `401 (42501)` ; `rpc award_xp_on_play` anon → `401 permission denied` ; **jeu complet via fonctions OK** (collectif +70, joueur +25, créateur +45) ; `get-solution` finisher 200 / non-finisher 403.
+
+**Limite assumée** : pas d'auth réelle → le client envoie `user_id`/`player_id` (usurpation d'identité non couverte). Vrai correctif = **Supabase Auth**, reporté post-lancement.
+
+### Migrations DB appliquées (MCP `apply_migration`)
+- `orienta_admin_config` (table + RLS + hash du secret)
+- `orienta_enable_rls` (RLS + policies SELECT)
+- `orienta_lock_backup_tables`
+- `orienta_lock_security_definer_rpcs`
+
+### Restant (optionnel, non bloquant)
+- [ ] `DROP` les 3 tables `orienta_*_backup_20260604` une fois la prod confirmée stable.
+- [ ] Durcissement mineur `search_path` des fonctions SQL (advisor WARN).
+- [ ] RLS sur `rental_*`/`logements`… = **autre application** (Rental Supervision) sur la même base → hors périmètre Orienta.
+- [ ] (futur) **Supabase Auth** pour fermer l'usurpation d'identité.
+- [ ] Test navigateur sur le site live : jeu, création, social, profil, **admin** (mot de passe dans la mémoire sécu).
 
 ---
 
@@ -33,7 +63,7 @@ Objectif : vérifier que **chaque** notification de la cloche 🔔 redirige bien
 
 ### Prochaines actions (session 2026-06-04)
 
-- [ ] **Commiter** `NotificationsPanel.jsx` + `social/index.ts` (et déployer le front) pour resynchroniser avec la fonction `social` v3 déjà en prod.
+- [x] ~~**Commiter** `NotificationsPanel.jsx` + `social/index.ts` (et déployer le front)~~ → fait dans `a50ddb9` (commit global), déployé.
 - [ ] Tester en navigateur : cliquer chaque type de notif et vérifier l'atterrissage (`/dashboard/:gridId`, `/admin/daily`, `/profile`).
 - [ ] Vérifier qu'une notif `comment` est bien générée : commenter une grille **d'un autre joueur** depuis `/result` → le créateur reçoit la cloche + flèche → dashboard.
 - [ ] Poursuivre la migration sécurité `securite-edge-rls` (Edge Functions + RLS) selon les phases de `project_security_rls.md`.
@@ -61,9 +91,9 @@ Objectif : vérifier que **chaque** notification de la cloche 🔔 redirige bien
 
 ### Prochaines actions (session 2026-06-04 — dashboard/intégrité)
 
-- [ ] **Commiter + déployer le front** de cette session (`DashboardPage.jsx`, `HubPage.jsx`, `DailyArchivesPage.jsx`, `GridCard.jsx`, suppression `DailyLeaderboardModal.jsx`) pour resync avec `get-solution` et `start-play` v2 déjà en prod.
+- [x] ~~**Commiter + déployer le front** de cette session~~ → fait dans `a50ddb9`, déployé (Firebase).
 - [ ] `DROP` les 3 tables `*_backup_20260604` une fois la prod confirmée stable.
-- [ ] (Phase 4) migrer `ResultPage` / `ReplayModal` / `DailyAdminPage` vers `get-solution` avant de verrouiller `orienta_grid_cards` en RLS.
+- [x] ~~(Phase 4) migrer `ResultPage` / `ReplayModal` / `DailyAdminPage` vers `get-solution`~~ → fait + `orienta_grid_cards` verrouillée en RLS (voir session sécu en tête).
 
 ---
 
@@ -127,7 +157,7 @@ Objectif : vérifier que **chaque** notification de la cloche 🔔 redirige bien
 
 ## Points de vigilance
 
-- **Doublons de lignes `play` (cause racine non corrigée)** : `PlayPage` crée parfois plusieurs lignes `orienta_plays` pour le même couple (joueur, grille) — 9 couples concernés en base au 2026-06-03. Le Hub y est désormais robuste, mais ces doublons peuvent fausser stats/classements ailleurs. À traquer (où PlayPage duplique l'insert) + nettoyer les doublons existants.
+- ~~**Doublons de lignes `play`**~~ ✅ **RÉSOLU (2026-06-04)** : cause racine corrigée (`start-play` v2 + contrainte `UNIQUE(grid_id, player_id)`), doublons existants nettoyés (128→39). Création de partie désormais uniquement via `start-play` (service_role). Voir session « dashboard + intégrité ».
 - **Migration 009 hors pipeline CLI** : appliquée par connexion Postgres directe (`pg`), pas par `supabase db push` (qui échoue sur mismatch d'historique). Le fichier `009_*.sql` n'est donc pas enregistré dans la table d'historique de migrations distante — à garder en tête si on réconcilie l'historique un jour.
 - **Commit fourre-tout `e6c8d29`** : regroupe la refonte admin mobile **et** des WIP non liés (hub, result, login, TourOverlay, suppression TutorialModal, migrations 008-010). Non poussé. Si on veut un historique propre, envisager un re-split avant push.
 - **Régression possible `/create`** : la règle anti-espace s'y applique maintenant — vérifier qu'aucun usage légitime d'indice multi-mots n'existait.
