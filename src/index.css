@@ -1878,18 +1878,53 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   .play-feedback-drawer--hidden { transform: translateY(110%); }
 }
 
+/* Voile cliquable derrière la bottom-sheet (mobile uniquement) */
+.play-feedback-backdrop { display: none; }
+@keyframes pfd-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@media (max-width: 768px) {
+  .play-feedback-backdrop {
+    display: block;
+    position: fixed;
+    top: var(--header-h);
+    left: 0; right: 0;
+    bottom: var(--footer-h);
+    background: rgba(20,30,45,0.18);
+    z-index: 55;
+    animation: pfd-backdrop-in 0.25s ease;
+  }
+  /* Poignée + en-tête deviennent une zone de glissement */
+  .pfd-sheet-head { touch-action: none; }
+  .pfd-grabber {
+    display: flex; align-items: center; justify-content: center;
+    padding: 9px 0 5px;
+    cursor: grab;
+  }
+}
+
 /* Onglets essais + croix (sticky, pas de header séparé) */
 .play-history { width: 100%; display: flex; flex-direction: column; flex: 1; }
+.pfd-sheet-head {
+  position: sticky; top: 0;
+  background: var(--card);
+  z-index: 2;
+  flex-shrink: 0;
+}
 .play-history-tabs {
   display: flex;
   align-items: stretch;
   gap: 0;
   padding: 0 8px 0 0;
   border-bottom: 1px solid var(--line);
-  position: sticky; top: 0;
   background: var(--card);
-  z-index: 2;
   flex-shrink: 0;
+}
+
+/* Poignée de glissement (visible en bottom-sheet mobile) */
+.pfd-grabber { display: none; }
+.pfd-grabber-bar {
+  display: block;
+  width: 42px; height: 5px; border-radius: 3px;
+  background: rgba(28,33,40,0.18);
 }
 .play-history-tab {
   flex: 1;
@@ -1916,14 +1951,15 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 
 /* Croix fermeture dans la rangée d'onglets */
 .play-feedback-close {
-  background: none; border: none;
-  width: 32px; height: 32px; border-radius: 6px;
-  font-size: 13px; color: var(--ink-3);
+  background: var(--bg-tint); border: none;
+  width: 34px; height: 34px; border-radius: 50%;
+  font-size: 17px; font-weight: 700; line-height: 1; color: var(--ink);
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: background 0.15s, color 0.15s; flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, transform 0.15s; flex-shrink: 0;
   align-self: center; margin: 0 4px;
 }
-.play-feedback-close:hover { background: var(--bg-tint); color: var(--ink); }
+.play-feedback-close:hover { background: var(--line); color: var(--ink); transform: scale(1.06); }
+.play-feedback-close:active { transform: scale(0.94); }
 
 /* Scorecard — 3 cartes verticales */
 .pfd-tiles {

@@ -103,6 +103,7 @@ export default function PlayPage() {
   const [isSwappingSlots, setIsSwappingSlots] = useState(false)
   const [configTooltipOpen, setConfigTooltipOpen] = useState(false)
   const [tileTooltipOpen, setTileTooltipOpen] = useState(false)
+  const [sheetDragY, setSheetDragY] = useState(0)
 
   useEffect(() => {
     if (!configTooltipOpen && !tileTooltipOpen) return
@@ -115,6 +116,27 @@ export default function PlayPage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor,   { activationConstraint: { delay: 120, tolerance: 8 } }),
   )
+
+  // Glissement vers le bas pour fermer la bottom-sheet de feedback (mobile)
+  const sheetDragStart = useRef(null)
+  const sheetDragLast = useRef(0)
+  const handleSheetTouchStart = (e) => {
+    sheetDragStart.current = e.touches[0].clientY
+    sheetDragLast.current = 0
+  }
+  const handleSheetTouchMove = (e) => {
+    if (sheetDragStart.current == null) return
+    const delta = e.touches[0].clientY - sheetDragStart.current
+    const offset = delta > 0 ? delta : 0
+    sheetDragLast.current = offset
+    setSheetDragY(offset)
+  }
+  const handleSheetTouchEnd = () => {
+    if (sheetDragLast.current > 80) setFeedbackOpen(false)
+    setSheetDragY(0)
+    sheetDragStart.current = null
+    sheetDragLast.current = 0
+  }
 
   const startTimeRef = useRef(null)
   const [elapsed, setElapsed] = useState(0)
@@ -464,32 +486,52 @@ export default function PlayPage() {
           </div>
         </main>
 
+        {/* Voile cliquable derrière la bottom-sheet (mobile) : tap = fermer */}
+        {attemptHistory.length > 0 && feedbackOpen && (
+          <div
+            className="play-feedback-backdrop"
+            onClick={() => setFeedbackOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
         {/* ── Drawer droit — feedback ── */}
-        <aside className={[
-          'play-feedback-drawer',
-          attemptHistory.length === 0 ? 'play-feedback-drawer--collapsed' : '',
-          attemptHistory.length > 0 && !feedbackOpen ? 'play-feedback-drawer--hidden' : '',
-        ].filter(Boolean).join(' ')}>
+        <aside
+          className={[
+            'play-feedback-drawer',
+            attemptHistory.length === 0 ? 'play-feedback-drawer--collapsed' : '',
+            attemptHistory.length > 0 && !feedbackOpen ? 'play-feedback-drawer--hidden' : '',
+          ].filter(Boolean).join(' ')}
+          style={sheetDragY > 0 ? { transform: `translateY(${sheetDragY}px)`, transition: 'none' } : undefined}
+        >
           {attemptHistory.length > 0 && (
             <div className="play-history">
-              {/* Onglets essais + croix (pas de header séparé) */}
-              <div className="play-history-tabs">
-                {[0, 1, 2].map(idx => {
-                  const played = idx < attemptHistory.length
-                  const isActive = activeHistoryTab === idx
-                  return (
-                    <button
-                      key={idx}
-                      className={`play-history-tab ${isActive ? 'play-history-tab--active' : ''} ${!played ? 'play-history-tab--locked' : ''}`}
-                      onClick={() => played && setActiveHistoryTab(idx)}
-                      type="button"
-                      disabled={!played}
-                    >
-                      Essai {idx + 1}
-                    </button>
-                  )
-                })}
-                <button className="play-feedback-close" onClick={() => setFeedbackOpen(false)} type="button" aria-label="Fermer">✕</button>
+              {/* En-tête : poignée (mobile) + onglets essais + croix */}
+              <div
+                className="pfd-sheet-head"
+                onTouchStart={handleSheetTouchStart}
+                onTouchMove={handleSheetTouchMove}
+                onTouchEnd={handleSheetTouchEnd}
+              >
+                <div className="pfd-grabber" aria-hidden="true"><span className="pfd-grabber-bar" /></div>
+                <div className="play-history-tabs">
+                  {[0, 1, 2].map(idx => {
+                    const played = idx < attemptHistory.length
+                    const isActive = activeHistoryTab === idx
+                    return (
+                      <button
+                        key={idx}
+                        className={`play-history-tab ${isActive ? 'play-history-tab--active' : ''} ${!played ? 'play-history-tab--locked' : ''}`}
+                        onClick={() => played && setActiveHistoryTab(idx)}
+                        type="button"
+                        disabled={!played}
+                      >
+                        Essai {idx + 1}
+                      </button>
+                    )
+                  })}
+                  <button className="play-feedback-close" onClick={() => setFeedbackOpen(false)} type="button" aria-label="Fermer">✕</button>
+                </div>
               </div>
 
               {/* Scorecard — 3 cartes verticales */}
