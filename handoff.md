@@ -4,7 +4,7 @@
 
 - **Projet** : Orienta
 - **Branche** : `securite-edge-rls` (migration sécurité : écritures sensibles déplacées vers des Edge Functions + RLS, par phases — voir mémoire `project_security_rls.md`)
-- **État** : ✅ **TERMINÉ & DÉPLOYÉ** (2026-06-04). Tout est **commité (`a50ddb9`), fusionné dans `master`, poussé** → déploiement GitHub Actions (`deploy.yml`) → Firebase Hosting `orienta-d22a3` **réussi**. Site live : https://orienta-d22a3.web.app (HTTP 200). Les 8 Edge Functions sont déployées (MCP) et la RLS est active en prod. `master == securite-edge-rls`.
+- **État** : ✅ **TERMINÉ & DÉPLOYÉ** (2026-06-04). Tout est **commité, fusionné dans `master`, poussé** (HEAD `0b3058e`) → déploiement GitHub Actions (`deploy.yml`) → Firebase Hosting `orienta-d22a3` **réussi**. Site live : https://orienta-d22a3.web.app (HTTP 200). Les 8 Edge Functions sont déployées (MCP), la RLS est active en prod, et l'**advisor sécurité Orienta est clean** (hors `rental_*` = autre app). `master == securite-edge-rls`. Reste seulement (optionnel) le DROP des 3 tables de sauvegarde, sur OK utilisateur.
 
 ---
 
@@ -28,13 +28,17 @@ Aboutissement de la migration sécurité (plan `project_security_rls.md`). **Com
 - `orienta_enable_rls` (RLS + policies SELECT)
 - `orienta_lock_backup_tables`
 - `orienta_lock_security_definer_rpcs`
+- `orienta_harden_function_search_path` (`SET search_path=public` sur les 6 fonctions SECURITY DEFINER)
 
-### Restant (optionnel, non bloquant)
-- [ ] `DROP` les 3 tables `orienta_*_backup_20260604` une fois la prod confirmée stable.
-- [ ] Durcissement mineur `search_path` des fonctions SQL (advisor WARN).
-- [ ] RLS sur `rental_*`/`logements`… = **autre application** (Rental Supervision) sur la même base → hors périmètre Orienta.
-- [ ] (futur) **Supabase Auth** pour fermer l'usurpation d'identité.
+> ⚠️ Ces migrations ont été appliquées **directement sur la base distante via MCP** ; elles ne sont **pas** déposées comme fichiers dans `supabase/migrations/`. Le repo n'est donc pas source de vérité à 100 % pour ces changements DB (à exporter si besoin un jour).
+
+### Restant
+- [x] ~~Durcissement `search_path` des fonctions SQL~~ → **fait** (migration ci-dessus). Advisor sécurité Orienta **clean** : ne restent que des `INFO rls_enabled_no_policy` (tables volontairement verrouillées).
+- [ ] `DROP` les 3 tables `orienta_*_backup_20260604` — **EN ATTENTE** de la validation prod par l'utilisateur (destructif, c'est le filet de sécurité du dédoublonnage). Ne pas droper sans son OK explicite.
 - [ ] Test navigateur sur le site live : jeu, création, social, profil, **admin** (mot de passe dans la mémoire sécu).
+- ❌ **DÉCIDÉ DE NE PAS FAIRE** (choix utilisateur 2026-06-04) : RLS sur `rental_*`/`logements` (autre app, Rental Supervision) ; **Supabase Auth** (fermeture de l'usurpation d'identité).
+
+> Aucune action **Supabase obligatoire** côté utilisateur : tout (fonctions, migrations, secret admin hashé en base) a été appliqué via MCP et vérifié en prod. Seul le DROP des backups reste, optionnel, sur OK utilisateur.
 
 ---
 

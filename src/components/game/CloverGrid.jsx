@@ -42,11 +42,17 @@ export function DroppableSlot({ pos, card, rotation, colorIndex, feedback, onRot
   )
 }
 
-export default function CloverGrid({ placements, clues, feedbacks = {}, onRotate, disableTransition }) {
+const DIR_LABELS = { top: 'Haut', right: 'Droite', bottom: 'Bas', left: 'Gauche' }
+
+export default function CloverGrid({ placements, clues, feedbacks = {}, onRotate, disableTransition, directional = false }) {
+  // En phase placement, les pastilles affichent la direction de chaque bord
+  // (placeholder muté) au lieu des indices, qui n'existent pas encore.
+  const clueClass = side => `clue clue--${side}${directional ? ' clue--ph' : ''}`
+  const clueText = side => directional ? DIR_LABELS[side] : (clues?.[side] || '')
   return (
     <div className="clover-wrapper">
-      <div className="clue clue--top">{clues?.top || ''}</div>
-      <div className="clue clue--left">{clues?.left || ''}</div>
+      <div className={clueClass('top')}>{clueText('top')}</div>
+      <div className={clueClass('left')}>{clueText('left')}</div>
 
       <div className="clover-grid">
         {[0, 1, 2, 3].map(pos => (
@@ -63,8 +69,8 @@ export default function CloverGrid({ placements, clues, feedbacks = {}, onRotate
         ))}
       </div>
 
-      <div className="clue clue--right">{clues?.right || ''}</div>
-      <div className="clue clue--bottom">{clues?.bottom || ''}</div>
+      <div className={clueClass('right')}>{clueText('right')}</div>
+      <div className={clueClass('bottom')}>{clueText('bottom')}</div>
     </div>
   )
 }

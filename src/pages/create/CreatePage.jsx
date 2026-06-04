@@ -25,7 +25,7 @@ const CREATE_PLACEMENT_STEPS = [
     description: "L'app te distribue 4 cartes aléatoires. Chaque carte a un mot différent sur chacun de ses 4 bords. En mode Difficile, une 5e carte reste en réserve : c'est le leurre pour les joueurs !",
   },
   {
-    anchor: 'tray-right',
+    anchor: 'center-left',
     target: '.play-grid-area',
     zone: 'Grille 2×2',
     title: 'Arrange comme tu veux',
@@ -365,7 +365,6 @@ export default function CreatePage() {
   const showTimer = difficulty && difficulty !== 'facile'
   const timerPct = showTimer ? (timeLeft / TIMER_DURATION) * 100 : 100
   const timerColor = timeLeft < 20 ? 'var(--coral)' : timeLeft < 45 ? 'var(--warning)' : 'var(--accent)'
-  const dummyClues = { top: '·', right: '·', bottom: '·', left: '·' }
 
   return (
     <div className="create-page">
@@ -489,7 +488,7 @@ export default function CreatePage() {
             ) : (
               <CloverGrid
                 placements={placements}
-                clues={dummyClues}
+                directional
                 onRotate={handleRotate}
                 disableTransition={isSwappingSlots}
               />

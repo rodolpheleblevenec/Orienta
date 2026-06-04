@@ -1422,6 +1422,14 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .clue--left   { grid-area: left;  writing-mode: vertical-rl; transform: rotate(180deg); padding: 14px 8px; max-width: none; max-height: calc(var(--slot-size, 210px) * 2 + 18px); }
 .clue--right  { grid-area: right; writing-mode: vertical-rl; padding: 14px 8px; max-width: none; max-height: calc(var(--slot-size, 210px) * 2 + 18px); }
 
+/* Placeholder de direction (phase placement) : libellé muté, emplacement de l'indice à venir */
+.clue--ph {
+  color: var(--ink-3);
+  font-weight: 600;
+  background: rgba(255,255,255,0.55);
+  border: 1.5px dashed rgba(28,33,40,0.15);
+}
+
 /* ── Inputs /create (desktop) ── */
 .clue-input {
   background: var(--teal-soft);
