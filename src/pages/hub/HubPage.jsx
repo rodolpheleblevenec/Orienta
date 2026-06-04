@@ -311,28 +311,15 @@ export default function HubPage() {
                     </span>
                   </div>
                   <div className="hub-media-center">
-                    <div className="hub-demo-board">
-                      <div className="hub-dtile hub-dtile--o">
-                        <span className="hub-dtile-arrow">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/></svg>
-                        </span>
-                      </div>
-                      <div className="hub-dtile hub-dtile--g">
-                        <span className="hub-dtile-arrow">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/></svg>
-                        </span>
-                      </div>
-                      <div className="hub-dtile hub-dtile--b">
-                        <span className="hub-dtile-arrow">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/></svg>
-                        </span>
-                      </div>
-                      <div className="hub-dtile hub-dtile--c">
-                        <span className="hub-dtile-arrow">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/></svg>
-                        </span>
-                      </div>
-                    </div>
+                    <img
+                      src="/orienta_motion_design.gif"
+                      alt="Animation tutoriel : les cartes d'une grille Orienta pivotent jusqu'à la résolution"
+                      className="hub-demo-gif"
+                      loading="lazy"
+                      decoding="async"
+                      width="720"
+                      height="720"
+                    />
                   </div>
                   <div className="hub-media-info">
                     <h3>Une grille. Chaque jour.<br />Avec tout le monde.</h3>

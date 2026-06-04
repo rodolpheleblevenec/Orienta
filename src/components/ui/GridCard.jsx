@@ -42,6 +42,14 @@ export default function GridCard({ grid, playInfo, index, isDaily = false, isOwn
   const statusLabel = completed ? 'Terminé' : inProgress ? 'En cours' : 'Non joué'
   const avaColor = isDaily ? 'var(--teal)' : pickAvaColor(creatorPseudo)
 
+  const ctaLabel = isOwnGrid
+    ? 'Gérer ma grille'
+    : isDaily
+      ? 'Jouer le défi'
+      : inProgress
+        ? 'Reprendre la grille'
+        : 'Jouer la grille'
+
   return (
     <motion.article
       className="pcard"
@@ -90,6 +98,12 @@ export default function GridCard({ grid, playInfo, index, isDaily = false, isOwn
             <div className="pc-k">Réussite</div>
             <div className="pc-v">{totalPlays > 0 ? `${successRate}%` : '—'}</div>
           </div>
+        </div>
+        <div className="pc-cta">
+          <span className="pc-cta-label">{ctaLabel}</span>
+          <svg className="pc-cta-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M5 12h14" /><path d="m13 6 6 6-6 6" />
+          </svg>
         </div>
       </Link>
     </motion.article>
