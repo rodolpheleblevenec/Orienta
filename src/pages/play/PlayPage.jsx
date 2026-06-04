@@ -45,6 +45,20 @@ import WordCard from '../../components/game/WordCard'
 
 const MAX_ATTEMPTS = 3
 
+// Signature comparable d'une configuration (placements) : carte + rotation
+// normalisée pour chaque emplacement 0–3. Deux essais sont « identiques » s'ils
+// ont la même signature → on peut détecter une re-soumission à l'identique.
+function configSignature(placements) {
+  return [0, 1, 2, 3]
+    .map(pos => {
+      const item = placements?.[pos]
+      if (!item) return `${pos}:∅`
+      const rot = (((item.rotation ?? 0) % 360) + 360) % 360
+      return `${pos}:${item.card.id}:${rot}`
+    })
+    .join('|')
+}
+
 // Pluie de trèfles 🍀 — célébration légère d'une victoire en mode rejeu
 function rainCloversBurst() {
   const clover = confetti.shapeFromText ? confetti.shapeFromText({ text: '🍀', scalar: 2.4 }) : undefined
@@ -101,6 +115,7 @@ export default function PlayPage() {
   const [gameOver, setGameOver] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(false)
+  const [duplicateWarning, setDuplicateWarning] = useState(false)
   const [isSwappingSlots, setIsSwappingSlots] = useState(false)
   const [configTooltipOpen, setConfigTooltipOpen] = useState(false)
   const [tileTooltipOpen, setTileTooltipOpen] = useState(false)
@@ -223,6 +238,10 @@ export default function PlayPage() {
     if (!user.tour_play_done) setShowTour(true)
   }, [user?.id])
 
+  // Dès que le joueur modifie sa configuration, l'avertissement « déjà tentée »
+  // n'a plus lieu d'être.
+  useEffect(() => { setDuplicateWarning(false) }, [placements])
+
   useEffect(() => {
     if (gameOver) return
     const interval = setInterval(() => {
@@ -336,6 +355,15 @@ export default function PlayPage() {
   }
 
   async function handleSubmit() {
+    // Garde-fou : on n'envoie pas (et on ne consomme pas d'essai) si la
+    // configuration est strictement identique à un essai déjà tenté.
+    const currentSig = configSignature(placements)
+    if (attemptHistory.some(a => configSignature(a.placements) === currentSig)) {
+      setDuplicateWarning(true)
+      return
+    }
+    setDuplicateWarning(false)
+
     setIsSubmitting(true)
     setSubmitError(false)
 
@@ -655,6 +683,9 @@ export default function PlayPage() {
       <footer className="play-footer">
         {submitError && (
           <p className="play-submit-error">Erreur réseau — réessaie.</p>
+        )}
+        {duplicateWarning && !submitError && (
+          <p className="play-submit-notice">Tu as déjà tenté cette configuration. Essaies-en une autre.</p>
         )}
 
         {/* Gauche : chip essai + chrono */}

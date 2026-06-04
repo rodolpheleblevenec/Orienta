@@ -21,7 +21,15 @@ export const useAuthStore = create((set, get) => ({
     set({ user: data ?? null, loading: false })
     if (data) {
       get().fetchNotifCount(data.id)
+      get().pingSeen(data.id)
     }
+  },
+
+  // Trace la connexion du jour (stats admin) — fire-and-forget, ne bloque jamais l'UI.
+  pingSeen: (userId) => {
+    const id = userId ?? get().user?.id
+    if (!id) return
+    supabase.functions.invoke('account', { body: { action: 'seen', user_id: id } }).catch(() => {})
   },
 
   loginWithPseudo: async (pseudo) => {
@@ -39,6 +47,7 @@ export const useAuthStore = create((set, get) => ({
     localStorage.setItem(STORAGE_KEY, data.user.id)
     set({ user: data.user })
     get().fetchNotifCount(data.user.id)
+    get().pingSeen(data.user.id)
     return { user: data.user, isNew: data.isNew }
   },
 

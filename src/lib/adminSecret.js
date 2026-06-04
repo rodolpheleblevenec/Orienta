@@ -12,6 +12,12 @@ export function getAdminSecret() {
   return s
 }
 
+// Enregistre un secret déjà validé (ex. après le contrôle à l'entrée de l'admin),
+// pour que les pages admin ne le redemandent pas dans la session.
+export function setAdminSecret(value) {
+  if (value) sessionStorage.setItem(KEY, value)
+}
+
 export function clearAdminSecret() {
   sessionStorage.removeItem(KEY)
 }

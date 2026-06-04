@@ -65,6 +65,68 @@ serve(async (req) => {
 
   const { action } = body
 
+  // ─── Vérification simple du secret (contrôle à l'entrée de l'admin) ───
+  // Le secret a déjà été validé par le garde-fou ci-dessus ; on confirme juste.
+  if (action === 'verify') return json({ ok: true })
+
+  // ─── Statistiques admin (KPIs + séries journalières) ───
+  if (action === 'get-stats') {
+    const [usersRes, activeRes, gridsRes, playsRes] = await Promise.all([
+      supabase.from('orienta_users').select('created_at'),
+      supabase.from('orienta_daily_active').select('user_id, active_date'),
+      supabase.from('orienta_grids').select('created_at, daily_date'),
+      supabase.from('orienta_plays').select('success'),
+    ])
+    const users = usersRes.data ?? []
+    const active = activeRes.data ?? []
+    const grids = gridsRes.data ?? []
+    const plays = playsRes.data ?? []
+
+    // Jour 'YYYY-MM-DD' aussi bien pour un timestamp ('2026-06-04 13:33:..') qu'une date.
+    const dayOf = (v: string) => String(v).slice(0, 10)
+
+    type Day = { date: string; active: number; new_users: number; grids_daily: number; grids_community: number }
+    const map = new Map<string, Day>()
+    const ensure = (d: string): Day => {
+      let row = map.get(d)
+      if (!row) { row = { date: d, active: 0, new_users: 0, grids_daily: 0, grids_community: 0 }; map.set(d, row) }
+      return row
+    }
+
+    for (const u of users) if (u.created_at) ensure(dayOf(u.created_at)).new_users++
+    for (const a of active) if (a.active_date) ensure(dayOf(a.active_date)).active++
+    for (const g of grids) {
+      if (!g.created_at) continue
+      const row = ensure(dayOf(g.created_at))
+      if (g.daily_date) row.grids_daily++; else row.grids_community++
+    }
+
+    // Série continue du 1er jour connu jusqu'à aujourd'hui (jours sans activité = 0).
+    const today = new Date().toISOString().slice(0, 10)
+    const keys = [...map.keys()].sort()
+    const series: Day[] = []
+    if (keys.length) {
+      const empty = (d: string): Day => ({ date: d, active: 0, new_users: 0, grids_daily: 0, grids_community: 0 })
+      for (let t = Date.parse(keys[0] + 'T00:00:00Z'); t <= Date.parse(today + 'T00:00:00Z'); t += 86400000) {
+        const d = new Date(t).toISOString().slice(0, 10)
+        series.push(map.get(d) ?? empty(d))
+      }
+    }
+
+    const weekAgo = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10)
+    const active7d = new Set(active.filter(a => a.active_date && dayOf(a.active_date) >= weekAgo).map(a => a.user_id)).size
+    const successPlays = plays.filter(p => p.success).length
+    const kpis = {
+      total_users: users.length,
+      active_7d: active7d,
+      total_grids: grids.length,
+      total_plays: plays.length,
+      success_rate: plays.length ? Math.round((100 * successPlays) / plays.length) : 0,
+    }
+
+    return json({ kpis, series })
+  }
+
   // ─── Liste des suggestions (lecture admin ; la table n'est plus lisible par anon) ───
   if (action === 'list-suggestions') {
     const { data } = await supabase

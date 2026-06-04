@@ -8,6 +8,7 @@ import { sample } from '../../lib/shuffle'
 import Header from '../../components/ui/Header'
 import CloverWithInputs from '../../components/game/CloverWithInputs'
 import SuggestionsAdmin from './SuggestionsAdmin'
+import StatsAdmin from './StatsAdmin'
 
 const ADMIN_PSEUDO = 'Rodolphe LE BLEVENEC'
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
@@ -293,7 +294,7 @@ export default function DailyAdminPage() {
       <Header />
 
       <div className="admin-tabs">
-        {[['grilles', '📅 Grilles du jour'], ['idees', '💡 Boîte à idées']].map(([id, label]) => (
+        {[['grilles', '📅 Grilles du jour'], ['idees', '💡 Boîte à idées'], ['stats', '📊 Stats']].map(([id, label]) => (
           <button
             key={id}
             type="button"
@@ -306,6 +307,10 @@ export default function DailyAdminPage() {
       {adminTab === 'idees' ? (
         <main className="admin-main admin-main--single">
           <SuggestionsAdmin />
+        </main>
+      ) : adminTab === 'stats' ? (
+        <main className="admin-main admin-main--single">
+          <StatsAdmin />
         </main>
       ) : (
       <main className="admin-main">

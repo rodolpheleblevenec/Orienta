@@ -31,6 +31,7 @@ serve(async (req) => {
   )
 
   let body: { action?: string; pseudo?: string; user_id?: string; flag?: string; skin?: number; content?: string }
+  // (ci-dessous) action `seen` : trace la connexion du joueur du jour (stats admin)
   try { body = await req.json() } catch { return json({ error: 'invalid body' }, 400) }
   const { action } = body
 
@@ -73,6 +74,15 @@ serve(async (req) => {
       return json({ error: 'invalid skin' }, 400)
     }
     await supabase.from('orienta_users').update({ selected_skin: skin }).eq('id', userId)
+    return json({ ok: true })
+  }
+
+  // ─── Trace la connexion du jour (1 ligne par joueur/jour) pour les stats admin ───
+  if (action === 'seen') {
+    const today = new Date().toISOString().slice(0, 10)
+    await supabase
+      .from('orienta_daily_active')
+      .upsert({ user_id: userId, active_date: today }, { onConflict: 'user_id,active_date', ignoreDuplicates: true })
     return json({ ok: true })
   }
 
