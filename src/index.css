@@ -958,6 +958,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   .hub-btn-create { width: 100%; justify-content: center; }
   .hub-mycreated-right { width: 100%; }
   .hub-rank-head { flex-direction: column; gap: 8px; }
+  .community-sort { flex-direction: column; gap: 6px; }
 }
 
 /* ── Hub legacy (kept for backward compat) ────────── */
