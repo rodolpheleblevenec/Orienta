@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
@@ -13,11 +13,24 @@ function timeAgo(dateStr) {
   return `il y a ${Math.floor(diff / 86400)}j`
 }
 
+// 'YYYY-MM-DD' → '14 juin' (les payloads grant stockent des dates calendaires)
+function fmtDate(dateStr) {
+  if (!dateStr) return ''
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })
+}
+
 export default function NotificationsPanel({ onClose }) {
   useBodyScrollLock()
+  const navigate = useNavigate()
   const { user, markNotifsRead } = useAuthStore()
   const [notifs, setNotifs] = useState([])
   const [loading, setLoading] = useState(true)
+
+  function openNotif(link) {
+    if (!link) return
+    onClose()
+    navigate(link)
+  }
 
   useEffect(() => {
     if (!user) return
@@ -36,12 +49,14 @@ export default function NotificationsPanel({ onClose }) {
   }, [user])
 
   return (
-    <div className="notif-backdrop" onClick={onClose}>
+    <>
+      {/* Catch-clic transparent (desktop) / voile sombre (mobile) — ferme au clic extérieur */}
+      <div className="notif-backdrop" onClick={onClose} />
       <motion.div
         className="notif-panel"
-        initial={{ opacity: 0, y: -8, scale: 0.97 }}
+        initial={{ opacity: 0, y: -8, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: -8, scale: 0.97 }}
+        exit={{ opacity: 0, y: -8, scale: 0.98 }}
         transition={{ duration: 0.15 }}
         onClick={e => e.stopPropagation()}
       >
@@ -82,6 +97,22 @@ export default function NotificationsPanel({ onClose }) {
                   } else if (type === 'comment') {
                     text = <><strong>{n.payload?.player_pseudo ?? 'Quelqu\'un'}</strong> a commenté ta grille</>
                     comment = n.payload?.comment
+                  } else if (type === 'comment_reply') {
+                    icon = '↩️'
+                    text = <><strong>{n.payload?.creator_pseudo ?? 'Le créateur'}</strong> a répondu à ton message</>
+                    comment = n.payload?.reply
+                  } else if (type === 'grid_grant') {
+                    icon = '🏆'
+                    text = <>Tu as gagné la grille du <strong>{fmtDate(n.payload?.source_date)}</strong> ! À toi de créer la grille du jour du <strong>{fmtDate(n.payload?.target_date)}</strong>.</>
+                    link = n.payload?.grant_id ? `/create?grant=${n.payload.grant_id}` : '/hub'
+                  } else if (type === 'reserve_low') {
+                    icon = '⚠️'
+                    text = <>Réserve de grilles basse (<strong>{n.payload?.count ?? 0}</strong>). Pense à ajouter des grilles de secours.</>
+                    link = '/admin/daily'
+                  } else if (type === 'grant_expired') {
+                    icon = '⌛'
+                    text = <>Personne n'a créé la grille du <strong>{fmtDate(n.payload?.target_date)}</strong> à temps — comblée par la réserve.</>
+                    link = '/admin/daily'
                   } else {
                     text = <><strong>{n.payload?.player_pseudo ?? 'Quelqu\'un'}</strong> a interagi avec ta grille</>
                   }
@@ -89,10 +120,16 @@ export default function NotificationsPanel({ onClose }) {
                   return (
                     <motion.li
                       key={n.id}
-                      className={`notif-item${n.read ? ' notif-item--read' : ''}`}
+                      className={`notif-item${n.read ? ' notif-item--read' : ''}${link ? ' notif-item--clickable' : ''}`}
                       initial={{ opacity: 0, x: -8 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.03 }}
+                      onClick={link ? () => openNotif(link) : undefined}
+                      role={link ? 'button' : undefined}
+                      tabIndex={link ? 0 : undefined}
+                      onKeyDown={link ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openNotif(link) }
+                      } : undefined}
                     >
                       <div className="notif-icon">{icon}</div>
                       <div className="notif-content">
@@ -101,7 +138,7 @@ export default function NotificationsPanel({ onClose }) {
                         <span className="notif-time">{timeAgo(n.created_at)}</span>
                       </div>
                       {link && (
-                        <Link to={link} className="notif-link" onClick={onClose}>→</Link>
+                        <span className="notif-link" aria-hidden="true">→</span>
                       )}
                     </motion.li>
                   )
@@ -111,6 +148,6 @@ export default function NotificationsPanel({ onClose }) {
           )}
         </div>
       </motion.div>
-    </div>
+    </>
   )
 }

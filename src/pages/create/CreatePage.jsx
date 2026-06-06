@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   DndContext, DragOverlay, closestCorners,
   PointerSensor, TouchSensor, useSensor, useSensors, useDroppable,
@@ -11,6 +11,12 @@ import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 import { sample } from '../../lib/shuffle'
 import Header from '../../components/ui/Header'
 import TourOverlay from '../../components/ui/TourOverlay'
+
+// 'YYYY-MM-DD' → 'lundi 14 juin' (date cible d'un grant)
+function formatDailyDate(dateStr) {
+  if (!dateStr) return ''
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+}
 
 const CREATE_PLACEMENT_STEPS = [
   {
@@ -94,6 +100,13 @@ export default function CreatePage() {
   const navigate = useNavigate()
   const { user, refreshUser, markTourDone } = useAuthStore()
 
+  // Mode « grant » : le gagnant d'un jour crée la grille du jour de J+3 (?grant=ID).
+  const [searchParams] = useSearchParams()
+  const grantId = searchParams.get('grant')
+  const grantMode = !!grantId
+  const [grant, setGrant] = useState(null)
+  const [grantInvalid, setGrantInvalid] = useState(false)
+
   const [showDifficultyModal, setShowDifficultyModal] = useState(true)
   const [showExitWarning, setShowExitWarning] = useState(false)
   const [missedCreation, setMissedCreation] = useState(false)
@@ -114,6 +127,7 @@ export default function CreatePage() {
   const [isSwappingSlots, setIsSwappingSlots] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [publishError, setPublishError] = useState(false)
+  const [published, setPublished] = useState(false)
   const startTimeRef = useRef(null)
   const timerRef = useRef(null)
 
@@ -122,19 +136,41 @@ export default function CreatePage() {
     useSensor(TouchSensor,   { activationConstraint: { delay: 120, tolerance: 8 } }),
   )
 
+  // Charge + valide le grant (mode gagnant). Date verrouillée, toutes difficultés débloquées.
+  useEffect(() => {
+    if (!grantId || !user) return
+    supabase.from('orienta_grid_grants')
+      .select('id, target_date, status, winner_user_id')
+      .eq('id', grantId)
+      .maybeSingle()
+      .then(({ data }) => {
+        const todayParis = new Date().toLocaleDateString('fr-CA', { timeZone: 'Europe/Paris' })
+        if (!data || data.winner_user_id !== user.id || data.status !== 'pending' || data.target_date <= todayParis) {
+          setGrantInvalid(true)
+        } else {
+          setGrant(data)
+        }
+      })
+  }, [grantId, user])
+
   useEffect(() => {
     if (!user) return
+    // Mode grant : pas de quota communautaire, toutes les difficultés sont ouvertes.
+    if (grantMode) { setUnlockedDifficulties(['facile', 'moyen', 'difficile']); return }
+
     const today = new Date().toISOString().split('T')[0]
     Promise.all([
       supabase.from('orienta_grids')
         .select('id')
         .eq('creator_id', user.id)
         .is('daily_date', null)
+        .is('daily_status', null)
         .gte('created_at', today + 'T00:00:00'),
       supabase.from('orienta_grids')
         .select('difficulty')
         .eq('creator_id', user.id)
         .is('daily_date', null)
+        .is('daily_status', null)
         .eq('status', 'published'),
     ]).then(([todayRes, allRes]) => {
       if (todayRes.data && todayRes.data.length > 0) setAlreadyCreatedToday(true)
@@ -146,7 +182,7 @@ export default function CreatePage() {
       if (hasMoyen) unlocked.push('difficile')
       setUnlockedDifficulties(unlocked)
     })
-  }, [user])
+  }, [user, grantMode])
 
   useEffect(() => {
     if (phase === 'difficulty' || difficulty === 'facile' || !tourFinished) {
@@ -289,6 +325,7 @@ export default function CreatePage() {
         placements: gridPlacements,
         decoy_card_id: decoyCardId,
         creator_time_seconds: creatorTime,
+        grant_id: grant?.id ?? null,
       },
     })
 
@@ -300,7 +337,7 @@ export default function CreatePage() {
     }
 
     await refreshUser()
-    navigate('/hub')
+    setPublished(true)
   }
 
   useEffect(() => {
@@ -374,7 +411,19 @@ export default function CreatePage() {
       {showDifficultyModal && (
         <div className="difficulty-modal-backdrop">
           <div className="difficulty-modal">
-            {alreadyCreatedToday ? (
+            {grantInvalid ? (
+              <>
+                <h2 className="difficulty-modal-title">Droit de création expiré</h2>
+                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                  Ce droit de création n'est plus valable (déjà utilisé, ou la date est dépassée).
+                </p>
+                <button className="btn-primary" onClick={() => navigate('/hub')} style={{ width: '100%' }}>
+                  Retour au Hub
+                </button>
+              </>
+            ) : (grantMode && !grant) ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '24px 0' }}>Chargement…</p>
+            ) : (alreadyCreatedToday && !grantMode) ? (
               <>
                 <h2 className="difficulty-modal-title">Limite quotidienne atteinte</h2>
                 <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '20px' }}>
@@ -386,6 +435,14 @@ export default function CreatePage() {
               </>
             ) : (
               <>
+                {grantMode && grant && (
+                  <div style={{ textAlign: 'center', marginBottom: 16, padding: '12px 14px', borderRadius: 12, background: 'var(--bg-tint, #f4f1ea)' }}>
+                    <div style={{ fontWeight: 700, marginBottom: 4 }}>🏆 Grille du jour du {formatDailyDate(grant.target_date)}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                      Tu as gagné le droit de la créer — elle sera jouée par toute la communauté ce jour-là.
+                    </div>
+                  </div>
+                )}
                 <h2 className="difficulty-modal-title">Quel niveau de difficulté ?</h2>
                 <div className="difficulty-options">
                   {[
@@ -448,7 +505,7 @@ export default function CreatePage() {
 
         {/* ── Centre — grille ── */}
         <main className="play-main">
-          {!expired && (
+          {!expired && !published && (
             <button
               className="btn-reset"
               onClick={handleReset}
@@ -460,22 +517,44 @@ export default function CreatePage() {
             </button>
           )}
           <div className="play-grid-area">
-            {missedCreation ? (
+            {published ? (
+              <div className="create-expired create-expired--success">
+                <div className="create-expired-icon">{grantMode ? '🏆' : '🎉'}</div>
+                {grantMode ? (
+                  <>
+                    <p className="create-expired-title">Ta grille du jour est programmée !</p>
+                    <p className="create-expired-text">Elle sera <strong>la grille du jour du {formatDailyDate(grant?.target_date)}</strong>, jouée par toute la communauté. Merci d'avoir relevé le défi&nbsp;!</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="create-expired-title">Bravo, ta grille est créée !</p>
+                    <p className="create-expired-text">Ta grille a été publiée. Les autres joueurs peuvent maintenant la résoudre — tu gagneras de l'XP à chaque réussite.</p>
+                  </>
+                )}
+                <button className="btn-primary" onClick={() => navigate('/hub')}>Retour au Hub</button>
+              </div>
+            ) : missedCreation ? (
               <div className="create-expired">
                 <div className="create-expired-icon">⌛</div>
                 <p className="create-expired-title">Grille non publiée</p>
                 <p className="create-expired-text">Tu n'as pas rempli tous les indices à temps. Tu ne pourras plus créer de grille aujourd'hui. Reviens demain !</p>
                 <button className="btn-secondary" onClick={() => navigate('/hub')}>Retour au Hub</button>
               </div>
-            ) : expired ? (
+            ) : expired && publishError ? (
               <div className="create-expired">
                 <div className="create-expired-icon">⏰</div>
-                <p className="create-expired-title">Le temps est écoulé !</p>
-                <p className="create-expired-text">Ta grille n'a pas été sauvegardée. Pas de panique, réessaie !</p>
+                <p className="create-expired-title">La publication a échoué</p>
+                <p className="create-expired-text">Le temps est écoulé et ta grille n'a pas pu être enregistrée. Pas de panique, réessaie !</p>
                 <div className="create-expired-actions">
                   <button className="btn-primary" onClick={() => window.location.reload()}>Réessayer</button>
                   <button className="btn-secondary" onClick={() => navigate('/hub')}>Retour au Hub</button>
                 </div>
+              </div>
+            ) : expired ? (
+              <div className="create-expired create-expired--success">
+                <div className="create-expired-icon">⏳</div>
+                <p className="create-expired-title">Publication en cours…</p>
+                <p className="create-expired-text">On enregistre ta grille, un instant.</p>
               </div>
             ) : phase === 'clues' ? (
               <CloverWithInputs
@@ -577,7 +656,7 @@ export default function CreatePage() {
       <footer className="play-footer">
         {/* Gauche : phase ou timer */}
         <div className="play-footer-left">
-          {showTimer && !expired && !missedCreation ? (
+          {showTimer && !expired && !missedCreation && !published ? (
             <div className="play-attempt-chip">
               <span className="pac-label">Chrono</span>
               <span className="pac-num" style={{ color: timerColor }}>
@@ -594,7 +673,7 @@ export default function CreatePage() {
         </div>
 
         {/* Centre : bouton publier */}
-        {!expired && phase === 'clues' && (
+        {!expired && !published && phase === 'clues' && (
           <div className="create-publish-wrap">
             {publishError && (
               <p className="play-submit-error">La publication a échoué — réessaie.</p>
@@ -612,7 +691,7 @@ export default function CreatePage() {
 
         {/* Droite : retour hub */}
         <div className="play-footer-right">
-          {showTimer && !expired && !missedCreation
+          {showTimer && !expired && !missedCreation && !published
             ? <button className="play-footer-hub-btn" onClick={() => setShowExitWarning(true)} type="button">Retour au Hub</button>
             : <Link to="/hub" className="play-footer-hub-btn">Retour au Hub</Link>
           }

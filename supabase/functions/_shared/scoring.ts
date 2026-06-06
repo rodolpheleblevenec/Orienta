@@ -9,6 +9,16 @@ const SPEED_THRESHOLD_SECONDS = 60
 export const XP_RESOLVE = 25 // joueur qui résout une grille
 export const xpStreakBonus = (streak: number) => Math.min((streak ?? 0) * 2, 30)
 
+// Bonus de rapidité : récompense une résolution avant le 3e essai.
+export const XP_FIRST_TRY = 6  // résolu du premier essai
+export const XP_SECOND_TRY = 3 // résolu au deuxième essai
+export function xpAttemptBonus(attemptNo: number, success: boolean): number {
+  if (!success) return 0
+  if (attemptNo === 1) return XP_FIRST_TRY
+  if (attemptNo === 2) return XP_SECOND_TRY
+  return 0
+}
+
 // Décroissance logarithmique : le score ne descend jamais sous ~200 en jeu normal.
 export function computeScore(elapsedSeconds: number, attemptsFailed: number): number {
   const timeDecay = Math.max(0, BASE_SCORE * (1 - 0.35 * Math.log10(1 + elapsedSeconds / 30)))

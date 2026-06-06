@@ -12,8 +12,14 @@ export default function DashboardPage() {
   const [grid, setGrid] = useState(null)
   const [plays, setPlays] = useState([])
   const [solutionCards, setSolutionCards] = useState([])
+  const [attemptsByPlay, setAttemptsByPlay] = useState({})  // play.id → [tentatives]
+  const [openPlayer, setOpenPlayer] = useState(null)        // play.id déplié dans le classement
   const [denied, setDenied] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [openReply, setOpenReply] = useState(null)   // play.id en cours d'édition
+  const [replyText, setReplyText] = useState('')
+  const [replyBusy, setReplyBusy] = useState(false)
+  const [replyError, setReplyError] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -53,6 +59,21 @@ export default function DashboardPage() {
       })
       if (cancelled) return
       if (!error && sol?.cards) setSolutionCards(sol.cards)
+
+      // Parcours détaillé des joueurs (essai par essai) — réservé au créateur.
+      // Voir le jeu des autres révèle des fausses pistes : gate côté serveur.
+      if (isOwner) {
+        const { data: att } = await supabase.functions.invoke('get-grid-attempts', {
+          body: { grid_id: gridId, user_id: user.id },
+        })
+        if (cancelled) return
+        if (att?.attempts) {
+          const map = {}
+          for (const a of att.attempts) (map[a.play_id] ??= []).push(a)
+          setAttemptsByPlay(map)
+        }
+      }
+
       setLoading(false)
     }
 
@@ -89,6 +110,54 @@ export default function DashboardPage() {
     if (!a.success && b.success) return 1
     return (b.score ?? 0) - (a.score ?? 0)
   })
+
+  // Maps issues de la solution : contenu de chaque carte + sa position attendue.
+  // Les 4 cartes manipulées par les joueurs sont les mêmes que la solution, donc
+  // on peut reconstruire chaque essai (mots + rotations) sans requête en plus.
+  // La couleur d'une carte suit sa position dans la SOLUTION → un essai mal placé
+  // se repère d'un coup d'œil aux couleurs mélangées.
+  const cardById = {}
+  const solPosByCard = {}
+  for (const gc of solutionCards) {
+    if (gc.orienta_word_cards) cardById[gc.card_id] = gc.orienta_word_cards
+    if (gc.position >= 0 && gc.position <= 3) solPosByCard[gc.card_id] = gc.position
+  }
+  const gridClues = { top: grid.clue_top, right: grid.clue_right, bottom: grid.clue_bottom, left: grid.clue_left }
+
+  function attemptPlacements(answer) {
+    const pl = {}
+    for (const a of answer ?? []) {
+      pl[a.position] = { card: cardById[a.card_id], rotation: a.rotation ?? 0, colorIndex: solPosByCard[a.card_id] ?? 0 }
+    }
+    return pl
+  }
+
+  function openReplyEditor(p) {
+    setOpenReply(p.id)
+    setReplyText(p.creator_reply ?? '')
+    setReplyError(false)
+  }
+
+  function cancelReply() {
+    setOpenReply(null)
+    setReplyText('')
+    setReplyError(false)
+  }
+
+  async function submitReply(playId) {
+    const text = replyText.trim()
+    if (!text || replyBusy) return
+    setReplyBusy(true)
+    setReplyError(false)
+    const { data, error } = await supabase.functions.invoke('social', {
+      body: { action: 'reply', user_id: user.id, play_id: playId, reply: text },
+    })
+    setReplyBusy(false)
+    if (error || data?.error) { setReplyError(true); return }
+    setPlays(prev => prev.map(pl =>
+      pl.id === playId ? { ...pl, creator_reply: text, creator_reply_at: data.reply_at } : pl))
+    cancelReply()
+  }
 
   return (
     <div className="dashboard-page">
@@ -193,19 +262,76 @@ export default function DashboardPage() {
               {sortedPlays.map((p, i) => {
                 const rank = i + 1
                 const medalMod = p.success && rank <= 3 ? ['gold', 'silver', 'bronze'][rank - 1] : null
+                const attempts = attemptsByPlay[p.id] ?? []
+                const expandable = isOwner && attempts.length > 0
+                const open = openPlayer === p.id
                 return (
-                  <motion.div key={i} className={`db-player ${!p.success ? 'db-player--fail' : ''}`}
+                  <motion.div key={p.id ?? i}
                     initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.04 }}>
-                    <span className={`db-rank${medalMod ? ` db-rank--${medalMod}` : ''}`}>{rank}</span>
-                    <span className="db-player-name">{p.orienta_users?.pseudo ?? '?'}</span>
-                    <span className="db-player-meta">
-                      <span className="db-player-attempts">{p.attempts_count} essai{p.attempts_count > 1 ? 's' : ''}</span>
-                      {p.time_seconds != null && <span className="db-player-time">{p.time_seconds}s</span>}
-                    </span>
-                    <span className={`db-player-score ${p.success ? 'db-player-score--ok' : 'db-player-score--fail'}`}>
-                      {p.success ? `${p.score ?? 0} pts` : 'Échec'}
-                    </span>
+                    <div
+                      className={`db-player ${!p.success ? 'db-player--fail' : ''} ${expandable ? 'db-player--clickable' : ''} ${open ? 'db-player--open' : ''}`}
+                      role={expandable ? 'button' : undefined}
+                      tabIndex={expandable ? 0 : undefined}
+                      onClick={expandable ? () => setOpenPlayer(open ? null : p.id) : undefined}
+                      onKeyDown={expandable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenPlayer(open ? null : p.id) } } : undefined}
+                    >
+                      <span className={`db-rank${medalMod ? ` db-rank--${medalMod}` : ''}`}>{rank}</span>
+                      <span className="db-player-name">{p.orienta_users?.pseudo ?? '?'}</span>
+                      <span className="db-player-meta">
+                        <span className="db-player-attempts">{p.attempts_count} essai{p.attempts_count > 1 ? 's' : ''}</span>
+                        {p.time_seconds != null && <span className="db-player-time">{p.time_seconds}s</span>}
+                      </span>
+                      <span className={`db-player-score ${p.success ? 'db-player-score--ok' : 'db-player-score--fail'}`}>
+                        {p.success ? `${p.score ?? 0} pts` : 'Échec'}
+                      </span>
+                      {expandable && (
+                        <svg className={`db-player-chevron ${open ? 'db-player-chevron--open' : ''}`}
+                          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="14" height="14">
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
+                      )}
+                    </div>
+
+                    {expandable && open && (
+                      <motion.div className="db-journey"
+                        initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+                        transition={{ duration: 0.25 }}>
+                        <div className="db-journey-attempts">
+                          {attempts.map((a) => {
+                            const won = a.correct_full === 4
+                            return (
+                              <div key={a.attempt_number} className={`db-attempt ${won ? 'db-attempt--win' : ''}`}>
+                                <div className="db-attempt-head">
+                                  <span className="db-attempt-num">Essai {a.attempt_number}</span>
+                                  {won && <span className="db-attempt-win-badge">✓</span>}
+                                </div>
+                                <div className="db-attempt-grid">
+                                  <StaticMiniGrid placements={attemptPlacements(a.answer)} clues={gridClues} />
+                                </div>
+                                <div className="db-attempt-feedback">
+                                  <span className="db-fb db-fb--ok">{a.correct_full} placée{a.correct_full !== 1 ? 's' : ''}</span>
+                                  {a.correct_rotation > 0 && (
+                                    <span className="db-fb db-fb--partial">{a.correct_rotation} partiel{a.correct_rotation !== 1 ? 's' : ''}</span>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        {p.comment?.trim() && (
+                          <div className="db-journey-comment">
+                            <p className="db-journey-comment-body">« {p.comment} »</p>
+                            {p.creator_reply && (
+                              <div className="db-reply">
+                                <span className="db-reply-label">↳ Ta réponse</span>
+                                <p className="db-reply-body">{p.creator_reply}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
                   </motion.div>
                 )
               })}
@@ -222,14 +348,51 @@ export default function DashboardPage() {
               <span className="db-badge">{comments.length}</span>
             </div>
             <div className="db-comments">
-              {comments.map((p, i) => (
-                <motion.div key={i} className="db-comment"
-                  initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}>
-                  <span className="db-comment-author">{p.orienta_users?.pseudo ?? '?'}</span>
-                  <p className="db-comment-body">{p.comment}</p>
-                </motion.div>
-              ))}
+              {comments.map((p, i) => {
+                const editing = openReply === p.id
+                return (
+                  <motion.div key={p.id ?? i} className="db-comment"
+                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}>
+                    <span className="db-comment-author">{p.orienta_users?.pseudo ?? '?'}</span>
+                    <p className="db-comment-body">{p.comment}</p>
+
+                    {/* Réponse du créateur (visible par tous) */}
+                    {p.creator_reply && !editing && (
+                      <div className="db-reply">
+                        <span className="db-reply-label">↳ Réponse du créateur</span>
+                        <p className="db-reply-body">{p.creator_reply}</p>
+                      </div>
+                    )}
+
+                    {/* Éditeur de réponse — réservé au créateur de la grille */}
+                    {isOwner && (editing ? (
+                      <div className="db-reply-editor">
+                        <textarea
+                          className="db-reply-input"
+                          placeholder="Répondre à ce joueur…"
+                          value={replyText}
+                          onChange={e => setReplyText(e.target.value)}
+                          rows={2} maxLength={280} autoFocus
+                        />
+                        <div className="db-reply-actions">
+                          <button type="button" className="db-reply-cancel"
+                            onClick={cancelReply} disabled={replyBusy}>Annuler</button>
+                          <button type="button" className="db-reply-send"
+                            onClick={() => submitReply(p.id)} disabled={replyBusy || !replyText.trim()}>
+                            {replyBusy ? 'Envoi…' : 'Envoyer'}
+                          </button>
+                        </div>
+                        {replyError && <p className="db-reply-error">Échec de l'envoi — réessaie.</p>}
+                      </div>
+                    ) : (
+                      <button type="button" className="db-reply-trigger" onClick={() => openReplyEditor(p)}>
+                        {p.creator_reply ? 'Modifier ma réponse' : 'Répondre'}
+                      </button>
+                    ))}
+                  </motion.div>
+                )
+              })}
             </div>
           </section>
         )}

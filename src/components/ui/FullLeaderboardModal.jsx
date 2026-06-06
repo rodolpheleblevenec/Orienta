@@ -21,6 +21,7 @@ export default function FullLeaderboardModal({ user, onClose }) {
   useEffect(() => {
     supabase.from('orienta_users')
       .select('pseudo, xp')
+      .eq('is_system', false)
       .order('xp', { ascending: false })
       .then(({ data }) => {
         setPlayers(data ?? [])

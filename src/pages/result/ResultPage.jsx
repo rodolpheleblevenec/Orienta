@@ -64,7 +64,7 @@ export default function ResultPage() {
   const { user } = useAuthStore()
   const {
     score = 0, xp = 0, success = false,
-    baseXp = 0, bonusXp = 0,
+    baseXp = 0, bonusXp = 0, attemptBonus = 0,
     timeSeconds = 0, attemptCount = 1, streakCurrent = 0,
     justPlayed = false,
   } = location.state ?? {}
@@ -164,7 +164,7 @@ export default function ResultPage() {
         .single(),
       supabase
         .from('orienta_plays')
-        .select('id, comment, success, completed_at, orienta_users(pseudo)')
+        .select('id, comment, creator_reply, success, completed_at, orienta_users(pseudo)')
         .eq('grid_id', gridId)
         .not('comment', 'is', null)
         .order('completed_at', { ascending: false }),
@@ -372,6 +372,12 @@ export default function ResultPage() {
                   <span>🕐 Score {score} pts</span>
                   <span className="result-xp-value">+{baseXp} XP</span>
                 </div>
+                {attemptBonus > 0 && (
+                  <div className="result-xp-row">
+                    <span>{attemptCount === 1 ? '🎯 Du premier coup' : '⚡ En deux essais'}</span>
+                    <span className="result-xp-value">+{attemptBonus} XP</span>
+                  </div>
+                )}
                 {bonusXp > 0 && (
                   <div className="result-xp-row">
                     <span>🔥 Streak {streakCurrent}j</span>
@@ -587,6 +593,12 @@ export default function ResultPage() {
                         )}
                       </div>
                       <p className="comment-text">{c.comment}</p>
+                      {c.creator_reply && (
+                        <div className="comment-reply">
+                          <span className="comment-reply-label">↳ Réponse du créateur</span>
+                          <p className="comment-reply-text">{c.creator_reply}</p>
+                        </div>
+                      )}
                       {c.id && (
                         <div className="comment-reactions">
                           {REACTION_EMOJIS.map(em => {

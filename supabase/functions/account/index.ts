@@ -16,6 +16,10 @@ const ALLOWED_FLAGS = new Set([
 ])
 const SUGGESTION_MAX = 1000
 
+// Pseudos réservés : comptes système non accessibles aux joueurs (ni création,
+// ni connexion). Comparaison insensible à la casse et aux espaces.
+const RESERVED_PSEUDOS = new Set(['orienta'])
+
 // Écritures liées au COMPTE déplacées côté serveur :
 //   - login   : get-or-create d'un utilisateur par pseudo (atomique)
 //   - flag    : marquer un flag de tutoriel (whitelist)
@@ -30,7 +34,7 @@ serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
 
-  let body: { action?: string; pseudo?: string; user_id?: string; flag?: string; skin?: number; content?: string }
+  let body: { action?: string; pseudo?: string; user_id?: string; flag?: string; skin?: number; content?: string; grant_id?: string }
   // (ci-dessous) action `seen` : trace la connexion du joueur du jour (stats admin)
   try { body = await req.json() } catch { return json({ error: 'invalid body' }, 400) }
   const { action } = body
@@ -40,6 +44,9 @@ serve(async (req) => {
     const pseudo = (body.pseudo ?? '').trim()
     if (!pseudo) return json({ error: 'pseudo required' }, 400)
     if (pseudo.length > 40) return json({ error: 'pseudo too long' }, 400)
+    // Pseudo réservé (compte système) : blocage AVANT le get-or-create, pour
+    // empêcher à la fois la création et la connexion sur ce compte.
+    if (RESERVED_PSEUDOS.has(pseudo.toLowerCase())) return json({ error: 'pseudo reserved' }, 403)
 
     const { data: existing } = await supabase
       .from('orienta_users').select('*').eq('pseudo', pseudo).maybeSingle()
@@ -88,6 +95,16 @@ serve(async (req) => {
 
   if (action === 'notifs-read') {
     await supabase.from('orienta_notifications').update({ read: true }).eq('user_id', userId).eq('read', false)
+    return json({ ok: true })
+  }
+
+  // ─── Marque la modale d'accompagnement « tu as gagné » comme vue (1 seule fois) ───
+  if (action === 'grant-seen') {
+    const grantId = body.grant_id
+    if (!grantId) return json({ error: 'grant_id required' }, 400)
+    await supabase.from('orienta_grid_grants')
+      .update({ onboarding_seen_at: new Date().toISOString() })
+      .eq('id', grantId).eq('winner_user_id', userId).is('onboarding_seen_at', null)
     return json({ ok: true })
   }
 

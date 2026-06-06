@@ -45,6 +45,7 @@ serve(async (req) => {
     clues?: { top?: string; right?: string; bottom?: string; left?: string }
     placements?: Placement[]
     id?: string; status?: string
+    difficulty?: string; order?: string[]
   }
   try { body = await req.json() } catch { return json({ error: 'invalid body' }, 400) }
 
@@ -73,9 +74,9 @@ serve(async (req) => {
   // ─── Statistiques admin (KPIs + séries journalières + packs détaillés) ───
   if (action === 'get-stats') {
     const [usersRes, activeRes, gridsRes, playsRes, attemptsRes, upvotesRes, suggRes] = await Promise.all([
-      supabase.from('orienta_users').select('id, created_at, streak_current, streak_best, selected_skin, tutorial_modal_done'),
+      supabase.from('orienta_users').select('id, created_at, streak_current, streak_best, selected_skin, tutorial_modal_done').eq('is_system', false),
       supabase.from('orienta_daily_active').select('user_id, active_date'),
-      supabase.from('orienta_grids').select('id, created_at, daily_date, upvotes_count, edition_number, status'),
+      supabase.from('orienta_grids').select('id, created_at, daily_date, daily_status, upvotes_count, edition_number, status'),
       supabase.from('orienta_plays').select('id, grid_id, player_id, started_at, completed_at, time_seconds, attempts_count, success, comment'),
       supabase.from('orienta_play_attempts').select('correct_full, correct_rotation, neither'),
       supabase.from('orienta_grid_upvotes').select('created_at'),
@@ -125,7 +126,8 @@ serve(async (req) => {
     for (const g of grids) {
       if (!g.created_at) continue
       const row = ensure(dayOf(g.created_at))
-      if (g.daily_date) row.grids_daily++; else row.grids_community++
+      // « Piste quotidienne » = daily_status non null (réserve / programmée / publiée).
+      if (g.daily_status) row.grids_daily++; else row.grids_community++
     }
     const series = fillSeries(
       [...map.values()].sort((a, b) => (a.date < b.date ? -1 : 1)),
@@ -151,7 +153,9 @@ serve(async (req) => {
       playsByGrid.get(p.grid_id)!.push(p)
     }
     const gridLabel = (g: typeof grids[number]) =>
-      g.daily_date ? dayOf(g.daily_date) : (g.edition_number ? `#${g.edition_number}` : 'Communauté')
+      g.daily_date ? dayOf(g.daily_date)
+        : g.daily_status === 'reserve' ? 'Réserve'
+        : (g.edition_number ? `#${g.edition_number}` : 'Communauté')
     const gridStats = (g: typeof grids[number]) => {
       const ps = playsByGrid.get(g.id) ?? []
       const total = ps.length
@@ -236,7 +240,9 @@ serve(async (req) => {
     let runway = 0
     while (futureFilled.has(addDays(today, runway))) runway++
     const lastFilled = [...futureFilled].sort().pop() ?? null
-    const calendar_coverage = { runway, last_date: lastFilled, future_count: futureFilled.size, today }
+    // Tampon réel du modèle « réserve » : nb de grilles de secours non datées.
+    const reserveCount = grids.filter(g => g.daily_status === 'reserve').length
+    const calendar_coverage = { runway, last_date: lastFilled, future_count: futureFilled.size, reserve_count: reserveCount, today }
 
     const socialMap = new Map<string, { date: string; upvotes: number; comments: number }>()
     const ensureSocial = (d: string) => {
@@ -305,9 +311,16 @@ serve(async (req) => {
 
   // ─── Création / mise à jour d'une grille du jour ───
   if (action === 'save-daily-grid') {
-    const { creator_id, date, grid_id, clues, placements } = body
-    if (!creator_id) return json({ error: 'creator_id required' }, 400)
+    const { date, grid_id, clues, placements } = body
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return json({ error: 'invalid date' }, 400)
+
+    // Les grilles du jour appartiennent TOUJOURS au compte système "Orienta"
+    // (jamais à un joueur réel) : pas d'XP créateur, pas de notif de jeu, et
+    // le créateur est exclu du classement. On ignore tout creator_id client.
+    const { data: systemUser } = await supabase
+      .from('orienta_users').select('id').eq('is_system', true).order('created_at').limit(1).maybeSingle()
+    if (!systemUser) return json({ error: 'system account missing' }, 500)
+    const creator_id = systemUser.id
 
     const c = {
       top: (clues?.top ?? '').trim(),
@@ -355,6 +368,72 @@ serve(async (req) => {
     if (cardsErr) return json({ error: 'could not insert grid cards' }, 500)
 
     return json({ ok: true, grid_id: gid })
+  }
+
+  // ─── Création / mise à jour d'une grille de RÉSERVE (sans date, priorisée) ───
+  if (action === 'save-reserve-grid') {
+    const { grid_id, clues, placements } = body
+    const diff = body.difficulty && ['facile', 'moyen', 'difficile'].includes(body.difficulty) ? body.difficulty : 'facile'
+
+    const { data: systemUser } = await supabase
+      .from('orienta_users').select('id').eq('is_system', true).order('created_at').limit(1).maybeSingle()
+    if (!systemUser) return json({ error: 'system account missing' }, 500)
+
+    const c = {
+      top: (clues?.top ?? '').trim(), right: (clues?.right ?? '').trim(),
+      bottom: (clues?.bottom ?? '').trim(), left: (clues?.left ?? '').trim(),
+    }
+    if (!c.top || !c.right || !c.bottom || !c.left) return json({ error: 'all clues required' }, 400)
+    if ([c.top, c.right, c.bottom, c.left].some(v => v.length > MAX_CLUE_LENGTH)) return json({ error: 'clue too long' }, 400)
+    if (!Array.isArray(placements) || placements.length !== 4) return json({ error: 'exactly 4 placements required' }, 400)
+    if (placements.map(p => p.position).sort().join(',') !== '0,1,2,3') return json({ error: 'positions must be 0..3' }, 400)
+    for (const p of placements) {
+      if (!p.card_id || !ROTATIONS.includes(norm(p.rotation))) return json({ error: 'invalid placement' }, 400)
+    }
+    const cardIds = placements.map(p => p.card_id)
+    const { data: cards } = await supabase.from('orienta_word_cards').select('id').in('id', cardIds)
+    if (!cards || cards.length !== cardIds.length) return json({ error: 'invalid cards' }, 400)
+
+    const base = {
+      creator_id: systemUser.id, status: 'published', daily_status: 'reserve', daily_date: null,
+      difficulty: diff,
+      clue_top: c.top, clue_right: c.right, clue_bottom: c.bottom, clue_left: c.left,
+    }
+
+    let gid = grid_id
+    if (grid_id) {
+      // Édition : on conserve la priorité existante.
+      await supabase.from('orienta_grids').update(base).eq('id', grid_id)
+      await supabase.from('orienta_grid_cards').delete().eq('grid_id', grid_id)
+    } else {
+      // Nouvelle grille : priorité en fin de file (max + 1).
+      const { data: last } = await supabase
+        .from('orienta_grids').select('reserve_priority')
+        .eq('daily_status', 'reserve').order('reserve_priority', { ascending: false }).limit(1).maybeSingle()
+      const nextPriority = ((last?.reserve_priority as number | undefined) ?? 0) + 1
+      const { data: newGrid, error } = await supabase.from('orienta_grids')
+        .insert({ ...base, reserve_priority: nextPriority }).select('id').single()
+      if (error || !newGrid) return json({ error: 'could not create reserve grid' }, 500)
+      gid = newGrid.id
+    }
+
+    const rows = placements.map(p => ({
+      grid_id: gid, card_id: p.card_id, position: p.position, rotation: norm(p.rotation),
+    }))
+    const { error: cardsErr } = await supabase.from('orienta_grid_cards').insert(rows)
+    if (cardsErr) return json({ error: 'could not insert grid cards' }, 500)
+    return json({ ok: true, grid_id: gid })
+  }
+
+  // ─── Réordonner la réserve (priorité d'utilisation : ordre du tableau = ordre de pioche) ───
+  if (action === 'reorder-reserve') {
+    const { order } = body
+    if (!Array.isArray(order) || order.some(id => typeof id !== 'string')) return json({ error: 'invalid order' }, 400)
+    for (let i = 0; i < order.length; i++) {
+      await supabase.from('orienta_grids')
+        .update({ reserve_priority: i + 1 }).eq('id', order[i]).eq('daily_status', 'reserve')
+    }
+    return json({ ok: true, count: order.length })
   }
 
   return json({ error: 'unknown action' }, 400)

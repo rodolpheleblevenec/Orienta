@@ -66,7 +66,7 @@ src/
 supabase/
 ├── functions/
 │   ├── check-attempt/      Validation server-side des essais
-│   └── generate-daily-grid/ Génération automatique de la grille du jour
+│   └── daily-rollover/     Rollover nocturne : gagnant (droit de créer J+3) + grille du jour
 └── migrations/             001→007 (schema, XP, streaks, tours...)
 ```
 

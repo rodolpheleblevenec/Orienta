@@ -9,6 +9,16 @@ export const XP_CREATE_BASE = 15  // créateur quand quelqu'un joue sa grille
 export const XP_CREATE_BONUS = 30  // créateur bonus quand quelqu'un réussit sa grille
 export const xpStreakBonus = (streak) => Math.min(streak * 2, 30)
 
+// Bonus de rapidité : récompense une résolution avant le 3e essai.
+export const XP_FIRST_TRY = 6  // résolu du premier essai
+export const XP_SECOND_TRY = 3 // résolu au deuxième essai
+export function xpAttemptBonus(attemptNo, success) {
+  if (!success) return 0
+  if (attemptNo === 1) return XP_FIRST_TRY
+  if (attemptNo === 2) return XP_SECOND_TRY
+  return 0
+}
+
 // Logarithmic time decay: score never drops below ~200 during normal play
 export function computeScore(elapsedSeconds, attemptsFailed) {
   const timeDecay = Math.max(0, BASE_SCORE * (1 - 0.35 * Math.log10(1 + elapsedSeconds / 30)))

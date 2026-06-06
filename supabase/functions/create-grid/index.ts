@@ -30,9 +30,10 @@ serve(async (req) => {
     user_id?: string; difficulty?: string
     clues?: { top?: string; right?: string; bottom?: string; left?: string }
     placements?: Placement[]; decoy_card_id?: string | null; creator_time_seconds?: number | null
+    grant_id?: string | null
   }
   try { body = await req.json() } catch { return json({ error: 'invalid body' }, 400) }
-  const { user_id, difficulty, clues, placements, decoy_card_id, creator_time_seconds } = body
+  const { user_id, difficulty, clues, placements, decoy_card_id, creator_time_seconds, grant_id } = body
 
   // ── Validation de base ──
   if (!user_id) return json({ error: 'user_id required' }, 400)
@@ -59,24 +60,47 @@ serve(async (req) => {
   const { data: user } = await supabase.from('orienta_users').select('id').eq('id', user_id).single()
   if (!user) return json({ error: 'user not found' }, 404)
 
-  // ── Limite quotidienne (1 grille communautaire / jour) ──
-  const today = new Date().toISOString().split('T')[0]
-  const { count: todayCount } = await supabase
-    .from('orienta_grids')
-    .select('id', { count: 'exact', head: true })
-    .eq('creator_id', user_id)
-    .is('daily_date', null)
-    .gte('created_at', today + 'T00:00:00')
-  if ((todayCount ?? 0) > 0) return json({ error: 'daily limit reached' }, 403)
+  // ── Mode « grant » : le gagnant d'un jour crée la grille du jour de J+3 ──
+  // Déclenché par grant_id → bypass quota + déblocage de difficulté ; date verrouillée sur target_date.
+  let grant: { id: string; target_date: string } | null = null
+  if (grant_id) {
+    const { data: g } = await supabase
+      .from('orienta_grid_grants')
+      .select('id, winner_user_id, target_date, status')
+      .eq('id', grant_id)
+      .maybeSingle()
+    if (!g) return json({ error: 'grant not found' }, 404)
+    if (g.winner_user_id !== user_id) return json({ error: 'grant not yours' }, 403)
+    if (g.status !== 'pending') return json({ error: 'grant already used' }, 409)
+    // Gate autoritaire basé sur la DATE (heure de Paris) : impossible de créer une fois le jour arrivé.
+    const todayParis = new Date().toLocaleDateString('fr-CA', { timeZone: 'Europe/Paris' })
+    if (g.target_date <= todayParis) return json({ error: 'grant expired' }, 409)
+    // Sécurité : rien ne doit déjà occuper la date (sinon violation UNIQUE(daily_date)).
+    const { data: occupied } = await supabase
+      .from('orienta_grids').select('id').eq('daily_date', g.target_date).maybeSingle()
+    if (occupied) return json({ error: 'target date already filled' }, 409)
+    grant = { id: g.id, target_date: g.target_date }
+  } else {
+    // ── Limite quotidienne (1 grille communautaire / jour) ──
+    const today = new Date().toISOString().split('T')[0]
+    const { count: todayCount } = await supabase
+      .from('orienta_grids')
+      .select('id', { count: 'exact', head: true })
+      .eq('creator_id', user_id)
+      .is('daily_date', null)
+      .is('daily_status', null)
+      .gte('created_at', today + 'T00:00:00')
+    if ((todayCount ?? 0) > 0) return json({ error: 'daily limit reached' }, 403)
 
-  // ── Difficulté débloquée ? (facile → moyen → difficile) ──
-  if (difficulty !== 'facile') {
-    const { data: prior } = await supabase
-      .from('orienta_grids').select('difficulty')
-      .eq('creator_id', user_id).is('daily_date', null).eq('status', 'published')
-    const set = new Set((prior ?? []).map(g => g.difficulty))
-    if (difficulty === 'moyen' && !set.has('facile')) return json({ error: 'moyen locked' }, 403)
-    if (difficulty === 'difficile' && !set.has('moyen')) return json({ error: 'difficile locked' }, 403)
+    // ── Difficulté débloquée ? (facile → moyen → difficile) ──
+    if (difficulty !== 'facile') {
+      const { data: prior } = await supabase
+        .from('orienta_grids').select('difficulty')
+        .eq('creator_id', user_id).is('daily_date', null).is('daily_status', null).eq('status', 'published')
+      const set = new Set((prior ?? []).map(g => g.difficulty))
+      if (difficulty === 'moyen' && !set.has('facile')) return json({ error: 'moyen locked' }, 403)
+      if (difficulty === 'difficile' && !set.has('moyen')) return json({ error: 'difficile locked' }, 403)
+    }
   }
 
   // ── Intégrité des cartes + conflit de mot ──
@@ -102,14 +126,28 @@ serve(async (req) => {
     ? null
     : (typeof creator_time_seconds === 'number' ? Math.max(0, Math.min(90, Math.round(creator_time_seconds))) : null)
 
-  const { data: grid, error: gridErr } = await supabase.from('orienta_grids').insert({
-    creator_id: user_id,
-    status: 'published',
-    difficulty,
-    clue_top: c.top, clue_right: c.right, clue_bottom: c.bottom, clue_left: c.left,
-    creator_time_seconds: creatorTime,
-    expires_at: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
-  }).select('id').single()
+  const gridRow = grant
+    ? {
+        // Grille du jour créée par le gagnant : datée J+3, piste quotidienne 'scheduled'
+        // (le rollover la passera 'published' + numéro d'édition le jour venu).
+        creator_id: user_id,
+        status: 'published',
+        daily_status: 'scheduled',
+        daily_date: grant.target_date,
+        difficulty,
+        clue_top: c.top, clue_right: c.right, clue_bottom: c.bottom, clue_left: c.left,
+        creator_time_seconds: creatorTime,
+      }
+    : {
+        // Grille communautaire : visible 48h.
+        creator_id: user_id,
+        status: 'published',
+        difficulty,
+        clue_top: c.top, clue_right: c.right, clue_bottom: c.bottom, clue_left: c.left,
+        creator_time_seconds: creatorTime,
+        expires_at: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
+      }
+  const { data: grid, error: gridErr } = await supabase.from('orienta_grids').insert(gridRow).select('id').single()
   if (gridErr || !grid) return json({ error: 'could not create grid' }, 500)
 
   const rows = placements.map(p => ({
@@ -123,6 +161,14 @@ serve(async (req) => {
     // rollback de la grille pour ne pas laisser une grille sans cartes
     await supabase.from('orienta_grids').delete().eq('id', grid.id)
     return json({ error: 'could not insert grid cards' }, 500)
+  }
+
+  // Mode grant : on consomme le droit (claimed). Le check status='pending' plus haut garde l'idempotence.
+  if (grant) {
+    await supabase.from('orienta_grid_grants')
+      .update({ status: 'claimed', created_grid_id: grid.id })
+      .eq('id', grant.id)
+    return json({ grid_id: grid.id, daily: true, target_date: grant.target_date })
   }
 
   return json({ grid_id: grid.id })

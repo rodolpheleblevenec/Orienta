@@ -26,6 +26,7 @@ export default function ClassementPage() {
       const [{ data: topPlayers }, { data: currentUser }, { data: colProgress }] = await Promise.all([
         supabase.from('orienta_users')
           .select('pseudo, xp')
+          .eq('is_system', false)
           .order('xp', { ascending: false })
           .limit(10),
         supabase.from('orienta_users')
@@ -45,6 +46,7 @@ export default function ClassementPage() {
         const { count } = await supabase
           .from('orienta_users')
           .select('id', { count: 'exact' })
+          .eq('is_system', false)
           .gt('xp', currentUser.xp)
         setUserRank({ pseudo: user.pseudo, xp: currentUser.xp, rank: (count ?? 0) + 1 })
       }
