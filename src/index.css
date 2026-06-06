@@ -1381,6 +1381,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .pc-badge { display: inline-block; font-size: 11px; font-weight: 700; color: var(--ink-2); background: var(--bg); padding: 3px 9px; border-radius: var(--r-pill); white-space: nowrap; font-family: var(--sans); }
 .pc-badge--done     { color: var(--teal-700); background: var(--teal-soft); }
 .pc-badge--progress { color: var(--amber); background: var(--orange-soft); }
+.pc-badge--published { color: var(--blue); background: var(--blue-soft); }
 
 .pc-cta {
   display: flex; align-items: center; justify-content: space-between;

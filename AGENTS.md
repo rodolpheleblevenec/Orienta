@@ -77,7 +77,8 @@ supabase/
 | Table | Purpose |
 |---|---|
 | `orienta_users` | Players — xp, level, selected_skin, xp_contributed, streak_current, streak_best, last_played_at, tour_*_done flags |
-| `orienta_grids` | Puzzle grids — clues, creator, status, expires_at, **daily_date** (null = community) |
+| `orienta_grids` | Puzzle grids — clues, creator, status, expires_at, `daily_date`, **`daily_status`** (NULL = community · `reserve`/`scheduled`/`published` = daily track), `reserve_priority` |
+| `orienta_grid_grants` | "Right to create" — the daily winner authors the grid for J+3 (winner_user_id, source_grid_id UNIQUE, target_date UNIQUE, status pending/claimed/expired, deadline, onboarding_seen_at) |
 | `orienta_grid_cards` | Positions/rotations of cards within a grid — `card_id` FK → `orienta_word_cards`, `position` (-1 = decoy) |
 | `orienta_word_cards` | Reusable 4-word cards (shared library) — word_top, word_right, word_bottom, word_left |
 | `orienta_plays` | Play records per player per grid — score, xp_earned, completed_at, success, time_seconds, attempts_count, comment |
@@ -94,6 +95,8 @@ supabase/
 
 **Partial credit rule in Edge Function**: `(posMatch && !rotMatch) || (!posMatch && rotMatch)` counts as `correctRotation`.
 
+**Daily grid model (community-driven)** — the daily grid is no longer auto-generated. Each night `daily-rollover` (cron `daily-rollover.yml`, 01:00 UTC, `FUNCTION_SECRET`-guarded): (1) names the previous day's **#1** (server-derived from `orienta_plays.score`, creator excluded) and grants them the right to author the grid for **J+3** (`orienta_grid_grants` + `grid_grant` notif); (2) **ensures today has a grid**: winner-scheduled → admin **reserve** (by `reserve_priority`) → clone of a popular archive; (3) alerts on low reserve (`reserve_low`) / expired grants (`grant_expired`). The winner authors via `create-grid` in **grant mode** (`grant_id` → bypasses the community quota, locks the date). Admin curates the reserve via `admin` `save-reserve-grid` / `reorder-reserve` (DailyAdminPage: reserve list with @dnd-kit/sortable + Programme panel). **Discriminator**: daily track = `daily_status IS NOT NULL` (community = `NULL`).
+
 ## Key Game Mechanics
 
 ### Word orientation (WordCard + StaticMiniGrid)
@@ -103,14 +106,15 @@ Formula: `physIdx = (originalPos + rotation/90) % 4` → if `physIdx % 2 === 1` 
 
 `StaticMiniGrid` uses the exact same formula — never use `writing-mode` CSS for card words.
 
-### Timer in PlayPage
-`startTimeRef` starts as `null` and is set to `Date.now()` **after** cards are loaded (`setTrayCards(shuffled)`). The elapsed interval checks `if (startTimeRef.current)` before calculating. This prevents loading time from counting against the player's score.
+### Timer in PlayPage (anti-cheat)
+The clock is anchored to the server's `orienta_plays.started_at` (set once at play creation, **never reset**). `start-play` returns `started_at` (ISO UTC) → `PlayPage` sets `startTimeRef` to it (not `Date.now()`), so the displayed chrono is **continuous and never resets on return**, matching the server score (`check-attempt` computes `elapsed = now − started_at`). Leaving the grid and coming back does **not** rewind the clock (blocks scout-then-return). The client never sends time; scoring is fully server-side.
 
 ### In-progress play restoration
 When a player returns to a grid mid-game (`completed_at = null`), `fetchGrid` in `PlayPage`:
 1. Queries `orienta_play_attempts` for previous attempts
 2. Reconstructs `attemptHistory` + placements from stored `answer` (jsonb)
 3. Restores `attemptNumber` and `attemptsFailed`
+4. Anchors the chrono to the server `started_at` (see Timer above) — no reset
 
 ### Lateral clue inputs (CloverWithInputs — create mode)
 Two elements rendered simultaneously per lateral side:

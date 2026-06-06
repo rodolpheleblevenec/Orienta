@@ -194,8 +194,9 @@ export default function HubPage() {
 
   // Filtre "jamais jouées" — grilles que le joueur n'a pas terminées : aucune partie enregistrée
   // OU partie en cours (non terminée). Une grille en cours reste à finir, donc on la garde.
+  // On exclut ses propres grilles : on n'y joue jamais, elles n'ont pas leur place ici.
   // grids est déjà trié par created_at décroissant.
-  const unplayedGrids = grids.filter(g => !playsMap.get(g.id)?.completed)
+  const unplayedGrids = grids.filter(g => g.creator_id !== user?.id && !playsMap.get(g.id)?.completed)
 
   // Communauté débloquée dès que le joueur a terminé sa 1ʳᵉ grille (gagnée ou perdue),
   // qu'elle soit du jour ou des jours passés. playsMap contient toutes ses plays.

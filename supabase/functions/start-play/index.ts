@@ -53,7 +53,7 @@ serve(async (req) => {
   // doublons résiduels, contrairement à un maybeSingle nu).
   const { data: existingPlay } = await supabase
     .from('orienta_plays')
-    .select('id, completed_at, score, xp_earned, success, time_seconds, attempts_count')
+    .select('id, completed_at, score, xp_earned, success, time_seconds, attempts_count, started_at')
     .eq('grid_id', grid_id)
     .eq('player_id', player_id)
     .order('completed_at', { ascending: false, nullsFirst: false })
@@ -79,7 +79,13 @@ serve(async (req) => {
       .select('attempt_number, answer, correct_full, correct_rotation, neither')
       .eq('play_id', existingPlay.id)
       .order('attempt_number', { ascending: true })
-    return json({ play_id: existingPlay.id, cards, attempts: attempts ?? [] })
+    // started_at renvoyé en ISO UTC (Z) pour que le client cale son chrono dessus
+    // (anti-triche : pas de remise à zéro au retour sur une partie en cours).
+    return json({
+      play_id: existingPlay.id,
+      started_at: existingPlay.started_at ? new Date(existingPlay.started_at).toISOString() : null,
+      cards, attempts: attempts ?? [],
+    })
   }
 
   // Nouvelle partie. La contrainte UNIQUE(grid_id, player_id) empêche tout
@@ -89,13 +95,17 @@ serve(async (req) => {
   const { data: play } = await supabase
     .from('orienta_plays')
     .insert({ grid_id, player_id })
-    .select('id')
+    .select('id, started_at')
     .single()
-  if (play) return json({ play_id: play.id, cards, attempts: [] })
+  if (play) return json({
+    play_id: play.id,
+    started_at: play.started_at ? new Date(play.started_at).toISOString() : null,
+    cards, attempts: [],
+  })
 
   const { data: raced } = await supabase
     .from('orienta_plays')
-    .select('id')
+    .select('id, started_at')
     .eq('grid_id', grid_id)
     .eq('player_id', player_id)
     .limit(1)
@@ -107,5 +117,9 @@ serve(async (req) => {
     .select('attempt_number, answer, correct_full, correct_rotation, neither')
     .eq('play_id', raced.id)
     .order('attempt_number', { ascending: true })
-  return json({ play_id: raced.id, cards, attempts: attempts ?? [] })
+  return json({
+    play_id: raced.id,
+    started_at: raced.started_at ? new Date(raced.started_at).toISOString() : null,
+    cards, attempts: attempts ?? [],
+  })
 })

@@ -87,8 +87,14 @@ supabase/
 - Validation : les indices ne peuvent pas être des mots des cartes
 - Indices latéraux : saisie via overlay sur mobile, input direct sur desktop
 
+**Grille du jour communautaire**
+- Le 1er du classement d'un jour gagne le droit de créer la grille du jour de **J+3** (parcours guidé : modale de félicitations + bannière hub)
+- **Réserve** de grilles admin (sans date, priorisée par drag-and-drop) en repli quand pas de gagnant ; rejeu d'une grille d'archive en dernier recours
+- Rollover nocturne `daily-rollover` : désigne le gagnant + garantit une grille chaque jour
+- Chrono **ancré sur le démarrage serveur** (continu, jamais reseté au retour → anti-scouting)
+
 **Hub**
-- Grille du jour + archives 7 jours
+- Grille du jour + archives 7 jours + classement (récompense annoncée au top 1)
 - Grilles communautaires groupées par date
 - Statut des parties (Non joué / En cours / Joué)
 
@@ -116,8 +122,8 @@ supabase/
 
 ## Sécurité
 
-RLS actuellement **désactivé** sur toutes les tables `orienta_*` (développement).
-À activer avec policies appropriées avant tout lancement public.
+RLS **activé** sur les tables `orienta_*` : lectures publiques ciblées, **toutes les écritures passent par des Edge Functions** en `service_role` (le client ne fait que lire + `invoke`). La solution des grilles (`orienta_grid_cards`) est servie via `get-solution` (créateur/finisher uniquement).
+Limite connue : pas d'auth réelle → le `user_id` envoyé par le client reste falsifiable (cf. mémoire `project_security_rls`).
 
 ---
 

@@ -43,7 +43,11 @@ export default function GridCard({ grid, playInfo, index, isDaily = false, isOwn
 
   const inProgress = playInfo && !playInfo.completed
 
-  const statusLabel = completed ? 'Terminé' : inProgress ? 'En cours' : 'Non joué'
+  // Sur ses propres grilles, le statut de jeu n'a pas de sens (on n'y joue jamais) :
+  // on affiche l'état de publication plutôt qu'un « Non joué » incohérent.
+  const statusLabel = isOwnGrid
+    ? 'Publiée'
+    : completed ? 'Terminé' : inProgress ? 'En cours' : 'Non joué'
   const avaColor = isDaily ? 'var(--teal)' : pickAvaColor(creatorPseudo)
 
   const ctaLabel = isOwnGrid
@@ -85,7 +89,7 @@ export default function GridCard({ grid, playInfo, index, isDaily = false, isOwn
           <div className="pc-cell">
             <div className="pc-k">Statut</div>
             <div className="pc-v">
-              <span className={`pc-badge${completed ? ' pc-badge--done' : inProgress ? ' pc-badge--progress' : ''}`}>
+              <span className={`pc-badge${isOwnGrid ? ' pc-badge--published' : completed ? ' pc-badge--done' : inProgress ? ' pc-badge--progress' : ''}`}>
                 {statusLabel}
               </span>
             </div>
