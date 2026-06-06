@@ -168,6 +168,31 @@ export default function DailyAdminPage() {
     setRefreshingSlot(null)
   }
 
+  function handleDragEnd({ active, over }) {
+    if (!over) return
+    const slotIdx = parseInt(String(over.id).replace('slot-', ''), 10)
+    if (isNaN(slotIdx)) return
+
+    // active.id d'une carte placée = `placed-${card.id}-${pos}` (cf. WordCard/DroppableSlot)
+    for (const [pos, item] of Object.entries(placements)) {
+      if (item && `placed-${item.card.id}-${pos}` === active.id) {
+        const sourceSlot = parseInt(pos)
+        if (sourceSlot === slotIdx) return
+        // Échange les deux slots ; la couleur (colorIndex) reste attachée à la
+        // position pour que l'aperçu reflète la grille finale (couleur = slot).
+        setPlacements(prev => {
+          const moved = prev[slotIdx]
+          return {
+            ...prev,
+            [slotIdx]: { ...item, colorIndex: slotIdx },
+            [sourceSlot]: moved ? { ...moved, colorIndex: sourceSlot } : null,
+          }
+        })
+        return
+      }
+    }
+  }
+
   function handleRotate(pos) {
     setPlacements(prev => {
       const item = prev[pos]
@@ -365,13 +390,13 @@ export default function DailyAdminPage() {
               </div>
 
               <div className="admin-editor-body">
-                <DndContext sensors={sensors} collisionDetection={closestCorners}>
+                <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
                   <CloverWithInputs
                     placements={placements}
                     clues={clues}
                     setClues={setClues}
                     onRotate={handleRotate}
-                    draggable={false}
+                    draggable
                     slotAction={pos => (
                       <button
                         className="admin-slot-refresh"
