@@ -14,6 +14,7 @@ const COMMENT_MAX = 280
 
 // Interactions sociales — écritures déplacées côté serveur :
 //   - comment : ne peut commenter QUE sa propre partie terminée + notifie le créateur de la grille
+//   - reply   : SEUL le créateur de la grille répond à un commentaire + notifie l'auteur
 //   - react   : toggle d'une réaction emoji sur un message
 //   - upvote  : toggle d'un upvote de grille (jamais sa propre grille)
 // Les compteurs (upvotes_count) et les notifs upvote/suggestion sont gérés par des triggers DB.
@@ -26,7 +27,7 @@ serve(async (req) => {
   )
 
   let body: {
-    action?: string; user_id?: string; play_id?: string; grid_id?: string; emoji?: string; comment?: string
+    action?: string; user_id?: string; play_id?: string; grid_id?: string; emoji?: string; comment?: string; reply?: string
   }
   try { body = await req.json() } catch { return json({ error: 'invalid body' }, 400) }
   const { action, user_id } = body
@@ -63,6 +64,43 @@ serve(async (req) => {
     }
 
     return json({ ok: true, comment: trimmed })
+  }
+
+  // ─── Réponse du créateur à un commentaire ───
+  if (action === 'reply') {
+    const { play_id, reply } = body
+    if (!play_id) return json({ error: 'play_id required' }, 400)
+    const trimmed = (reply ?? '').trim().slice(0, COMMENT_MAX)
+    if (!trimmed) return json({ error: 'empty reply' }, 400)
+
+    const { data: play } = await supabase
+      .from('orienta_plays').select('id, player_id, grid_id, comment').eq('id', play_id).single()
+    if (!play) return json({ error: 'play not found' }, 404)
+    if (!play.comment) return json({ error: 'no comment to reply to' }, 400)
+    if (!play.grid_id) return json({ error: 'grid not found' }, 404)
+
+    // Seul le créateur de la grille peut répondre.
+    const { data: grid } = await supabase
+      .from('orienta_grids').select('creator_id').eq('id', play.grid_id).single()
+    if (!grid) return json({ error: 'grid not found' }, 404)
+    if (grid.creator_id !== user_id) return json({ error: 'forbidden' }, 403)
+
+    const reply_at = new Date().toISOString()
+    await supabase.from('orienta_plays')
+      .update({ creator_reply: trimmed, creator_reply_at: reply_at }).eq('id', play_id)
+
+    // Notifie l'auteur du commentaire (sauf s'il est lui-même le créateur).
+    if (play.player_id && play.player_id !== user_id) {
+      const { data: author } = await supabase
+        .from('orienta_users').select('pseudo').eq('id', user_id).single()
+      await supabase.from('orienta_notifications').insert({
+        user_id: play.player_id,
+        type: 'comment_reply',
+        payload: { creator_pseudo: author?.pseudo, grid_id: play.grid_id, reply: trimmed },
+      })
+    }
+
+    return json({ ok: true, reply: trimmed, reply_at })
   }
 
   // ─── Réaction (toggle) ───

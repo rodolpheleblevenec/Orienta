@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { computeScore, computeXp, xpStreakBonus, evaluateAttempt } from '../_shared/scoring.ts'
+import { computeScore, computeXp, xpStreakBonus, xpAttemptBonus, evaluateAttempt } from '../_shared/scoring.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -62,13 +62,15 @@ serve(async (req) => {
   // ─── Partie réelle ───
   const { data: play } = await supabase
     .from('orienta_plays')
-    .select('id, player_id, started_at, completed_at, orienta_grids(id, creator_id)')
+    .select('id, player_id, started_at, completed_at, orienta_grids(id, creator_id, daily_date)')
     .eq('id', play_id)
     .single()
   if (!play) return json({ error: 'play not found' }, 404)
 
   const gridIdResolved = (play.orienta_grids as { id: string }).id
   const creatorId = (play.orienta_grids as { creator_id?: string }).creator_id
+  // Grille du jour = grille "maison" (créateur = compte système) : pas de notif de jeu.
+  const isDailyGrid = !!(play.orienta_grids as { daily_date?: string }).daily_date
 
   const { data: solution } = await supabase
     .from('orienta_grid_cards').select('card_id, position, rotation').eq('grid_id', gridIdResolved)
@@ -117,9 +119,11 @@ serve(async (req) => {
     .single()
 
   const streakBonus = (success && !isSelfPlay) ? xpStreakBonus(user?.streak_current ?? 0) : 0
+  // Bonus de rapidité : +6 si résolu au 1er essai, +3 au 2e (0 sinon).
+  const attemptBonus = (success && !isSelfPlay) ? xpAttemptBonus(attemptNo, success) : 0
   const score = success ? computeScore(elapsed, attemptsFailed) : 0
   // Jouer sa propre grille ne rapporte aucune XP (cohérent avec award_xp_on_play).
-  const playerXp = isSelfPlay ? 0 : (computeXp(score, success) + streakBonus)
+  const playerXp = isSelfPlay ? 0 : (computeXp(score, success) + streakBonus + attemptBonus)
   const oldLevel = user?.level ?? 1
 
   // Finalisation ATOMIQUE : seul le 1er appel qui bascule completed_at (encore
@@ -161,11 +165,12 @@ serve(async (req) => {
       p_player_id: play.player_id,
       p_success: success,
       p_streak_bonus: streakBonus,
+      p_attempt_bonus: attemptBonus,
     })
   }
 
-  // Notification au créateur (sauf sur sa propre grille)
-  if (creatorId && !isSelfPlay) {
+  // Notification au créateur (sauf sur sa propre grille et sauf grille du jour)
+  if (creatorId && !isSelfPlay && !isDailyGrid) {
     await supabase.from('orienta_notifications').insert({
       user_id: creatorId,
       type: 'play',
@@ -198,6 +203,7 @@ serve(async (req) => {
       xp: playerXp,
       baseXp: (success && !isSelfPlay) ? computeXp(score, true) : 0,
       bonusXp: streakBonus,
+      attemptBonus,
       timeSeconds: elapsed,
       attemptCount: attemptNo,
       success,

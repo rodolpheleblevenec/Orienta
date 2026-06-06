@@ -6,6 +6,7 @@ import Header from '../../components/ui/Header'
 import CollectiveGauge from '../../components/ui/CollectiveGauge'
 import GridCard from '../../components/ui/GridCard'
 import CreatedGridCard from '../../components/ui/CreatedGridCard'
+import WinnerWelcomeModal from '../../components/ui/WinnerWelcomeModal'
 
 function formatDayLabel(dateStr) {
   const today = new Date().toISOString().split('T')[0]
@@ -41,8 +42,10 @@ export default function HubPage() {
   const [loading, setLoading] = useState(true)
   const [dailyGrids, setDailyGrids] = useState([])
   const [showAllCommunity, setShowAllCommunity] = useState(false)
-  const [communitySort, setCommunitySort] = useState('recent') // 'recent' | 'best'
+  const [communitySort, setCommunitySort] = useState('recent') // 'recent' | 'best' | 'unplayed'
   const [livePlayStats, setLivePlayStats] = useState(null)
+  const [pendingGrant, setPendingGrant] = useState(null)   // droit de créer la grille du jour (gagnant)
+  const [showWinnerModal, setShowWinnerModal] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -53,12 +56,13 @@ export default function HubPage() {
       const todayDate = now.split('T')[0]
       const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]
 
-      const [{ data: activeGrids }, { data: plays }, { data: todayGrid }, { data: dailyGridData }] = await Promise.all([
+      const [{ data: activeGrids }, { data: plays }, { data: todayGrid }, { data: dailyGridData }, { data: grantData }] = await Promise.all([
         supabase
           .from('orienta_grids')
           .select('*, orienta_users(pseudo, selected_skin), orienta_plays(success, player_id, completed_at)')
           .eq('status', 'published')
           .is('daily_date', null)
+          .is('daily_status', null)   // exclut les grilles de réserve (piste quotidienne, sans date)
           .order('created_at', { ascending: false }),
 
         supabase
@@ -71,6 +75,7 @@ export default function HubPage() {
           .select('*, orienta_users(pseudo), orienta_plays(success, player_id, completed_at, attempts_count)')
           .eq('creator_id', user.id)
           .is('daily_date', null)
+          .is('daily_status', null)
           .gte('created_at', todayStart.toISOString())
           .limit(1)
           .single(),
@@ -82,6 +87,15 @@ export default function HubPage() {
           .gte('daily_date', sevenDaysAgo)
           .lte('daily_date', todayDate)
           .order('daily_date', { ascending: false }),
+
+        supabase
+          .from('orienta_grid_grants')
+          .select('id, target_date, source_date, status, onboarding_seen_at')
+          .eq('winner_user_id', user.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ])
 
       // Un joueur peut avoir plusieurs rows de play sur une même grille (doublons en base).
@@ -102,6 +116,8 @@ export default function HubPage() {
         setCreatedGrid(todayGrid)
         setHasCreatedToday(true)
       }
+      setPendingGrant(grantData ?? null)
+      if (grantData && !grantData.onboarding_seen_at) setShowWinnerModal(true)
       setLoading(false)
     }
     fetchData()
@@ -176,6 +192,11 @@ export default function HubPage() {
     (a, b) => (b.upvotes_count ?? 0) - (a.upvotes_count ?? 0) || b.created_at.localeCompare(a.created_at)
   )
 
+  // Filtre "jamais jouées" — grilles que le joueur n'a pas terminées : aucune partie enregistrée
+  // OU partie en cours (non terminée). Une grille en cours reste à finir, donc on la garde.
+  // grids est déjà trié par created_at décroissant.
+  const unplayedGrids = grids.filter(g => !playsMap.get(g.id)?.completed)
+
   // Communauté débloquée dès que le joueur a terminé sa 1ʳᵉ grille (gagnée ou perdue),
   // qu'elle soit du jour ou des jours passés. playsMap contient toutes ses plays.
   const hasCompletedAnyGrid = [...playsMap.values()].some(v => v.completed)
@@ -196,6 +217,17 @@ export default function HubPage() {
     <div className="hub-page">
       <Header />
       <main className="hub-main">
+
+        {/* Bannière « tu as gagné » — droit de créer la grille du jour (persistante jusqu'au claim) */}
+        {pendingGrant && (
+          <Link to={`/create?grant=${pendingGrant.id}`} className="hub-grant-banner">
+            <span className="hub-grant-banner-emoji">🏆</span>
+            <span className="hub-grant-banner-body">
+              <strong>Tu as gagné&nbsp;!</strong> À toi de créer la grille du jour du {formatDateLine(pendingGrant.target_date)}.
+            </span>
+            <span className="hub-grant-banner-cta">Créer ma grille →</span>
+          </Link>
+        )}
 
         {/* ===== PARTIE 01 — LA GRILLE DU JOUR ===== */}
         <section className="hub-part">
@@ -351,6 +383,7 @@ export default function HubPage() {
                 <div>
                   <h2 className="hub-rank-title">Classement du jour</h2>
                   <p className="hub-rank-sub">Les meilleurs scores sur la grille d'aujourd'hui</p>
+                  <p className="hub-rank-reward">🏆 Le 1ᵉʳ du classement gagne le droit de créer la grille du jour du {formatDateLine(new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0])}.</p>
                 </div>
                 {hasCompletedDaily && (
                   <button className="hub-rank-see" onClick={() => navigate(`/dashboard/${todayDaily.id}`)} type="button">Tout voir</button>
@@ -491,6 +524,15 @@ export default function HubPage() {
                 >
                   🔥 Meilleures
                 </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={communitySort === 'unplayed'}
+                  className={`community-sort-btn${communitySort === 'unplayed' ? ' is-active' : ''}`}
+                  onClick={() => setCommunitySort('unplayed')}
+                >
+                  ✨ Jamais jouées
+                </button>
               </div>
             )}
           </div>
@@ -523,6 +565,31 @@ export default function HubPage() {
                 />
               ))}
             </div>
+          ) : communitySort === 'unplayed' ? (
+            unplayedGrids.length === 0 ? (
+              <div className="community-empty-state">
+                <div className="community-empty-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="m9 12 2 2 4-4"/>
+                  </svg>
+                </div>
+                <h3 className="community-empty-title">Tu as joué toutes les grilles !</h3>
+                <p className="community-empty-text">Bravo, tu as fait le tour de la communauté. Reviens plus tard pour de nouvelles grilles.</p>
+              </div>
+            ) : (
+              <div className="cards-grid">
+                {unplayedGrids.map((grid, i) => (
+                  <GridCard
+                    key={grid.id}
+                    grid={grid}
+                    playInfo={playsMap.get(grid.id) ?? null}
+                    index={i}
+                    isOwnGrid={grid.creator_id === user?.id}
+                  />
+                ))}
+              </div>
+            )
           ) : (
             <>
               {todaysCommunityGrids.length === 0 && (
@@ -558,6 +625,10 @@ export default function HubPage() {
         </section>
         )}
       </main>
+
+      {showWinnerModal && pendingGrant && (
+        <WinnerWelcomeModal grant={pendingGrant} onClose={() => setShowWinnerModal(false)} />
+      )}
     </div>
   )
 }

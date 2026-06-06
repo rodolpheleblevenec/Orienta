@@ -55,7 +55,7 @@ src/
 │   ├── levels.js            — 10-level thresholds (individual + collective) + getLevelProgress()
 │   ├── creatures.jsx        — emoji components for collective levels
 │   ├── marineItems.jsx      — emoji skin components for individual levels
-│   └── scoring.js           — computeScore, computeXp, xpStreakBonus
+│   └── scoring.js           — computeScore, computeXp, xpStreakBonus, xpAttemptBonus
 │                              NOTE: evaluateAttempt() is DEAD CODE — do not use client-side
 ├── stores/
 │   └── authStore.js         — Zustand: user, loading, loginWithPseudo, refreshUser, markTourDone
@@ -63,7 +63,9 @@ src/
 supabase/
 ├── functions/
 │   ├── check-attempt/index.ts       — server-side attempt validation (service role key)
-│   └── generate-daily-grid/index.ts — daily grid generation (scheduled via GitHub Actions)
+│   └── daily-rollover/index.ts       — nightly rollover: finalise daily winner (grant J+3),
+│                                       ensure today has a grid (winner → reserve → archive),
+│                                       low-reserve & no-show alerts (scheduled via GitHub Actions)
 └── migrations/              — 001_initial_schema → 007_add_tutorial_modal_done
 ```
 
@@ -86,7 +88,7 @@ supabase/
 
 **RPC functions**:
 - `add_user_xp(uid uuid, amount integer)` — atomically updates `xp`, `level`, `xp_contributed`, and `orienta_collective_progress.total_xp`
-- `award_xp_on_play(p_grid_id, p_player_id, p_success, p_streak_bonus)` — awards XP to both player and creator
+- `award_xp_on_play(p_grid_id, p_player_id, p_success, p_streak_bonus, p_attempt_bonus)` — awards XP to both player and creator
 
 **Edge function**: `check-attempt` — validates attempt server-side against `orienta_grid_cards`. Returns `{ success, correctFull, correctRotation, neither, card_feedbacks }`. Also updates collective XP and user streak if last attempt or success. The **client** inserts into `orienta_play_attempts` after receiving the result.
 
@@ -145,6 +147,7 @@ These colors are **semantically fixed** — never replace them with the brand te
 | Win (joueur) | `XP_RESOLVE = 25` |
 | Loss (joueur) | `0` |
 | Streak bonus | `Math.min(streak × 2, 30)` additionné au win |
+| Bonus de rapidité | `XP_FIRST_TRY = 6` (1er essai) · `XP_SECOND_TRY = 3` (2e essai) · 0 sinon |
 | Créateur (quelqu'un joue) | `XP_CREATE_BASE = 15` |
 | Créateur bonus (quelqu'un réussit) | `XP_CREATE_BONUS = 30` |
 

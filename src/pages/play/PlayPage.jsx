@@ -39,6 +39,13 @@ const PLAY_TOUR_STEPS = [
     title: 'Soumets et observe',
     description: "Tu as 3 essais. Après chaque tentative : vert = bon emplacement et bonne orientation · orange = bonne orientation, mauvais emplacement · rouge = ni l'un ni l'autre.",
   },
+  {
+    anchor: 'footer-center',
+    target: '.play-footer-left',
+    zone: 'Essais & chrono',
+    title: '3 essais, le plus vite possible',
+    description: "Tu disposes de 3 essais pour réussir la grille. Mais l'objectif, c'est de la résoudre en le moins de temps possible : plus le chrono est rapide, plus tu gagnes d'XP !",
+  },
 ]
 import CloverGrid from '../../components/game/CloverGrid'
 import WordCard from '../../components/game/WordCard'
@@ -156,6 +163,7 @@ export default function PlayPage() {
 
   const startTimeRef = useRef(null)
   const [elapsed, setElapsed] = useState(0)
+  const [gridLoaded, setGridLoaded] = useState(false)
 
   useEffect(() => {
     if (!gridId || !user) return
@@ -186,6 +194,7 @@ export default function PlayPage() {
             success: data.play.success ?? false,
             baseXp: data.play.xp_earned ?? 0,
             bonusXp: 0,
+            attemptBonus: 0,
             timeSeconds: data.play.time_seconds ?? 0,
             attemptCount: data.play.attempts_count ?? 1,
             streakCurrent: 0,
@@ -201,7 +210,7 @@ export default function PlayPage() {
         colorIndex: i,
       }))
       setTrayCards(shuffled)
-      startTimeRef.current = Date.now()
+      setGridLoaded(true)
 
       // Mode rejeu : partie neuve, rien à restaurer (playId reste null).
       if (isReplay) return
@@ -233,10 +242,17 @@ export default function PlayPage() {
     fetchGrid()
   }, [gridId, user, navigate, isReplay])
 
+  // Le chrono ne démarre qu'une fois la grille chargée ET le tutoriel terminé,
+  // pour ne pas biaiser le temps de jeu pendant le tuto du premier joueur.
+  // Si le joueur a déjà vu le tuto, il démarre dès le chargement de la grille.
   useEffect(() => {
-    if (!user?.id) return
-    if (!user.tour_play_done) setShowTour(true)
-  }, [user?.id])
+    if (!user?.id || !gridLoaded || startTimeRef.current) return
+    if (!user.tour_play_done) {
+      setShowTour(true)
+    } else {
+      startTimeRef.current = Date.now()
+    }
+  }, [user?.id, gridLoaded])
 
   // Dès que le joueur modifie sa configuration, l'avertissement « déjà tentée »
   // n'a plus lieu d'être.
@@ -429,6 +445,7 @@ export default function PlayPage() {
           success: won,
           baseXp: r.baseXp ?? 0,
           bonusXp: r.bonusXp ?? 0,
+          attemptBonus: r.attemptBonus ?? 0,
           timeSeconds: r.timeSeconds ?? elapsed,
           attemptCount: r.attemptCount ?? attemptNumber,
           streakCurrent: user.streak_current,
@@ -725,6 +742,8 @@ export default function PlayPage() {
           onDone={() => {
             markTourDone('tour_play_done')
             setShowTour(false)
+            // Le tuto est terminé : on lance le chrono maintenant.
+            startTimeRef.current = Date.now()
           }}
         />
       )}

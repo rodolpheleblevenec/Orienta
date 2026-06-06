@@ -1,0 +1,39 @@
+name: Rollover quotidien (gagnant + grille du jour)
+
+on:
+  schedule:
+    # 01h00 UTC = 02h (hiver) / 03h (été) à Paris — toujours APRÈS minuit Paris,
+    # quelle que soit la saison (évite l'off-by-one DST), et après tout le reste de la nuit.
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Date à finaliser (YYYY-MM-DD) — laisser vide pour hier (heure de Paris)'
+        required: false
+
+jobs:
+  rollover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Appeler la Edge Function daily-rollover
+        run: |
+          DATE_PARAM=""
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            DATE_PARAM="?date=${{ github.event.inputs.date }}"
+          fi
+
+          HTTP_STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/daily-rollover${DATE_PARAM}" \
+            -H "Authorization: Bearer ${{ secrets.FUNCTION_SECRET }}" \
+            -H "Content-Type: application/json")
+
+          echo "HTTP status: $HTTP_STATUS"
+          cat /tmp/response.json
+
+          if [ "$HTTP_STATUS" -ge 400 ]; then
+            echo "❌ Edge Function returned an error"
+            exit 1
+          fi
+
+          echo "✅ Rollover quotidien effectué avec succès"

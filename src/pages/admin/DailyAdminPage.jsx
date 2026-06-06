@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { DndContext, DragOverlay, closestCorners, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import { getAdminSecret, clearAdminSecret } from '../../lib/adminSecret'
@@ -12,30 +14,21 @@ import SuggestionsAdmin from './SuggestionsAdmin'
 import StatsAdmin from './StatsAdmin'
 
 const ADMIN_PSEUDO = 'Rodolphe LE BLEVENEC'
-const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
-const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
+const RESERVE_LOW = 3
+const DIFFICULTIES = [['facile', 'Facile'], ['moyen', 'Moyen']]
 
-function formatDate(iso) {
-  const d = new Date(iso)
-  return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
+function isoTodayParis() {
+  return new Date().toLocaleDateString('fr-CA', { timeZone: 'Europe/Paris' })
 }
 
-function isoToday() {
-  return new Date().toISOString().split('T')[0]
+function fmtDate(iso) {
+  if (!iso) return ''
+  return new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
-function ymd(year, month, day) {
-  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-}
-
-function buildMonthCells(year, month) {
-  // month: 0-indexed. Returns array of { date|null } with leading blanks (Monday-first).
-  const firstWeekday = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 6) % 7
-  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
-  const cells = []
-  for (let i = 0; i < firstWeekday; i++) cells.push(null)
-  for (let d = 1; d <= daysInMonth; d++) cells.push(ymd(year, month, d))
-  return cells
+function cluesPreview(g) {
+  const cs = [g.clue_top, g.clue_right, g.clue_bottom, g.clue_left].filter(Boolean)
+  return cs.length ? cs.join(' · ') : 'Grille sans indice'
 }
 
 async function fetchCardPool() {
@@ -49,24 +42,44 @@ function pickRandom(pool, excludeIds) {
   return available[Math.floor(Math.random() * available.length)]
 }
 
+// ── Élément réordonnable de la réserve (drag-and-drop priorité) ──
+function ReserveRow({ grid, index, onEdit, onDelete }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: grid.id })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
+  return (
+    <li ref={setNodeRef} style={style} className="reserve-row">
+      <button className="reserve-handle" {...attributes} {...listeners} type="button" title="Glisser pour réordonner" aria-label="Réordonner">⠿</button>
+      <span className="reserve-rank">{index + 1}</span>
+      <span className="reserve-clues">{cluesPreview(grid)}</span>
+      <span className="reserve-diff">{grid.difficulty ?? '—'}</span>
+      <span className="reserve-actions">
+        <button className="reserve-edit" onClick={() => onEdit(grid)} type="button">Modifier</button>
+        <button className="reserve-del" onClick={() => onDelete(grid)} type="button">Suppr.</button>
+      </span>
+    </li>
+  )
+}
+
 export default function DailyAdminPage() {
   const { user } = useAuthStore()
   const navigate = useNavigate()
 
   const [adminTab, setAdminTab] = useState('grilles')
-  const today = isoToday()
-  const [viewMonth, setViewMonth] = useState(() => {
-    const d = new Date()
-    return { year: d.getFullYear(), month: d.getMonth() }
-  })
-  const [gridsByDate, setGridsByDate] = useState(new Map())
-  const [onlyEmpty, setOnlyEmpty] = useState(false)
-  const [calendarOpen, setCalendarOpen] = useState(false)
-  const [selectedDate, setSelectedDate] = useState(null)
+
+  // Données
+  const [reserve, setReserve] = useState([])
+  const [programme, setProgramme] = useState([])
+  const [cardPool, setCardPool] = useState([])
+  const today = isoTodayParis()
+
+  // Éditeur (réutilisé pour réserve + override d'un jour daté)
+  const [view, setView] = useState('list')              // 'list' | 'editor'
+  const [editorMode, setEditorMode] = useState('reserve') // 'reserve' | 'dated'
+  const [editorDate, setEditorDate] = useState(null)     // pour 'dated'
   const [editingGrid, setEditingGrid] = useState(null)
+  const [difficulty, setDifficulty] = useState('facile')
   const [clues, setClues] = useState({ top: '', right: '', bottom: '', left: '' })
   const [placements, setPlacements] = useState({ 0: null, 1: null, 2: null, 3: null })
-  const [cardPool, setCardPool] = useState([])
   const [isSaving, setIsSaving] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [refreshingSlot, setRefreshingSlot] = useState(null)
@@ -85,31 +98,60 @@ export default function DailyAdminPage() {
 
   useEffect(() => {
     fetchCardPool().then(setCardPool)
+    refreshData()
   }, [])
 
-  useEffect(() => {
-    fetchMonth(viewMonth.year, viewMonth.month)
-  }, [viewMonth])
-
-  async function fetchMonth(year, month) {
-    const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
-    const first = ymd(year, month, 1)
-    const last = ymd(year, month, lastDay)
-    const { data: grids } = await supabase
-      .from('orienta_grids')
-      .select('id, daily_date, clue_top, clue_right, clue_bottom, clue_left, status')
-      .gte('daily_date', first)
-      .lte('daily_date', last)
-    setGridsByDate(new Map((grids ?? []).map(g => [g.daily_date, g])))
+  async function refreshData() {
+    const [{ data: res }, { data: prog }] = await Promise.all([
+      supabase.from('orienta_grids')
+        .select('id, clue_top, clue_right, clue_bottom, clue_left, difficulty, reserve_priority')
+        .eq('daily_status', 'reserve')
+        .order('reserve_priority', { ascending: true }),
+      supabase.from('orienta_grids')
+        .select('id, daily_date, daily_status, clue_top, clue_right, clue_bottom, clue_left, difficulty, creator_id')
+        .not('daily_date', 'is', null)
+        .gte('daily_date', new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0])
+        .order('daily_date', { ascending: true }),
+    ])
+    setReserve(res ?? [])
+    setProgramme(prog ?? [])
   }
 
-  function changeMonth(delta) {
-    setViewMonth(({ year, month }) => {
-      const m = month + delta
-      return { year: year + Math.floor(m / 12), month: ((m % 12) + 12) % 12 }
-    })
+  // ── Éditeur : ouverture ──
+  function openNewReserve() {
+    const pool = cardPool
+    const p = {}
+    sample(pool, 4).forEach((card, i) => { p[i] = { card, rotation: 0, colorIndex: i } })
+    setPlacements(p)
+    setClues({ top: '', right: '', bottom: '', left: '' })
+    setDifficulty('facile')
+    setEditingGrid(null)
+    setEditorMode('reserve')
+    setEditorDate(null)
+    setSaveSuccess(false)
+    setView('editor')
   }
 
+  async function openEditGrid(grid, mode, date = null) {
+    setEditingGrid(grid)
+    setEditorMode(mode)
+    setEditorDate(date)
+    setDifficulty(grid.difficulty ?? 'facile')
+    setClues({ top: grid.clue_top ?? '', right: grid.clue_right ?? '', bottom: grid.clue_bottom ?? '', left: grid.clue_left ?? '' })
+    setSaveSuccess(false)
+    setView('editor')
+    // Les cartes (solution) sont servies par get-solution (admin = autorisé).
+    const { data: sol } = await supabase.functions.invoke('get-solution', { body: { grid_id: grid.id, player_id: user.id } })
+    const p = {}
+    for (const gc of sol?.cards ?? []) {
+      if (gc.position >= 0 && gc.position <= 3 && gc.orienta_word_cards) {
+        p[gc.position] = { card: gc.orienta_word_cards, rotation: gc.rotation ?? 0, colorIndex: gc.position }
+      }
+    }
+    setPlacements(p)
+  }
+
+  // ── Éditeur : pioche de cartes ──
   function getExcludedIds(exceptPos = null) {
     const ids = new Set()
     for (const [pos, item] of Object.entries(placements)) {
@@ -118,74 +160,34 @@ export default function DailyAdminPage() {
     return ids
   }
 
-  async function handleSelectDate(date) {
-    const grid = gridsByDate.get(date) ?? null
-    setSelectedDate(date)
-    setSaveSuccess(false)
-    setCalendarOpen(false)
-
-    const pool = cardPool.length ? cardPool : await fetchCardPool().then(p => { setCardPool(p); return p })
-
-    if (grid) {
-      setEditingGrid(grid)
-      setClues({ top: grid.clue_top ?? '', right: grid.clue_right ?? '', bottom: grid.clue_bottom ?? '', left: grid.clue_left ?? '' })
-      // Les cartes (solution) sont servies par get-solution — l'admin est le
-      // créateur des grilles du jour, donc autorisé. orienta_grid_cards n'est plus lue en direct.
-      const { data: sol } = await supabase.functions.invoke('get-solution', {
-        body: { grid_id: grid.id, player_id: user.id },
-      })
-      const p = {}
-      for (const gc of sol?.cards ?? []) {
-        if (gc.position >= 0 && gc.position <= 3 && gc.orienta_word_cards) {
-          p[gc.position] = { card: gc.orienta_word_cards, rotation: gc.rotation ?? 0, colorIndex: gc.position }
-        }
-      }
-      setPlacements(p)
-    } else {
-      setEditingGrid(null)
-      setClues({ top: '', right: '', bottom: '', left: '' })
-      const p = {}
-      sample(pool, 4).forEach((card, i) => { p[i] = { card, rotation: 0, colorIndex: i } })
-      setPlacements(p)
-    }
-  }
-
   async function handleRefreshAll() {
     setIsRefreshing(true)
-    const pool = cardPool.length ? cardPool : await fetchCardPool().then(p => { setCardPool(p); return p })
     const p = {}
-    sample(pool, 4).forEach((card, i) => { p[i] = { card, rotation: 0, colorIndex: i } })
+    sample(cardPool, 4).forEach((card, i) => { p[i] = { card, rotation: 0, colorIndex: i } })
     setPlacements(p)
     setClues({ top: '', right: '', bottom: '', left: '' })
     setIsRefreshing(false)
   }
 
-  async function handleRefreshSlot(pos) {
+  function handleRefreshSlot(pos) {
     setRefreshingSlot(pos)
-    const pool = cardPool.length ? cardPool : await fetchCardPool().then(p => { setCardPool(p); return p })
-    const excluded = getExcludedIds(pos)
-    const card = pickRandom(pool, excluded)
-    if (card) {
-      setPlacements(prev => ({ ...prev, [pos]: { card, rotation: 0, colorIndex: pos } }))
-    }
+    const card = pickRandom(cardPool, getExcludedIds(pos))
+    if (card) setPlacements(prev => ({ ...prev, [pos]: { card, rotation: 0, colorIndex: pos } }))
     setRefreshingSlot(null)
   }
 
+  // ── Éditeur : drag-and-drop des cartes dans les slots ──
   function handleDragStart({ active }) {
     for (const [pos, item] of Object.entries(placements)) {
-      if (item && `placed-${item.card.id}-${pos}` === active.id) {
-        setActiveCard({ ...item, fromSlot: parseInt(pos) }); return
-      }
+      if (item && `placed-${item.card.id}-${pos}` === active.id) { setActiveCard({ ...item, fromSlot: parseInt(pos) }); return }
     }
   }
 
   function handleDragEnd({ active, over }) {
     setActiveCard(null)
     if (!over) return
-
     const targetSlot = parseInt(over.id.replace('slot-', ''), 10)
     if (isNaN(targetSlot)) return
-
     for (const [pos, item] of Object.entries(placements)) {
       if (item && `placed-${item.card.id}-${pos}` === active.id) {
         const sourceSlot = parseInt(pos)
@@ -207,30 +209,23 @@ export default function DailyAdminPage() {
     })
   }
 
+  // ── Éditeur : sauvegarde ──
   async function handleSave() {
-    if (!selectedDate || !user) return
     const allFilled = Object.values(placements).every(v => v !== null)
-    if (!allFilled) return
+    const cluesOk = clues.top && clues.right && clues.bottom && clues.left
+    if (!allFilled || !cluesOk || !user) return
     setIsSaving(true)
 
     const placementRows = Object.entries(placements).map(([pos, item]) => ({
-      card_id: item.card.id,
-      position: parseInt(pos),
-      rotation: item.rotation,
+      card_id: item.card.id, position: parseInt(pos), rotation: item.rotation,
     }))
 
-    const { data, error } = await supabase.functions.invoke('admin', {
-      body: {
-        admin_secret: getAdminSecret(),
-        action: 'save-daily-grid',
-        creator_id: user.id,
-        date: selectedDate,
-        grid_id: editingGrid?.id,
-        clues,
-        placements: placementRows,
-      },
-    })
+    const action = editorMode === 'reserve' ? 'save-reserve-grid' : 'save-daily-grid'
+    const payload = editorMode === 'reserve'
+      ? { admin_secret: getAdminSecret(), action, grid_id: editingGrid?.id, difficulty, clues, placements: placementRows }
+      : { admin_secret: getAdminSecret(), action, creator_id: user.id, date: editorDate, grid_id: editingGrid?.id, clues, placements: placementRows }
 
+    const { data, error } = await supabase.functions.invoke('admin', { body: payload })
     setIsSaving(false)
     if (error || !data || data.error) {
       if (data?.error === 'unauthorized') { clearAdminSecret(); alert('Mot de passe administrateur incorrect.') }
@@ -238,229 +233,190 @@ export default function DailyAdminPage() {
       return
     }
     setSaveSuccess(true)
-    fetchMonth(viewMonth.year, viewMonth.month)
+    await refreshData()
+    setView('list')
   }
 
-  async function handleDelete() {
-    if (!editingGrid) return
-    if (!window.confirm(`Supprimer la grille du ${formatDate(selectedDate)} ?`)) return
+  async function handleDelete(grid) {
+    const label = grid.daily_date ? `la grille du ${fmtDate(grid.daily_date)}` : 'cette grille de réserve'
+    if (!window.confirm(`Supprimer ${label} ?`)) return
     const { data, error } = await supabase.functions.invoke('admin', {
-      body: { admin_secret: getAdminSecret(), action: 'delete-daily-grid', grid_id: editingGrid.id },
+      body: { admin_secret: getAdminSecret(), action: 'delete-daily-grid', grid_id: grid.id },
     })
     if (error || !data || data.error) {
       if (data?.error === 'unauthorized') { clearAdminSecret(); alert('Mot de passe administrateur incorrect.') }
       else alert('Échec de la suppression.')
       return
     }
-    setSelectedDate(null)
-    setEditingGrid(null)
-    fetchMonth(viewMonth.year, viewMonth.month)
+    await refreshData()
+  }
+
+  // ── Réordonnancement de la réserve (drag-and-drop) ──
+  async function handleReserveDragEnd({ active, over }) {
+    if (!over || active.id === over.id) return
+    const oldIndex = reserve.findIndex(g => g.id === active.id)
+    const newIndex = reserve.findIndex(g => g.id === over.id)
+    if (oldIndex < 0 || newIndex < 0) return
+    const next = arrayMove(reserve, oldIndex, newIndex)
+    setReserve(next) // optimiste
+    const { error } = await supabase.functions.invoke('admin', {
+      body: { admin_secret: getAdminSecret(), action: 'reorder-reserve', order: next.map(g => g.id) },
+    })
+    if (error) { alert('Échec du réordonnancement.'); refreshData() }
   }
 
   const allPlaced = Object.values(placements).every(v => v !== null)
   const cluesOk = clues.top && clues.right && clues.bottom && clues.left
-
-  const cells = buildMonthCells(viewMonth.year, viewMonth.month)
-  const emptyCount = cells.filter(d => d && !gridsByDate.has(d)).length
-
-  const calendar = (
-    <div className="admin-calendar">
-      <div className="admin-cal-header">
-        <button className="admin-cal-nav" onClick={() => changeMonth(-1)} type="button" aria-label="Mois précédent">‹</button>
-        <span className="admin-cal-month">{MONTHS[viewMonth.month]} {viewMonth.year}</span>
-        <button className="admin-cal-nav" onClick={() => changeMonth(1)} type="button" aria-label="Mois suivant">›</button>
-      </div>
-
-      <button
-        type="button"
-        className={`admin-cal-filter ${onlyEmpty ? 'admin-cal-filter--on' : ''}`}
-        onClick={() => setOnlyEmpty(v => !v)}
-      >
-        <span className="admin-cal-filter-dot" />
-        {onlyEmpty ? `À remplir uniquement · ${emptyCount}` : 'Filtrer : à remplir'}
-      </button>
-
-      <div className="admin-cal-weekdays">
-        {WEEKDAYS.map((w, i) => <span key={i} className="admin-cal-weekday">{w}</span>)}
-      </div>
-      <div className="admin-cal-grid">
-        {cells.map((date, i) => {
-          if (!date) return <span key={`blank-${i}`} className="admin-cal-cell admin-cal-cell--blank" />
-          const grid = gridsByDate.get(date)
-          const hasGrid = !!grid
-          const dimmed = onlyEmpty && hasGrid
-          const dayNum = parseInt(date.slice(8, 10), 10)
-          return (
-            <button
-              key={date}
-              type="button"
-              onClick={() => handleSelectDate(date)}
-              className={[
-                'admin-cal-cell',
-                hasGrid ? 'admin-cal-cell--filled' : 'admin-cal-cell--empty',
-                date === selectedDate ? 'admin-cal-cell--active' : '',
-                date === today ? 'admin-cal-cell--today' : '',
-                dimmed ? 'admin-cal-cell--dimmed' : '',
-              ].join(' ')}
-              title={hasGrid ? (grid.clue_top ? `${grid.clue_top} · ${grid.clue_right}…` : 'Grille sans indice') : 'À remplir'}
-            >
-              <span className="admin-cal-num">{dayNum}</span>
-              <span className={`admin-cal-mark ${hasGrid ? 'admin-cal-mark--ok' : 'admin-cal-mark--empty'}`}>
-                {hasGrid ? '✓' : ''}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="admin-cal-legend">
-        <span className="admin-cal-legend-item"><span className="admin-cal-dot admin-cal-dot--ok" /> Validée</span>
-        <span className="admin-cal-legend-item"><span className="admin-cal-dot admin-cal-dot--empty" /> À faire</span>
-      </div>
-    </div>
-  )
+  const upcoming = programme.filter(g => g.daily_date >= today)
+  const past = programme.filter(g => g.daily_date < today).reverse()
 
   return (
     <div className="admin-page">
       <Header />
 
       <div className="admin-tabs">
-        {[['grilles', '📅 Grilles du jour'], ['idees', '💡 Boîte à idées'], ['stats', '📊 Stats']].map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            className={`admin-tab${adminTab === id ? ' admin-tab--active' : ''}`}
-            onClick={() => setAdminTab(id)}
-          >{label}</button>
+        {[['grilles', '🗂 Grilles du jour'], ['idees', '💡 Boîte à idées'], ['stats', '📊 Stats']].map(([id, label]) => (
+          <button key={id} type="button" className={`admin-tab${adminTab === id ? ' admin-tab--active' : ''}`} onClick={() => setAdminTab(id)}>{label}</button>
         ))}
       </div>
 
       {adminTab === 'idees' ? (
-        <main className="admin-main admin-main--single">
-          <SuggestionsAdmin />
-        </main>
+        <main className="admin-main admin-main--single"><SuggestionsAdmin /></main>
       ) : adminTab === 'stats' ? (
+        <main className="admin-main admin-main--single"><StatsAdmin /></main>
+      ) : view === 'editor' ? (
+        // ───────────── ÉDITEUR ─────────────
         <main className="admin-main admin-main--single">
-          <StatsAdmin />
+          <section className="admin-editor">
+            <div className="admin-editor-header">
+              <h2 className="admin-editor-title">
+                {editorMode === 'reserve'
+                  ? (editingGrid ? 'Modifier une grille de réserve' : 'Nouvelle grille de réserve')
+                  : `Modifier la grille du ${fmtDate(editorDate)}`}
+              </h2>
+              <button className="btn-secondary" onClick={() => setView('list')} type="button">← Retour</button>
+            </div>
+
+            {editorMode === 'reserve' && (
+              <div className="admin-diff-row">
+                <span className="admin-diff-label">Difficulté :</span>
+                {DIFFICULTIES.map(([id, label]) => (
+                  <button key={id} type="button" className={`admin-diff-btn${difficulty === id ? ' admin-diff-btn--on' : ''}`} onClick={() => setDifficulty(id)}>{label}</button>
+                ))}
+              </div>
+            )}
+
+            <div className="admin-editor-body">
+              <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+                <CloverWithInputs
+                  placements={placements}
+                  clues={clues}
+                  setClues={setClues}
+                  onRotate={handleRotate}
+                  draggable
+                  disableTransition={isSwappingSlots}
+                  slotAction={pos => (
+                    <button className="admin-slot-refresh" onClick={() => handleRefreshSlot(pos)} disabled={refreshingSlot === pos} type="button" title="Repiocher une carte">
+                      {refreshingSlot === pos ? '…' : '🎲'}
+                    </button>
+                  )}
+                />
+                <DragOverlay dropAnimation={null}>
+                  {activeCard && <WordCard id="overlay" card={activeCard.card} rotation={activeCard.rotation} colorIndex={activeCard.colorIndex ?? 0} draggable={false} />}
+                </DragOverlay>
+              </DndContext>
+            </div>
+
+            <div className="admin-editor-actions">
+              <button className="btn-secondary admin-refresh-btn" onClick={handleRefreshAll} disabled={isRefreshing} type="button">
+                {isRefreshing ? '…' : '↺ Toutes les cartes'}
+              </button>
+              <button className="btn-primary admin-save-btn" onClick={handleSave} disabled={isSaving || !allPlaced || !cluesOk} type="button">
+                {isSaving ? '…' : saveSuccess ? '✓ Sauvegardé' : 'Enregistrer'}
+              </button>
+            </div>
+            {!cluesOk && allPlaced && <p className="admin-hint">Remplis les 4 indices pour pouvoir enregistrer.</p>}
+          </section>
         </main>
       ) : (
-      <main className="admin-main">
-
-        {/* ── Barre mobile : ouvre le calendrier ── */}
-        <button
-          type="button"
-          className="admin-mobile-bar"
-          onClick={() => setCalendarOpen(true)}
-        >
-          <span className="admin-mobile-bar-icon">📅</span>
-          <span className="admin-mobile-bar-label">
-            {selectedDate ? formatDate(selectedDate) : 'Choisir une date'}
-          </span>
-          <span className="admin-mobile-bar-chevron">Calendrier ›</span>
-        </button>
-
-        {/* ── Colonne gauche : calendrier (sidebar desktop) ── */}
-        <aside className="admin-schedule">{calendar}</aside>
-
-        {/* ── Tiroir calendrier (mobile) ── */}
-        {calendarOpen && (
-          <>
-            <div className="admin-cal-backdrop" onClick={() => setCalendarOpen(false)} />
-            <div className="admin-cal-drawer">
-              <div className="admin-cal-drawer-head">
-                <span className="admin-cal-drawer-title">Calendrier</span>
-                <button className="admin-cal-drawer-close" onClick={() => setCalendarOpen(false)} type="button" aria-label="Fermer">✕</button>
+        // ───────────── LISTE : RÉSERVE + PROGRAMME ─────────────
+        <main className="admin-main admin-main--single admin-reserve-page">
+          {/* Réserve */}
+          <section className="admin-reserve">
+            <div className="admin-section-head">
+              <div>
+                <h2 className="admin-editor-title">Réserve de grilles</h2>
+                <p className="admin-section-sub">
+                  Pool de secours sans date, piochée par priorité quand un gagnant ne crée pas sa grille.
+                </p>
               </div>
-              {calendar}
+              <button className="btn-primary" onClick={openNewReserve} type="button">＋ Nouvelle grille</button>
             </div>
-          </>
-        )}
 
-        {/* ── Colonne droite : éditeur ── */}
-        <section className="admin-editor">
-          {!selectedDate ? (
-            <div className="admin-editor-empty">
-              <p>Sélectionne une date dans le calendrier pour créer ou modifier la grille du jour.</p>
+            <div className={`admin-reserve-stock${reserve.length < RESERVE_LOW ? ' admin-reserve-stock--low' : ''}`}>
+              {reserve.length} grille{reserve.length !== 1 ? 's' : ''} en réserve
+              {reserve.length < RESERVE_LOW && ' — stock bas, ajoute des grilles !'}
             </div>
-          ) : (
-            <>
-              <div className="admin-editor-header">
-                <h2 className="admin-editor-title">
-                  {editingGrid ? 'Modifier' : 'Créer'} — {formatDate(selectedDate)}
-                </h2>
-                {editingGrid && (
-                  <button className="admin-delete-btn" onClick={handleDelete} type="button">
-                    Supprimer
-                  </button>
-                )}
-              </div>
 
-              <div className="admin-editor-body">
-                <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-                  <CloverWithInputs
-                    placements={placements}
-                    clues={clues}
-                    setClues={setClues}
-                    onRotate={handleRotate}
-                    draggable
-                    disableTransition={isSwappingSlots}
-                    slotAction={pos => (
-                      <button
-                        className="admin-slot-refresh"
-                        onClick={() => handleRefreshSlot(pos)}
-                        disabled={refreshingSlot === pos}
-                        type="button"
-                        title="Repiocher une carte"
-                      >
-                        {refreshingSlot === pos ? '…' : '🎲'}
-                      </button>
-                    )}
-                  />
-                  <DragOverlay dropAnimation={null}>
-                    {activeCard && (
-                      <WordCard
-                        id="overlay"
-                        card={activeCard.card}
-                        rotation={activeCard.rotation}
-                        colorIndex={activeCard.colorIndex ?? 0}
-                        draggable={false}
-                      />
-                    )}
-                  </DragOverlay>
-                </DndContext>
-              </div>
+            {reserve.length === 0 ? (
+              <p className="admin-empty">Aucune grille en réserve. Crée-en pour garantir une grille chaque jour.</p>
+            ) : (
+              <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleReserveDragEnd}>
+                <SortableContext items={reserve.map(g => g.id)} strategy={verticalListSortingStrategy}>
+                  <ul className="reserve-list">
+                    {reserve.map((g, i) => (
+                      <ReserveRow key={g.id} grid={g} index={i} onEdit={(grid) => openEditGrid(grid, 'reserve')} onDelete={handleDelete} />
+                    ))}
+                  </ul>
+                </SortableContext>
+              </DndContext>
+            )}
+          </section>
 
-              <div className="admin-editor-actions">
-                <button
-                  className="btn-secondary admin-refresh-btn"
-                  onClick={handleRefreshAll}
-                  disabled={isRefreshing}
-                  type="button"
-                >
-                  {isRefreshing ? '…' : '↺ Toutes les cartes'}
-                </button>
-                <button
-                  className="btn-primary admin-save-btn"
-                  onClick={handleSave}
-                  disabled={isSaving || !allPlaced || !cluesOk}
-                  type="button"
-                >
-                  {isSaving ? '…' : saveSuccess ? '✓ Sauvegardé' : 'Enregistrer'}
-                </button>
-                {editingGrid && (
-                  <Link to={`/play/${editingGrid.id}`} className="btn-secondary admin-play-btn">
-                    ▶ Jouer
-                  </Link>
-                )}
-              </div>
+          {/* Programme (lecture + override) */}
+          <section className="admin-programme">
+            <h2 className="admin-editor-title">Programme</h2>
+            <p className="admin-section-sub">Grille du jour et grilles programmées par les gagnants. Tu peux corriger ou supprimer (modération).</p>
 
-              {!cluesOk && allPlaced && (
-                <p className="admin-hint">Remplis les 4 indices pour pouvoir enregistrer.</p>
-              )}
-            </>
-          )}
-        </section>
-      </main>
+            {upcoming.length === 0 ? (
+              <p className="admin-empty">Aucune grille datée à venir — les jours seront comblés par la réserve.</p>
+            ) : (
+              <ul className="programme-list">
+                {upcoming.map(g => (
+                  <li key={g.id} className={`programme-row${g.daily_date === today ? ' programme-row--today' : ''}`}>
+                    <span className="programme-date">
+                      {g.daily_date === today ? "Aujourd'hui" : fmtDate(g.daily_date)}
+                      {g.daily_status === 'scheduled' && <span className="programme-tag">🏆 gagnant</span>}
+                    </span>
+                    <span className="programme-clues">{cluesPreview(g)}</span>
+                    <span className="programme-actions">
+                      <Link to={`/play/${g.id}`} className="reserve-edit">Jouer</Link>
+                      <button className="reserve-edit" onClick={() => openEditGrid(g, 'dated', g.daily_date)} type="button">Modifier</button>
+                      <button className="reserve-del" onClick={() => handleDelete(g)} type="button">Suppr.</button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {past.length > 0 && (
+              <details className="programme-history">
+                <summary>Historique récent ({past.length})</summary>
+                <ul className="programme-list">
+                  {past.map(g => (
+                    <li key={g.id} className="programme-row programme-row--past">
+                      <span className="programme-date">{fmtDate(g.daily_date)}</span>
+                      <span className="programme-clues">{cluesPreview(g)}</span>
+                      <span className="programme-actions">
+                        <Link to={`/play/${g.id}`} className="reserve-edit">Jouer</Link>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </section>
+        </main>
       )}
     </div>
   )
