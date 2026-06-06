@@ -225,7 +225,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 /* ── Grille du jour communautaire — bannière « tu as gagné » + récompense classement ── */
 .hub-grant-banner {
   display: flex; align-items: center; gap: 14px;
-  margin: 18px 0 22px; padding: 14px 18px;
+  margin: 32px 0 22px; padding: 14px 18px;
   border-radius: var(--r); text-decoration: none;
   background: linear-gradient(100deg, #fff7e6, #fdebc8);
   border: 1px solid #f0d089; box-shadow: var(--shadow);
@@ -300,6 +300,21 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .admin-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
 .admin-section-sub { margin: 4px 0 0; font-size: 13px; color: var(--ink-3); line-height: 1.4; }
 .admin-empty { font-size: 13px; color: var(--ink-3); padding: 18px 0; }
+
+/* Droits de création (gagnants) */
+.grants-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.grant-row {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 14px;
+}
+.grant-row--expired { opacity: 0.7; }
+.grant-winner { font-weight: 700; color: var(--ink); flex-shrink: 0; }
+.grant-dates { flex: 1; min-width: 0; font-size: 12.5px; color: var(--ink-3); }
+.grant-dates strong { color: var(--ink-2); }
+.grant-status { flex-shrink: 0; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: var(--r-pill); }
+.grant-status--claimed { color: #16794f; background: #dcf3e7; }
+.grant-status--pending { color: #b7791f; background: #fdebc8; }
+.grant-status--expired { color: var(--ink-3); background: var(--bg-tint); }
 
 .admin-reserve-stock {
   display: inline-block; font-size: 12.5px; font-weight: 600; color: var(--teal);

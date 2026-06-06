@@ -369,13 +369,13 @@ export default function CreatePage() {
     }
   }
 
-  // Grille du jour (mode grant) : difficulté imposée = facile, sans écran de choix.
+  // Grille du jour (mode grant) : difficulté imposée = facile, directement, sans pop-in de choix.
   useEffect(() => {
-    if (grantMode && grant && showDifficultyModal && !difficulty) {
+    if (grantMode && grant && !difficulty) {
       handleSelectDifficulty('facile')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [grantMode, grant, showDifficultyModal, difficulty])
+  }, [grantMode, grant, difficulty])
 
   useEffect(() => {
     if (phase !== 'clues' || !user?.id) return
@@ -415,23 +415,12 @@ export default function CreatePage() {
     <div className="create-page">
       <Header />
 
-      {/* ── Modal de difficulté ── */}
-      {showDifficultyModal && (
+      {/* ── Modal de difficulté — création COMMUNAUTAIRE uniquement ──
+          (Grille du jour / mode grant : pas de choix, difficulté = facile imposée, aucune pop-in.) */}
+      {showDifficultyModal && !grantMode && (
         <div className="difficulty-modal-backdrop">
           <div className="difficulty-modal">
-            {grantInvalid ? (
-              <>
-                <h2 className="difficulty-modal-title">Droit de création expiré</h2>
-                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-                  Ce droit de création n'est plus valable (déjà utilisé, ou la date est dépassée).
-                </p>
-                <button className="btn-primary" onClick={() => navigate('/hub')} style={{ width: '100%' }}>
-                  Retour au Hub
-                </button>
-              </>
-            ) : grantMode ? (
-              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '24px 0' }}>Préparation de ta grille du jour…</p>
-            ) : alreadyCreatedToday ? (
+            {alreadyCreatedToday ? (
               <>
                 <h2 className="difficulty-modal-title">Limite quotidienne atteinte</h2>
                 <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '20px' }}>
@@ -461,6 +450,21 @@ export default function CreatePage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Grille du jour (gagnant) : droit invalide → message d'erreur dédié */}
+      {grantInvalid && (
+        <div className="difficulty-modal-backdrop">
+          <div className="difficulty-modal">
+            <h2 className="difficulty-modal-title">Droit de création expiré</h2>
+            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+              Ce droit de création n'est plus valable (déjà utilisé, ou la date est dépassée).
+            </p>
+            <button className="btn-primary" onClick={() => navigate('/hub')} style={{ width: '100%' }}>
+              Retour au Hub
+            </button>
           </div>
         </div>
       )}
@@ -522,7 +526,11 @@ export default function CreatePage() {
             </div>
           )}
           <div className="play-grid-area">
-            {published ? (
+            {(grantMode && !grantInvalid && !difficulty) ? (
+              <div className="create-expired create-expired--success">
+                <p className="create-expired-title">Préparation de ta grille du jour…</p>
+              </div>
+            ) : published ? (
               <div className="create-expired create-expired--success">
                 <div className="create-expired-icon">{grantMode ? '🏆' : '🎉'}</div>
                 {grantMode ? (
