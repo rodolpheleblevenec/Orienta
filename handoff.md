@@ -1,3 +1,57 @@
+# Handoff — 2026-06-06
+
+## Contexte
+
+- **Projet** : Orienta
+- **Branche** : `feat/grille-jour-communautaire` (PR **mergée sur `master` à la main** par l'utilisateur). ⚠️ Un correctif **chrono** a été ajouté APRÈS le merge et n'est **pas encore commité/poussé** (voir plus bas).
+- **État** : Grosse évolution livrée — la **grille du jour devient communautaire** (le top 1 d'un jour gagne le droit de créer la grille de J+3) + **réserve admin** de grilles sans date + **fix chrono anti-triche**. **DB migrée** (016) et **6 Edge Functions déployées** en prod (MCP) sur `baqvosadoijsvvelugmp`. Reste : commit/push du correctif chrono ; ouvrir le DROP de l'ancienne `generate-daily-grid` côté Supabase (fait par l'utilisateur).
+
+---
+
+## Travail réalisé (session 2026-06-06 — grille du jour communautaire + réserve + chrono anti-triche)
+
+### A. Grille du jour communautaire (gagnant crée J+3) + réserve admin
+**But** : sortir du modèle « un seul admin crée toutes les grilles ». Le **vainqueur** du classement d'un jour J gagne le droit de **créer la grille du jour de J+3**. Une **réserve admin** (grilles sans date, priorisée) comble les jours sans gagnant ; rejeu d'archive en dernier recours. Plan complet : `~/.claude/plans/radiant-kindling-tide.md`. Mémoire : `project_daily_community_grid.md`.
+
+- **DB — migration `016_daily_reserve_and_grants.sql` (appliquée en prod)** :
+  - `orienta_grids` + colonnes **`daily_status`** (`NULL`=communautaire ; `reserve`/`scheduled`/`published`=piste quotidienne) et **`reserve_priority`**.
+  - **Nouveau discriminant** : « piste quotidienne » = `daily_status IS NOT NULL` (remplace l'ancien `daily_date IS NULL`). Requêtes communauté mises à jour (HubPage, create-grid, stats admin).
+  - Nouvelle table **`orienta_grid_grants`** (droit de créer : winner_user_id, source_grid_id UNIQUE, target_date UNIQUE, status pending/claimed/expired, deadline, onboarding_seen_at). RLS : SELECT public, écriture service-role.
+  - Conversion des 8 grilles futures pré-générées → **réserve** (sans date, priorité 1..8).
+- **Edge Functions** :
+  - **`daily-rollover` (NOUVELLE, remplace `generate-daily-grid` supprimée)** : à minuit (cron GitHub `daily-rollover.yml`, 01:00 UTC) → désigne le #1 de la veille (dérivé serveur depuis les scores), crée le grant J+3 + notif `grid_grant`, **garantit une grille du jour** (gagnant pinné → réserve par priorité → clone d'archive), alerte stock bas (`reserve_low`), expire les grants non honorés (`grant_expired`).
+  - **`create-grid`** : mode **grant** (`grant_id`) → bypass quota communautaire, date verrouillée sur `target_date`, insère `daily_status='scheduled'`, marque le grant `claimed`.
+  - **`admin`** : actions **`save-reserve-grid`** / **`reorder-reserve`** + stats adaptées (`daily_status`, `reserve_count`). `save-daily-grid` pose maintenant `daily_status='published'`.
+  - **`account`** : action **`grant-seen`** (marque la modale d'accompagnement vue).
+- **Frontend — parcours gagnant accompagné** :
+  - `WinnerWelcomeModal` (modale félicitations à la connexion, 1 fois via `onboarding_seen_at`) ; bannière hub persistante ; message récompense sur le **Classement du jour** (visible par tous) ; `CreatePage` mode grant (`?grant=ID`, date verrouillée, écran de confirmation) ; branche notif `grid_grant`.
+  - `DailyAdminPage` **refondue** : gestionnaire de **réserve** (drag-and-drop @dnd-kit/sortable pour la priorité) + panneau **Programme** (aujourd'hui + grilles programmées + historique, avec override/suppression). Remplace le calendrier mensuel.
+  - Notifications : nouveaux types `grid_grant`/`reserve_low`/`grant_expired`.
+
+### B. Notifications — dropdown sous l'icône (desktop)
+Le panneau s'ouvre désormais en **dropdown ancré sous la cloche** en desktop (voile sombre conservé sur mobile). `Header.jsx` (wrapper `.notif-anchor`), `NotificationsPanel.jsx` (fragment backdrop+panel ancré), CSS.
+
+### C. Fix chrono anti-triche (grille du jour)
+**Problème observé** : au retour sur une grille « en cours », le chrono **affiché** repartait de 0 (`startTimeRef = Date.now()` à chaque chargement) → semblait permettre de scouter la solution puis revenir avec un temps frais.
+**Diagnostic** : le **score** était déjà sain (le serveur calcule le temps depuis `orienta_plays.started_at`, jamais reseté). Seul l'**affichage** trompait.
+**Correctif** : `start-play` renvoie `started_at` (ISO UTC) ; `PlayPage` cale `startTimeRef` dessus → chrono **continu**, jamais reseté au retour, cohérent avec le score. `start-play` **déployé (v3)**.
+> Arbitrage assumé : l'horloge tourne en continu depuis la 1ʳᵉ ouverture (ouvrir « pour voir » engage). Alternative possible (non faite) : démarrer le chrono au 1ᵉʳ déplacement de carte, côté serveur.
+
+### État de déploiement / git (session 2026-06-06)
+- **Déployé en prod (MCP)** : migration 016 ; edge functions `daily-rollover` v1, `create-grid` v3, `account` v4, `admin` v8, `start-play` v3.
+- **Commité + poussé** : feature (A + B) sur `feat/grille-jour-communautaire`, **PR mergée sur `master`** par l'utilisateur.
+- **PAS encore commité** : le **correctif chrono (C)** — `src/pages/play/PlayPage.jsx` + `supabase/functions/start-play/index.ts`. À commiter/pousser (en attente du feu vert sur la base : nouvelle branche depuis master + PR, ou direct).
+- **Ancienne `generate-daily-grid`** : supprimée du repo ; côté Supabase **supprimée par l'utilisateur**. (Aucun outil MCP pour delete une edge function.)
+
+### Restant / prochaines actions (2026-06-06)
+- [ ] **Commit/push du correctif chrono** (PlayPage + start-play) puis redéploiement frontend.
+- [ ] **Activer le cron** : le schedule `daily-rollover.yml` ne tourne que depuis `master` (déjà mergé) → vérifier qu'il s'exécute (ou lancer un `workflow_dispatch` de test avec `?date=` d'un jour passé). Vérifier que le secret GitHub `FUNCTION_SECRET` est présent.
+- [ ] Test navigateur du parcours gagnant : modale → `/create?grant=` → publication → grille programmée J+3 ; bannière hub ; classement.
+- [ ] Test réserve admin : créer/réordonner des grilles, vérifier la pioche au rollover.
+- [ ] Limite connue : identité spoofable (pas d'auth) — gagnant re-dérivé serveur mais `user_id` reste falsifiable (cf. `project_security_rls.md`).
+
+---
+
 # Handoff — 2026-06-04
 
 ## Contexte

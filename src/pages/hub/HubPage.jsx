@@ -7,6 +7,8 @@ import CollectiveGauge from '../../components/ui/CollectiveGauge'
 import GridCard from '../../components/ui/GridCard'
 import CreatedGridCard from '../../components/ui/CreatedGridCard'
 import WinnerWelcomeModal from '../../components/ui/WinnerWelcomeModal'
+import OnlinePlayersPanel from '../../components/ui/OnlinePlayersPanel'
+import { useOnlinePlayers } from '../../lib/useOnlinePlayers'
 
 function formatDayLabel(dateStr) {
   const today = new Date().toISOString().split('T')[0]
@@ -47,6 +49,11 @@ export default function HubPage() {
   const [pendingGrant, setPendingGrant] = useState(null)   // droit de créer la grille du jour (gagnant)
   const [showWinnerModal, setShowWinnerModal] = useState(false)
 
+  // Présence temps réel : qui est connecté sur le hub en ce moment.
+  // Panneau affiché (desktop only) uniquement s'il y a au moins un AUTRE joueur.
+  const onlinePlayers = useOnlinePlayers(user)
+  const showOnlinePanel = onlinePlayers.some(p => p.id !== user?.id)
+
   useEffect(() => {
     if (!user) return
     const fetchData = async () => {
@@ -82,7 +89,7 @@ export default function HubPage() {
 
         supabase
           .from('orienta_grids')
-          .select('*, orienta_users(pseudo), orienta_plays(player_id, success, score, completed_at, orienta_users(pseudo))')
+          .select('*, orienta_users(pseudo, is_system), orienta_plays(player_id, success, score, completed_at, orienta_users(pseudo))')
           .eq('status', 'published')
           .gte('daily_date', sevenDaysAgo)
           .lte('daily_date', todayDate)
@@ -194,8 +201,9 @@ export default function HubPage() {
 
   // Filtre "jamais jouées" — grilles que le joueur n'a pas terminées : aucune partie enregistrée
   // OU partie en cours (non terminée). Une grille en cours reste à finir, donc on la garde.
+  // On exclut ses propres grilles : on n'y joue jamais, elles n'ont pas leur place ici.
   // grids est déjà trié par created_at décroissant.
-  const unplayedGrids = grids.filter(g => !playsMap.get(g.id)?.completed)
+  const unplayedGrids = grids.filter(g => g.creator_id !== user?.id && !playsMap.get(g.id)?.completed)
 
   // Communauté débloquée dès que le joueur a terminé sa 1ʳᵉ grille (gagnée ou perdue),
   // qu'elle soit du jour ou des jours passés. playsMap contient toutes ses plays.
@@ -208,6 +216,11 @@ export default function HubPage() {
   const successfulDailyPlays = livePlayStats?.successful ?? (todayDaily ? (todayDaily.orienta_plays ?? []).filter(p => p.success).length : 0)
   const dailySuccessRate = totalDailyPlayers > 0 ? Math.round((successfulDailyPlays / totalDailyPlayers) * 100) : null
 
+  // Crédit créateur : uniquement pour une grille du jour issue d'un JOUEUR (pas du compte système / réserve).
+  const dailyCreator = todayDaily?.orienta_users?.is_system === false
+    ? todayDaily.orienta_users.pseudo
+    : null
+
   const hasCompletedDaily = !!myDailyPlay
   const hasSucceededDaily = myDailyPlay?.success === true
   const statusSpillClass = hasSucceededDaily ? 'hub-spill--teal' : hasCompletedDaily ? 'hub-spill--coral' : ''
@@ -216,6 +229,7 @@ export default function HubPage() {
   return (
     <div className="hub-page">
       <Header />
+      <div className={`hub-shell${showOnlinePanel ? ' hub-shell--with-panel' : ''}`}>
       <main className="hub-main">
 
         {/* Bannière « tu as gagné » — droit de créer la grille du jour (persistante jusqu'au claim) */}
@@ -262,6 +276,12 @@ export default function HubPage() {
                   Faites pivoter les quatre cartes, suivez les indices et placez tout juste.
                   Une nouvelle grille chaque matin.
                 </p>
+                {dailyCreator && (
+                  <div className="hub-creator-credit">
+                    <span className="hub-creator-credit-icon">✍️</span>
+                    Grille créée par <strong>{dailyCreator}</strong>
+                  </div>
+                )}
                 <div className="hub-stat-row">
                   <div className={`hub-spill ${statusSpillClass}`}>
                     <span className="hub-spill-k">Statut</span>
@@ -625,6 +645,11 @@ export default function HubPage() {
         </section>
         )}
       </main>
+
+      {showOnlinePanel && (
+        <OnlinePlayersPanel players={onlinePlayers} currentUserId={user?.id} />
+      )}
+      </div>
 
       {showWinnerModal && pendingGrant && (
         <WinnerWelcomeModal grant={pendingGrant} onClose={() => setShowWinnerModal(false)} />

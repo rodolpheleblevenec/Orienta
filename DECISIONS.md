@@ -153,3 +153,36 @@ Sur mobile, taper sur le bouton ouvre un overlay centré (`.clue-lateral-editor`
 **Pourquoi** : Le temps de chargement Supabase (typiquement 200–800ms) était facturé au joueur dans le calcul du score. Le timer démarre maintenant quand les cartes sont effectivement visibles.
 
 **Guard** : L'interval du timer vérifie `if (startTimeRef.current)` avant de calculer l'écart — évite un NaN si le composant est rendu avant la fin du fetch.
+
+> ⚠️ **Révisé le 2026-06-06** (voir « Chrono ancré sur `started_at` » plus bas) : le chrono n'est plus calé sur `Date.now()` au chargement mais sur le `started_at` serveur, pour être continu et anti-triche.
+
+---
+
+## 2026-06-06 — Grille du jour communautaire (le gagnant crée la grille de J+3)
+
+**Décision** : La grille du jour n'est plus auto-générée par un seul système. Le **1er du classement** d'un jour J gagne le droit de **créer la grille du jour de J+3**. Une **réserve** de grilles admin (sans date, priorisée) comble les jours sans gagnant ; en dernier recours on **rejoue une grille d'archive** populaire. Un rollover nocturne (`daily-rollover`) orchestre le tout.
+
+**Pourquoi** : Faire vivre la communauté (chaque gagnant contribue) plutôt qu'un unique créateur. Le décalage J+3 laisse au gagnant le temps de composer, et garantit un tampon.
+
+**Modèle de données** : nouveau discriminant **`orienta_grids.daily_status`** (`NULL`=communautaire · `reserve`/`scheduled`/`published`=piste quotidienne) — remplace l'ancien raccourci `daily_date IS NULL`. Table **`orienta_grid_grants`** (droit de créer, idempotent via `UNIQUE(source_grid_id)` + `UNIQUE(target_date)`). `generate-daily-grid` supprimée.
+
+**Trade-offs** :
+- Le gagnant est **re-dérivé côté serveur** depuis les scores (fiables), mais l'identité reste falsifiable (pas d'auth) — même limite que la pseudo-auth.
+- Réserve vide possible → garde-fous : alerte stock bas + rejeu d'archive (jamais de jour vide).
+- Le cron GitHub ne tourne que depuis `master` (branche par défaut).
+
+**Réviser si** : Supabase Auth (sécuriser le claim) ; modération a priori si abus (actuellement publication directe + contrôles structurels).
+
+---
+
+## 2026-06-06 — Chrono ancré sur `started_at` serveur (anti-triche, continu)
+
+**Décision** : Le chrono affiché dans `PlayPage` est calé sur `orienta_plays.started_at` (renvoyé par `start-play`), **pas** sur `Date.now()`. Il est donc **continu** et **ne se remet jamais à zéro** quand le joueur quitte puis revient sur une partie en cours.
+
+**Pourquoi** : Empêcher le « scout-then-return » (repérer la solution, revenir, repartir avec un temps frais). Le **score** était déjà sain (le serveur calcule `elapsed = now − started_at`, jamais reseté) ; seul l'**affichage** repartait de 0 et donnait l'illusion d'une faille. On aligne l'affichage sur la vérité serveur.
+
+**Conséquence** : l'horloge démarre dès la 1ʳᵉ ouverture et tourne en continu → ouvrir la grille « pour voir » engage (coûte du temps). C'est le garde-fou voulu.
+
+**Alternative non retenue** : démarrer le chrono au 1ᵉʳ déplacement de carte (côté serveur) — plus permissif mais plus complexe ; à reconsidérer si l'engagement « à l'ouverture » est jugé trop strict.
+
+**Remplace** : la décision du 2026-06-01 (« Timer démarre après chargement réseau ») — le souci du temps de chargement facturé est résolu autrement (le `started_at` est posé à la création de la partie côté serveur).

@@ -369,6 +369,14 @@ export default function CreatePage() {
     }
   }
 
+  // Grille du jour (mode grant) : difficulté imposée = facile, directement, sans pop-in de choix.
+  useEffect(() => {
+    if (grantMode && grant && !difficulty) {
+      handleSelectDifficulty('facile')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grantMode, grant, difficulty])
+
   useEffect(() => {
     if (phase !== 'clues' || !user?.id) return
     if (!user.tour_create_clues_done) {
@@ -407,23 +415,12 @@ export default function CreatePage() {
     <div className="create-page">
       <Header />
 
-      {/* ── Modal de difficulté ── */}
-      {showDifficultyModal && (
+      {/* ── Modal de difficulté — création COMMUNAUTAIRE uniquement ──
+          (Grille du jour / mode grant : pas de choix, difficulté = facile imposée, aucune pop-in.) */}
+      {showDifficultyModal && !grantMode && (
         <div className="difficulty-modal-backdrop">
           <div className="difficulty-modal">
-            {grantInvalid ? (
-              <>
-                <h2 className="difficulty-modal-title">Droit de création expiré</h2>
-                <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-                  Ce droit de création n'est plus valable (déjà utilisé, ou la date est dépassée).
-                </p>
-                <button className="btn-primary" onClick={() => navigate('/hub')} style={{ width: '100%' }}>
-                  Retour au Hub
-                </button>
-              </>
-            ) : (grantMode && !grant) ? (
-              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '24px 0' }}>Chargement…</p>
-            ) : (alreadyCreatedToday && !grantMode) ? (
+            {alreadyCreatedToday ? (
               <>
                 <h2 className="difficulty-modal-title">Limite quotidienne atteinte</h2>
                 <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '20px' }}>
@@ -435,14 +432,6 @@ export default function CreatePage() {
               </>
             ) : (
               <>
-                {grantMode && grant && (
-                  <div style={{ textAlign: 'center', marginBottom: 16, padding: '12px 14px', borderRadius: 12, background: 'var(--bg-tint, #f4f1ea)' }}>
-                    <div style={{ fontWeight: 700, marginBottom: 4 }}>🏆 Grille du jour du {formatDailyDate(grant.target_date)}</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                      Tu as gagné le droit de la créer — elle sera jouée par toute la communauté ce jour-là.
-                    </div>
-                  </div>
-                )}
                 <h2 className="difficulty-modal-title">Quel niveau de difficulté ?</h2>
                 <div className="difficulty-options">
                   {[
@@ -461,6 +450,21 @@ export default function CreatePage() {
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Grille du jour (gagnant) : droit invalide → message d'erreur dédié */}
+      {grantInvalid && (
+        <div className="difficulty-modal-backdrop">
+          <div className="difficulty-modal">
+            <h2 className="difficulty-modal-title">Droit de création expiré</h2>
+            <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+              Ce droit de création n'est plus valable (déjà utilisé, ou la date est dépassée).
+            </p>
+            <button className="btn-primary" onClick={() => navigate('/hub')} style={{ width: '100%' }}>
+              Retour au Hub
+            </button>
           </div>
         </div>
       )}
@@ -516,8 +520,17 @@ export default function CreatePage() {
               ↺ <span>Reset</span>
             </button>
           )}
+          {grant && !published && !expired && !missedCreation && (
+            <div className="create-grant-bar">
+              🏆 Tu crées la <strong>grille du jour</strong> du {formatDailyDate(grant.target_date)}
+            </div>
+          )}
           <div className="play-grid-area">
-            {published ? (
+            {(grantMode && !grantInvalid && !difficulty) ? (
+              <div className="create-expired create-expired--success">
+                <p className="create-expired-title">Préparation de ta grille du jour…</p>
+              </div>
+            ) : published ? (
               <div className="create-expired create-expired--success">
                 <div className="create-expired-icon">{grantMode ? '🏆' : '🎉'}</div>
                 {grantMode ? (

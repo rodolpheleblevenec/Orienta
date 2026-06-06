@@ -162,6 +162,7 @@ export default function PlayPage() {
   }
 
   const startTimeRef = useRef(null)
+  const serverStartRef = useRef(null)   // started_at serveur = ancre du chrono (anti-reset au retour)
   const [elapsed, setElapsed] = useState(0)
   const [gridLoaded, setGridLoaded] = useState(false)
 
@@ -210,6 +211,7 @@ export default function PlayPage() {
         colorIndex: i,
       }))
       setTrayCards(shuffled)
+      serverStartRef.current = data.started_at ?? null
       setGridLoaded(true)
 
       // Mode rejeu : partie neuve, rien à restaurer (playId reste null).
@@ -250,7 +252,8 @@ export default function PlayPage() {
     if (!user.tour_play_done) {
       setShowTour(true)
     } else {
-      startTimeRef.current = Date.now()
+      // Ancré sur le started_at serveur → chrono continu, jamais remis à zéro au retour.
+      startTimeRef.current = serverStartRef.current ? new Date(serverStartRef.current).getTime() : Date.now()
     }
   }, [user?.id, gridLoaded])
 
@@ -262,7 +265,7 @@ export default function PlayPage() {
     if (gameOver) return
     const interval = setInterval(() => {
       if (startTimeRef.current) {
-        setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000))
+        setElapsed(Math.max(0, Math.floor((Date.now() - startTimeRef.current) / 1000)))
       }
     }, 1000)
     return () => clearInterval(interval)
@@ -742,8 +745,8 @@ export default function PlayPage() {
           onDone={() => {
             markTourDone('tour_play_done')
             setShowTour(false)
-            // Le tuto est terminé : on lance le chrono maintenant.
-            startTimeRef.current = Date.now()
+            // Chrono ancré sur le started_at serveur (cohérent avec le score).
+            startTimeRef.current = serverStartRef.current ? new Date(serverStartRef.current).getTime() : Date.now()
           }}
         />
       )}

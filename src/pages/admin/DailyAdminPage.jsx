@@ -26,6 +26,13 @@ function fmtDate(iso) {
   return new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
+// Timestamp (created_at, UTC sans tz) → date + heure locale
+function fmtDateTime(iso) {
+  if (!iso) return ''
+  const d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso : iso + 'Z')
+  return d.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+}
+
 function cluesPreview(g) {
   const cs = [g.clue_top, g.clue_right, g.clue_bottom, g.clue_left].filter(Boolean)
   return cs.length ? cs.join(' · ') : 'Grille sans indice'
@@ -69,6 +76,7 @@ export default function DailyAdminPage() {
   // Données
   const [reserve, setReserve] = useState([])
   const [programme, setProgramme] = useState([])
+  const [grants, setGrants] = useState([])
   const [cardPool, setCardPool] = useState([])
   const today = isoTodayParis()
 
@@ -102,7 +110,7 @@ export default function DailyAdminPage() {
   }, [])
 
   async function refreshData() {
-    const [{ data: res }, { data: prog }] = await Promise.all([
+    const [{ data: res }, { data: prog }, { data: grnts }] = await Promise.all([
       supabase.from('orienta_grids')
         .select('id, clue_top, clue_right, clue_bottom, clue_left, difficulty, reserve_priority')
         .eq('daily_status', 'reserve')
@@ -112,9 +120,14 @@ export default function DailyAdminPage() {
         .not('daily_date', 'is', null)
         .gte('daily_date', new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0])
         .order('daily_date', { ascending: true }),
+      // Droits de création (gagnants) : pseudo du gagnant + date de création effective de la grille
+      supabase.from('orienta_grid_grants')
+        .select('id, source_date, target_date, status, created_at, winner:orienta_users!winner_user_id(pseudo), created_grid:orienta_grids!created_grid_id(id, created_at)')
+        .order('target_date', { ascending: false }),
     ])
     setReserve(res ?? [])
     setProgramme(prog ?? [])
+    setGrants(grnts ?? [])
   }
 
   // ── Éditeur : ouverture ──
@@ -341,6 +354,34 @@ export default function DailyAdminPage() {
       ) : (
         // ───────────── LISTE : RÉSERVE + PROGRAMME ─────────────
         <main className="admin-main admin-main--single admin-reserve-page">
+          {/* Droits de création (gagnants) — qui a gagné, et s'il a créé la grille (et quand) */}
+          <section className="admin-grants">
+            <h2 className="admin-editor-title">Droits de création (gagnants)</h2>
+            <p className="admin-section-sub">Le 1er du classement de chaque jour gagne le droit de créer la grille du jour de J+3. Suis ici qui a gagné et s'il l'a fait.</p>
+            {grants.length === 0 ? (
+              <p className="admin-empty">Aucun droit de création pour l'instant — le rollover nocturne en crée un chaque nuit pour le vainqueur.</p>
+            ) : (
+              <ul className="grants-list">
+                {grants.map(g => (
+                  <li key={g.id} className={`grant-row grant-row--${g.status}`}>
+                    <span className="grant-winner">🏆 {g.winner?.pseudo ?? '?'}</span>
+                    <span className="grant-dates">gagné le {fmtDate(g.source_date)} → grille du <strong>{fmtDate(g.target_date)}</strong></span>
+                    <span className={`grant-status grant-status--${g.status}`}>
+                      {g.status === 'claimed'
+                        ? `✓ Créée${g.created_grid?.created_at ? ' le ' + fmtDateTime(g.created_grid.created_at) : ''}`
+                        : g.status === 'pending'
+                          ? '⏳ En attente'
+                          : '⌛ Expirée (non créée)'}
+                    </span>
+                    {g.created_grid?.id && (
+                      <Link to={`/play/${g.created_grid.id}`} className="reserve-edit">Voir</Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
           {/* Réserve */}
           <section className="admin-reserve">
             <div className="admin-section-head">
