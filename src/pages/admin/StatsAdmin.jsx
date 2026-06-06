@@ -108,10 +108,9 @@ function Overview({ stats }) {
           { key: 'new_users', label: 'Nouveaux inscrits', color: C.coral },
         ]} />
       </Panel>
-      <Panel title="Grilles créées / jour" sub="Grilles du jour (admin) et grilles communauté.">
-        <BarChart stacked data={series} series={[
-          { key: 'grids_daily', label: 'Grille du jour', color: C.accent },
-          { key: 'grids_community', label: 'Communauté', color: C.warning },
+      <Panel title="Grilles communauté créées / jour" sub="Grilles créées librement par les joueurs (hors grilles du jour et réserve).">
+        <BarChart data={series} series={[
+          { key: 'grids_community', label: 'Grilles communauté', color: C.warning },
         ]} />
       </Panel>
     </>
@@ -171,6 +170,7 @@ function Retention({ stats }) {
       </div>
       <p className="stats-note">
         Rétention = part des joueurs revenus le lendemain (J+1) ou 7 jours après (J+7) leur 1ʳᵉ venue.
+        Calculée uniquement sur les cohortes dont le jour de retour est entièrement écoulé (la journée en cours est exclue pour ne pas sous-estimer).
         Bases : {retention.j1_base} joueur(s) pour J+1, {retention.j7_base} pour J+7. Cet indicateur s’étoffe avec le temps.
       </p>
       <Panel title="Distribution des séries (streaks)" sub="Combien de joueurs à quelle série de jours consécutifs.">

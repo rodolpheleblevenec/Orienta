@@ -91,6 +91,10 @@ export default function ResultPage() {
   const [lossAnim] = useState(() => (success ? null : pickLossAnim()))
 
   const isOwnGrid = grid?.creator_id && user?.id === grid.creator_id
+  // Crédit créateur — uniquement pour une grille du jour conçue par un JOUEUR (pas le compte système / réserve).
+  const dailyCreator = grid?.daily_date && grid?.orienta_users?.is_system === false
+    ? grid.orienta_users.pseudo
+    : null
 
   useEffect(() => {
     if (!tileTooltipOpen) return
@@ -159,7 +163,7 @@ export default function ResultPage() {
         .single(),
       supabase
         .from('orienta_grids')
-        .select('*')
+        .select('*, orienta_users(pseudo, is_system)')
         .eq('id', gridId)
         .single(),
       supabase
@@ -394,6 +398,13 @@ export default function ResultPage() {
               <div className="result-xp">+{xp} XP pour la participation</div>
             )}
           </motion.div>
+
+          {dailyCreator && (
+            <div className="result-creator-credit">
+              <span className="result-creator-credit-icon">✍️</span>
+              Grille du jour créée par <strong>{dailyCreator}</strong>
+            </div>
+          )}
 
           <button className="result-share-btn" onClick={copyChallenge} type="button">
             {copied ? '✓ Copié !' : success ? '🍀 Défier mes collègues' : '🍀 Partager cette grille'}

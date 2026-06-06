@@ -225,12 +225,40 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 /* ── Grille du jour communautaire — bannière « tu as gagné » + récompense classement ── */
 .hub-grant-banner {
   display: flex; align-items: center; gap: 14px;
-  margin-bottom: 22px; padding: 14px 18px;
+  margin: 18px 0 22px; padding: 14px 18px;
   border-radius: var(--r); text-decoration: none;
   background: linear-gradient(100deg, #fff7e6, #fdebc8);
   border: 1px solid #f0d089; box-shadow: var(--shadow);
   transition: transform .15s, box-shadow .15s;
 }
+
+/* Bannière de rappel au-dessus de la grille, pendant la création de la grille du jour */
+.create-grant-bar {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin: 0 auto 12px; padding: 8px 16px; max-width: 520px;
+  border-radius: 10px; text-align: center;
+  background: linear-gradient(100deg, #fff7e6, #fdebc8);
+  border: 1px solid #f0d089; color: var(--ink); font-size: 13.5px; font-weight: 600;
+}
+.create-grant-bar strong { color: #b7791f; }
+
+/* Crédit « grille créée par {pseudo} » — grille du jour issue d'un joueur (hub + résultat) */
+.hub-creator-credit {
+  display: inline-flex; align-items: center; gap: 7px;
+  margin: 4px 0 2px; padding: 6px 12px; border-radius: var(--r-pill);
+  background: #fff7e6; border: 1px solid #f0d089;
+  font-size: 13px; font-weight: 600; color: #b7791f; align-self: flex-start;
+}
+.hub-creator-credit strong { color: var(--ink); }
+.hub-creator-credit-icon { font-size: 14px; }
+.result-creator-credit {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  margin: 0 0 12px; padding: 8px 14px; border-radius: 10px;
+  background: #fff7e6; border: 1px solid #f0d089;
+  font-size: 13px; font-weight: 600; color: #b7791f; text-align: center;
+}
+.result-creator-credit strong { color: var(--ink); }
+
 .hub-grant-banner:hover { transform: translateY(-1px); }
 .hub-grant-banner-emoji { font-size: 26px; flex-shrink: 0; }
 .hub-grant-banner-body { flex: 1; min-width: 0; color: var(--ink); font-size: 14px; line-height: 1.4; }
@@ -760,7 +788,72 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 
 /* ── Hub v2 ──────────────────────────────────────── */
 .hub-page { min-height: 100dvh; background: var(--bg); }
+
+/* Shell : centre le contenu et réserve la place du panneau « joueurs en ligne »
+   uniquement quand il est affiché (sinon, comportement identique à avant). */
+.hub-shell {
+  display: flex; align-items: flex-start; justify-content: center; gap: 28px;
+  width: 100%; max-width: 1200px; margin: 0 auto;
+}
+.hub-shell .hub-main { margin: 0; min-width: 0; }   /* le shell gère le centrage */
+.hub-shell--with-panel { max-width: 1492px; }        /* 1200 + 28 (gap) + 264 (panneau) */
+
 .hub-main { flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 0 28px 80px; }
+
+/* ── Panneau latéral « joueurs en ligne » (desktop) ──────────────────────── */
+.hub-online-aside {
+  flex: 0 0 264px; position: sticky; top: 88px; align-self: flex-start;
+  padding-top: 30px;   /* aligne le panneau avec le 1er bloc de .hub-main */
+}
+.hub-online-panel {
+  background: var(--card); border-radius: var(--r);
+  box-shadow: var(--shadow), 0 0 0 1px var(--line);
+  padding: 18px 18px 16px; animation: hub-online-in .28s ease-out;
+}
+@keyframes hub-online-in {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.hub-online-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid var(--line);
+}
+.hub-online-title {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--display); font-weight: 700; font-size: 14px; color: var(--ink);
+}
+.hub-online-count {
+  font-family: var(--display); font-weight: 700; font-size: 12px;
+  color: var(--teal-700); background: var(--teal-soft);
+  min-width: 22px; height: 22px; padding: 0 7px; border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.hub-online-list { list-style: none; margin: 0; padding: 0; max-height: 56vh; overflow-y: auto; }
+.hub-online-item { display: flex; align-items: center; gap: 10px; padding: 7px 4px; }
+.hub-online-ava {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-family: var(--display); font-weight: 700; font-size: 13px;
+}
+.hub-online-name {
+  flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hub-online-me {
+  flex-shrink: 0; font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--ink-2); background: var(--bg-tint);
+  padding: 2px 7px; border-radius: var(--r-pill);
+}
+.hub-online-foot {
+  margin: 10px 2px 0; padding-top: 10px; border-top: 1px solid var(--line);
+  font-size: 11.5px; line-height: 1.4; color: var(--ink-2);
+}
+
+/* Desktop only : sous 1280px on masque le panneau et on rétablit la pleine largeur. */
+@media (max-width: 1280px) {
+  .hub-online-aside { display: none; }
+  .hub-shell--with-panel { max-width: 1200px; }
+}
 
 /* Part header */
 .hub-part { margin-top: 30px; }

@@ -83,7 +83,11 @@ serve(async (req) => {
       supabase.from('orienta_suggestions').select('created_at, status'),
     ])
     const users = usersRes.data ?? []
-    const active = activeRes.data ?? []
+    // Cohérence avec le reste du tableau de bord (qui exclut is_system) : on ne
+    // garde l'activité que des comptes joueurs réels — exclut le compte système
+    // « Orienta » et tout user_id orphelin.
+    const userIds = new Set(users.map(u => u.id))
+    const active = (activeRes.data ?? []).filter(a => a.user_id && userIds.has(a.user_id))
     const grids = gridsRes.data ?? []
     const plays = playsRes.data ?? []
     const attempts = attemptsRes.data ?? []
@@ -126,8 +130,9 @@ serve(async (req) => {
     for (const g of grids) {
       if (!g.created_at) continue
       const row = ensure(dayOf(g.created_at))
-      // « Piste quotidienne » = daily_status non null (réserve / programmée / publiée).
-      if (g.daily_status) row.grids_daily++; else row.grids_community++
+      // Grille « communauté » = créée librement par un joueur : ni datée (grille
+      // du jour), ni en réserve/programmée. Tout le reste = piste quotidienne/admin.
+      if (!g.daily_date && !g.daily_status) row.grids_community++; else row.grids_daily++
     }
     const series = fillSeries(
       [...map.values()].sort((a, b) => (a.date < b.date ? -1 : 1)),
@@ -195,8 +200,10 @@ serve(async (req) => {
     let j1Elig = 0, j1Ret = 0, j7Elig = 0, j7Ret = 0
     for (const [uid, first] of firstActive) {
       const set = activeDatesByUser.get(uid)!
-      if (addDays(first, 1) <= today) { j1Elig++; if (set.has(addDays(first, 1))) j1Ret++ }
-      if (addDays(first, 7) <= today) { j7Elig++; if (set.has(addDays(first, 7))) j7Ret++ }
+      // Éligible seulement si le jour de retour est ENTIÈREMENT écoulé (< today) :
+      // sinon la journée en cours, incomplète, sous-estime la rétention.
+      if (addDays(first, 1) < today) { j1Elig++; if (set.has(addDays(first, 1))) j1Ret++ }
+      if (addDays(first, 7) < today) { j7Elig++; if (set.has(addDays(first, 7))) j7Ret++ }
     }
     const dau = new Set(active.filter(a => dayOf(a.active_date) === today).map(a => a.user_id)).size
     const wau = active7d
@@ -346,6 +353,9 @@ serve(async (req) => {
       creator_id,
       clue_top: c.top, clue_right: c.right, clue_bottom: c.bottom, clue_left: c.left,
       daily_date: date,
+      // Piste quotidienne explicite : distingue clairement la grille du jour
+      // d'une grille communauté (daily_status null) dans les stats et le rollover.
+      daily_status: 'published',
       status: 'published',
       difficulty: 'facile',
       expires_at: new Date(new Date(date).getTime() + 48 * 3600 * 1000).toISOString(),

@@ -369,6 +369,14 @@ export default function CreatePage() {
     }
   }
 
+  // Grille du jour (mode grant) : difficulté imposée = facile, sans écran de choix.
+  useEffect(() => {
+    if (grantMode && grant && showDifficultyModal && !difficulty) {
+      handleSelectDifficulty('facile')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grantMode, grant, showDifficultyModal, difficulty])
+
   useEffect(() => {
     if (phase !== 'clues' || !user?.id) return
     if (!user.tour_create_clues_done) {
@@ -421,9 +429,9 @@ export default function CreatePage() {
                   Retour au Hub
                 </button>
               </>
-            ) : (grantMode && !grant) ? (
-              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '24px 0' }}>Chargement…</p>
-            ) : (alreadyCreatedToday && !grantMode) ? (
+            ) : grantMode ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '24px 0' }}>Préparation de ta grille du jour…</p>
+            ) : alreadyCreatedToday ? (
               <>
                 <h2 className="difficulty-modal-title">Limite quotidienne atteinte</h2>
                 <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '20px' }}>
@@ -435,14 +443,6 @@ export default function CreatePage() {
               </>
             ) : (
               <>
-                {grantMode && grant && (
-                  <div style={{ textAlign: 'center', marginBottom: 16, padding: '12px 14px', borderRadius: 12, background: 'var(--bg-tint, #f4f1ea)' }}>
-                    <div style={{ fontWeight: 700, marginBottom: 4 }}>🏆 Grille du jour du {formatDailyDate(grant.target_date)}</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                      Tu as gagné le droit de la créer — elle sera jouée par toute la communauté ce jour-là.
-                    </div>
-                  </div>
-                )}
                 <h2 className="difficulty-modal-title">Quel niveau de difficulté ?</h2>
                 <div className="difficulty-options">
                   {[
@@ -515,6 +515,11 @@ export default function CreatePage() {
             >
               ↺ <span>Reset</span>
             </button>
+          )}
+          {grant && !published && !expired && !missedCreation && (
+            <div className="create-grant-bar">
+              🏆 Tu crées la <strong>grille du jour</strong> du {formatDailyDate(grant.target_date)}
+            </div>
           )}
           <div className="play-grid-area">
             {published ? (
