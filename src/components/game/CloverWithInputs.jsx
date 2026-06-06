@@ -4,7 +4,7 @@ import { DroppableSlot } from './CloverGrid'
 
 const SIDE_LABELS = { left: '← Gauche', right: 'Droite →' }
 
-export default function CloverWithInputs({ placements, clues, setClues, onRotate, draggable = false, slotAction }) {
+export default function CloverWithInputs({ placements, clues, setClues, onRotate, draggable = false, slotAction, disableTransition = false }) {
   const [editingSide, setEditingSide] = useState(null)
   const inputRef = useRef(null)
 
@@ -62,6 +62,7 @@ export default function CloverWithInputs({ placements, clues, setClues, onRotate
               rotation={placements[pos]?.rotation ?? 0}
               colorIndex={placements[pos]?.colorIndex ?? 0}
               onRotate={onRotate ? () => onRotate(pos) : undefined}
+              disableTransition={disableTransition}
               slotAction={slotAction}
             />
           ) : (
@@ -73,6 +74,7 @@ export default function CloverWithInputs({ placements, clues, setClues, onRotate
                   rotation={placements[pos].rotation}
                   colorIndex={placements[pos].colorIndex ?? 0}
                   onRotate={() => onRotate(pos)}
+                  disableTransition={disableTransition}
                   draggable={false}
                 />
               ) : (

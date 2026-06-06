@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { DndContext, closestCorners, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { DndContext, DragOverlay, closestCorners, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import { getAdminSecret, clearAdminSecret } from '../../lib/adminSecret'
 import { sample } from '../../lib/shuffle'
 import Header from '../../components/ui/Header'
 import CloverWithInputs from '../../components/game/CloverWithInputs'
+import WordCard from '../../components/game/WordCard'
 import SuggestionsAdmin from './SuggestionsAdmin'
 import StatsAdmin from './StatsAdmin'
 
@@ -70,6 +71,8 @@ export default function DailyAdminPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [refreshingSlot, setRefreshingSlot] = useState(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const [activeCard, setActiveCard] = useState(null)
+  const [isSwappingSlots, setIsSwappingSlots] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -168,26 +171,29 @@ export default function DailyAdminPage() {
     setRefreshingSlot(null)
   }
 
-  function handleDragEnd({ active, over }) {
-    if (!over) return
-    const slotIdx = parseInt(String(over.id).replace('slot-', ''), 10)
-    if (isNaN(slotIdx)) return
+  function handleDragStart({ active }) {
+    for (const [pos, item] of Object.entries(placements)) {
+      if (item && `placed-${item.card.id}-${pos}` === active.id) {
+        setActiveCard({ ...item, fromSlot: parseInt(pos) }); return
+      }
+    }
+  }
 
-    // active.id d'une carte placée = `placed-${card.id}-${pos}` (cf. WordCard/DroppableSlot)
+  function handleDragEnd({ active, over }) {
+    setActiveCard(null)
+    if (!over) return
+
+    const targetSlot = parseInt(over.id.replace('slot-', ''), 10)
+    if (isNaN(targetSlot)) return
+
     for (const [pos, item] of Object.entries(placements)) {
       if (item && `placed-${item.card.id}-${pos}` === active.id) {
         const sourceSlot = parseInt(pos)
-        if (sourceSlot === slotIdx) return
-        // Échange les deux slots ; la couleur (colorIndex) reste attachée à la
-        // position pour que l'aperçu reflète la grille finale (couleur = slot).
-        setPlacements(prev => {
-          const moved = prev[slotIdx]
-          return {
-            ...prev,
-            [slotIdx]: { ...item, colorIndex: slotIdx },
-            [sourceSlot]: moved ? { ...moved, colorIndex: sourceSlot } : null,
-          }
-        })
+        if (sourceSlot === targetSlot) return
+        const existing = placements[targetSlot]
+        setIsSwappingSlots(true)
+        setPlacements(prev => ({ ...prev, [targetSlot]: item, [sourceSlot]: existing ?? null }))
+        setTimeout(() => setIsSwappingSlots(false), 50)
         return
       }
     }
@@ -390,13 +396,14 @@ export default function DailyAdminPage() {
               </div>
 
               <div className="admin-editor-body">
-                <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
+                <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
                   <CloverWithInputs
                     placements={placements}
                     clues={clues}
                     setClues={setClues}
                     onRotate={handleRotate}
                     draggable
+                    disableTransition={isSwappingSlots}
                     slotAction={pos => (
                       <button
                         className="admin-slot-refresh"
@@ -409,6 +416,17 @@ export default function DailyAdminPage() {
                       </button>
                     )}
                   />
+                  <DragOverlay dropAnimation={null}>
+                    {activeCard && (
+                      <WordCard
+                        id="overlay"
+                        card={activeCard.card}
+                        rotation={activeCard.rotation}
+                        colorIndex={activeCard.colorIndex ?? 0}
+                        draggable={false}
+                      />
+                    )}
+                  </DragOverlay>
                 </DndContext>
               </div>
 
