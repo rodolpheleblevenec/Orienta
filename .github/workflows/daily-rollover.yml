@@ -16,23 +16,52 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Appeler la Edge Function daily-rollover
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          FUNCTION_SECRET: ${{ secrets.FUNCTION_SECRET }}
+          INPUT_DATE: ${{ github.event.inputs.date }}
         run: |
-          DATE_PARAM=""
-          if [ -n "${{ github.event.inputs.date }}" ]; then
-            DATE_PARAM="?date=${{ github.event.inputs.date }}"
+          set -euo pipefail
+
+          # 1) Garde-fou : secret obligatoire non vide (sinon URL malformée → curl exit 3,
+          #    panne muette type 2026-06-07/08). On échoue avec un message explicite.
+          if [ -z "${SUPABASE_URL}" ]; then
+            echo "❌ Le secret de dépôt SUPABASE_URL est vide ou absent."
+            echo "   → Settings → Secrets and variables → Actions → SUPABASE_URL = https://<ref>.supabase.co"
+            exit 1
           fi
 
-          HTTP_STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+          DATE_PARAM=""
+          if [ -n "${INPUT_DATE}" ]; then
+            DATE_PARAM="?date=${INPUT_DATE}"
+          fi
+
+          # 2) Appel. On capture SÉPARÉMENT le code de sortie curl (transport) et le code HTTP.
+          CURL_EXIT=0
+          HTTP_STATUS=$(curl -sS -o /tmp/response.json -w "%{http_code}" \
             -X POST \
-            "${{ secrets.SUPABASE_URL }}/functions/v1/daily-rollover${DATE_PARAM}" \
-            -H "Authorization: Bearer ${{ secrets.FUNCTION_SECRET }}" \
-            -H "Content-Type: application/json")
+            "${SUPABASE_URL}/functions/v1/daily-rollover${DATE_PARAM}" \
+            -H "Authorization: Bearer ${FUNCTION_SECRET}" \
+            -H "Content-Type: application/json") || CURL_EXIT=$?
 
-          echo "HTTP status: $HTTP_STATUS"
-          cat /tmp/response.json
+          echo "curl exit: ${CURL_EXIT} — HTTP status: ${HTTP_STATUS}"
+          echo "Réponse :"; cat /tmp/response.json 2>/dev/null || true; echo
 
-          if [ "$HTTP_STATUS" -ge 400 ]; then
-            echo "❌ Edge Function returned an error"
+          # 3) curl n'a pas pu joindre la fonction (URL/DNS/réseau).
+          if [ "${CURL_EXIT}" -ne 0 ]; then
+            echo "❌ curl a échoué (code ${CURL_EXIT}) — fonction injoignable. Vérifie SUPABASE_URL."
+            exit 1
+          fi
+
+          # 4) La fonction a répondu, mais en erreur HTTP.
+          if [ "${HTTP_STATUS}" -ge 400 ]; then
+            echo "❌ La Edge Function a renvoyé HTTP ${HTTP_STATUS} (401 = FUNCTION_SECRET non concordant, 404 = non déployée)."
+            exit 1
+          fi
+
+          # 5) HTTP 2xx mais corps métier en échec (success != true).
+          if ! grep -Eq '"success"[[:space:]]*:[[:space:]]*true' /tmp/response.json; then
+            echo "❌ Réponse 2xx mais sans \"success\":true — rollover non confirmé."
             exit 1
           fi
 
