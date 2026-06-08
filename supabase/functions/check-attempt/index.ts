@@ -62,7 +62,7 @@ serve(async (req) => {
   // ─── Partie réelle ───
   const { data: play } = await supabase
     .from('orienta_plays')
-    .select('id, player_id, started_at, completed_at, orienta_grids(id, creator_id, daily_date)')
+    .select('id, player_id, started_at, completed_at, paused_at, paused_seconds, orienta_grids(id, creator_id, daily_date)')
     .eq('id', play_id)
     .single()
   if (!play) return json({ error: 'play not found' }, 404)
@@ -107,8 +107,14 @@ serve(async (req) => {
   }
 
   // ─── Finalisation (réussite OU dernier essai) ───
-  const startedAt = play.started_at ? new Date(play.started_at).getTime() : Date.now()
-  const elapsed = Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
+  // Temps de jeu effectif = temps écoulé depuis started_at MOINS le temps passé
+  // en pause (joueur absent). paused_at est normalement NULL ici (le joueur est
+  // actif pour soumettre), mais on inclut une pause en cours par sécurité.
+  const now = Date.now()
+  const startedAt = play.started_at ? new Date(play.started_at).getTime() : now
+  const ongoingPauseMs = play.paused_at ? Math.max(0, now - new Date(play.paused_at).getTime()) : 0
+  const pausedMs = (play.paused_seconds ?? 0) * 1000 + ongoingPauseMs
+  const elapsed = Math.max(0, Math.floor((now - startedAt - pausedMs) / 1000))
   const attemptsFailed = attemptNo - 1
   const isSelfPlay = !!creatorId && creatorId === play.player_id
 
@@ -133,6 +139,7 @@ serve(async (req) => {
       completed_at: new Date().toISOString(),
       time_seconds: elapsed, attempts_count: attemptNo,
       success, score, xp_earned: playerXp,
+      paused_at: null,
     })
     .eq('id', play_id).is('completed_at', null).select('id')
 

@@ -53,7 +53,7 @@ serve(async (req) => {
   // doublons résiduels, contrairement à un maybeSingle nu).
   const { data: existingPlay } = await supabase
     .from('orienta_plays')
-    .select('id, completed_at, score, xp_earned, success, time_seconds, attempts_count, started_at')
+    .select('id, completed_at, score, xp_earned, success, time_seconds, attempts_count, started_at, paused_at, paused_seconds')
     .eq('grid_id', grid_id)
     .eq('player_id', player_id)
     .order('completed_at', { ascending: false, nullsFirst: false })
@@ -79,11 +79,26 @@ serve(async (req) => {
       .select('attempt_number, answer, correct_full, correct_rotation, neither')
       .eq('play_id', existingPlay.id)
       .order('attempt_number', { ascending: true })
+
+    // Reprise du chrono : le joueur rouvre la grille → il redevient actif.
+    // Si une pause était en cours (paused_at posé quand il a quitté la grille),
+    // on la cumule maintenant et on remet paused_at à NULL.
+    let pausedSeconds = existingPlay.paused_seconds ?? 0
+    if (existingPlay.paused_at) {
+      const pausedFor = Math.max(0, Math.floor((Date.now() - new Date(existingPlay.paused_at).getTime()) / 1000))
+      pausedSeconds += pausedFor
+      await supabase.from('orienta_plays')
+        .update({ paused_seconds: pausedSeconds, paused_at: null })
+        .eq('id', existingPlay.id)
+    }
+
     // started_at renvoyé en ISO UTC (Z) pour que le client cale son chrono dessus
     // (anti-triche : pas de remise à zéro au retour sur une partie en cours).
+    // paused_seconds : temps déjà passé en pause, soustrait du chrono affiché.
     return json({
       play_id: existingPlay.id,
       started_at: existingPlay.started_at ? new Date(existingPlay.started_at).toISOString() : null,
+      paused_seconds: pausedSeconds,
       cards, attempts: attempts ?? [],
     })
   }
@@ -100,12 +115,13 @@ serve(async (req) => {
   if (play) return json({
     play_id: play.id,
     started_at: play.started_at ? new Date(play.started_at).toISOString() : null,
+    paused_seconds: 0,
     cards, attempts: [],
   })
 
   const { data: raced } = await supabase
     .from('orienta_plays')
-    .select('id, started_at')
+    .select('id, started_at, paused_at, paused_seconds')
     .eq('grid_id', grid_id)
     .eq('player_id', player_id)
     .limit(1)
@@ -117,9 +133,21 @@ serve(async (req) => {
     .select('attempt_number, answer, correct_full, correct_rotation, neither')
     .eq('play_id', raced.id)
     .order('attempt_number', { ascending: true })
+
+  // Reprise du chrono (cf. branche existingPlay).
+  let pausedSeconds = raced.paused_seconds ?? 0
+  if (raced.paused_at) {
+    const pausedFor = Math.max(0, Math.floor((Date.now() - new Date(raced.paused_at).getTime()) / 1000))
+    pausedSeconds += pausedFor
+    await supabase.from('orienta_plays')
+      .update({ paused_seconds: pausedSeconds, paused_at: null })
+      .eq('id', raced.id)
+  }
+
   return json({
     play_id: raced.id,
     started_at: raced.started_at ? new Date(raced.started_at).toISOString() : null,
+    paused_seconds: pausedSeconds,
     cards, attempts: attempts ?? [],
   })
 })

@@ -163,8 +163,41 @@ export default function PlayPage() {
 
   const startTimeRef = useRef(null)
   const serverStartRef = useRef(null)   // started_at serveur = ancre du chrono (anti-reset au retour)
+  const pausedAccumRef = useRef(0)      // ms déjà cumulés en pause (joueur absent), source : serveur
+  const pausedAtRef = useRef(null)      // Date.now() du début de la pause en cours, sinon null
   const [elapsed, setElapsed] = useState(0)
   const [gridLoaded, setGridLoaded] = useState(false)
+
+  // Refs miroir : les handlers d'événements et le cleanup de démontage lisent
+  // toujours la valeur fraîche (et non la closure du 1er rendu).
+  const playIdRef = useRef(null)
+  const gameOverRef = useRef(false)
+  useEffect(() => { playIdRef.current = playId }, [playId])
+  useEffect(() => { gameOverRef.current = gameOver }, [gameOver])
+
+  // Met le chrono en pause quand le joueur s'absente : fige l'affichage et
+  // horodate la pause côté serveur (pour que le score n'inclue pas l'absence).
+  function pauseChrono() {
+    if (gameOverRef.current || pausedAtRef.current) return
+    pausedAtRef.current = Date.now()
+    const pid = playIdRef.current
+    if (pid) supabase.functions.invoke('pause-play', { body: { play_id: pid, action: 'pause' } })
+  }
+  // Reprend le chrono au retour du joueur, et réaligne l'affichage sur le cumul
+  // de pause faisant autorité (renvoyé par le serveur).
+  function resumeChrono() {
+    if (!pausedAtRef.current) return
+    pausedAccumRef.current += Date.now() - pausedAtRef.current
+    pausedAtRef.current = null
+    const pid = playIdRef.current
+    if (pid) {
+      supabase.functions.invoke('pause-play', { body: { play_id: pid, action: 'resume' } })
+        .then(({ data }) => {
+          if (data && typeof data.paused_seconds === 'number') pausedAccumRef.current = data.paused_seconds * 1000
+        })
+        .catch(() => {})
+    }
+  }
 
   useEffect(() => {
     if (!gridId || !user) return
@@ -212,6 +245,7 @@ export default function PlayPage() {
       }))
       setTrayCards(shuffled)
       serverStartRef.current = data.started_at ?? null
+      pausedAccumRef.current = (data.paused_seconds ?? 0) * 1000
       setGridLoaded(true)
 
       // Mode rejeu : partie neuve, rien à restaurer (playId reste null).
@@ -265,11 +299,31 @@ export default function PlayPage() {
     if (gameOver) return
     const interval = setInterval(() => {
       if (startTimeRef.current) {
-        setElapsed(Math.max(0, Math.floor((Date.now() - startTimeRef.current) / 1000)))
+        const now = Date.now()
+        // Temps de pause = cumul des absences passées + pause éventuellement en
+        // cours (quand pausedAtRef est posé, ce terme grandit avec now → l'affichage se fige).
+        const pausedMs = pausedAccumRef.current + (pausedAtRef.current ? now - pausedAtRef.current : 0)
+        setElapsed(Math.max(0, Math.floor((now - startTimeRef.current - pausedMs) / 1000)))
       }
     }, 1000)
     return () => clearInterval(interval)
   }, [gameOver])
+
+  // Pause/reprise du chrono selon la présence du joueur :
+  //  • onglet en arrière-plan / écran verrouillé → visibilitychange
+  //  • retour au hub (navigation SPA) → démontage du composant
+  useEffect(() => {
+    if (!gridLoaded) return
+    const onVisibility = () => {
+      if (document.hidden) pauseChrono()
+      else resumeChrono()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      pauseChrono()   // démontage = on quitte la grille → pause (no-op si partie finie)
+    }
+  }, [gridLoaded])
 
   function handleReset() {
     const placed = Object.values(placements).filter(Boolean)
@@ -295,6 +349,8 @@ export default function PlayPage() {
     setGameOver(false)
     setReplayResult(null)
     startTimeRef.current = Date.now()
+    pausedAccumRef.current = 0
+    pausedAtRef.current = null
     setElapsed(0)
   }
 

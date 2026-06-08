@@ -62,11 +62,16 @@ src/
 └── index.css                — All styles (BEM-ish, CSS variables V2)
 supabase/
 ├── functions/
-│   ├── check-attempt/index.ts       — server-side attempt validation (service role key)
+│   ├── start-play/index.ts          — create/resume a play; returns cards (no solution),
+│   │                                  started_at, paused_seconds; auto-resumes the chrono
+│   ├── check-attempt/index.ts       — server-side attempt validation + finalisation (service role)
+│   ├── pause-play/index.ts          — pause/resume the chrono ({play_id, action}), server-timestamped
+│   ├── _shared/scoring.ts           — shared scoring/eval (imported by check-attempt)
 │   └── daily-rollover/index.ts       — nightly rollover: finalise daily winner (grant J+3),
 │                                       ensure today has a grid (winner → reserve → archive),
 │                                       low-reserve & no-show alerts (scheduled via GitHub Actions)
-└── migrations/              — 001_initial_schema → 007_add_tutorial_modal_done
+│   (also deployed: social, create-grid, account, admin, get-solution, get-grid-attempts)
+└── migrations/              — 001_initial_schema → 019_add_play_pause
 ```
 
 ## Database
@@ -81,7 +86,7 @@ supabase/
 | `orienta_grid_grants` | "Right to create" — the daily winner authors the grid for J+3 (winner_user_id, source_grid_id UNIQUE, target_date UNIQUE, status pending/claimed/expired, deadline, onboarding_seen_at) |
 | `orienta_grid_cards` | Positions/rotations of cards within a grid — `card_id` FK → `orienta_word_cards`, `position` (-1 = decoy) |
 | `orienta_word_cards` | Reusable 4-word cards (shared library) — word_top, word_right, word_bottom, word_left |
-| `orienta_plays` | Play records per player per grid — score, xp_earned, completed_at, success, time_seconds, attempts_count, comment |
+| `orienta_plays` | Play records per player per grid — score, xp_earned, completed_at, success, time_seconds, attempts_count, comment, **`paused_at`** (NULL = active), **`paused_seconds`** (cumulative away time) |
 | `orienta_play_attempts` | Per-attempt: answer (jsonb array), correct_full, correct_rotation, neither |
 | `orienta_collective_progress` | Single-row collective XP (id=1) — total_xp, level, level_name |
 
@@ -106,8 +111,14 @@ Formula: `physIdx = (originalPos + rotation/90) % 4` → if `physIdx % 2 === 1` 
 
 `StaticMiniGrid` uses the exact same formula — never use `writing-mode` CSS for card words.
 
-### Timer in PlayPage (anti-cheat)
-The clock is anchored to the server's `orienta_plays.started_at` (set once at play creation, **never reset**). `start-play` returns `started_at` (ISO UTC) → `PlayPage` sets `startTimeRef` to it (not `Date.now()`), so the displayed chrono is **continuous and never resets on return**, matching the server score (`check-attempt` computes `elapsed = now − started_at`). Leaving the grid and coming back does **not** rewind the clock (blocks scout-then-return). The client never sends time; scoring is fully server-side.
+### Timer in PlayPage (anti-cheat + pause)
+The clock is anchored to the server's `orienta_plays.started_at` (set once at play creation, **never reset**). `start-play` returns `started_at` (ISO UTC) → `PlayPage` anchors `startTimeRef` to it (not `Date.now()`), so the chrono is **continuous and never rewinds on return** (blocks scout-then-return). The client never sends time; scoring is fully server-side.
+
+**Pause while away** (since 2026-06): the chrono **pauses** when the player leaves the grid — tab hidden/locked (`visibilitychange`) or unmount when navigating back to the hub — and resumes on return. The away time is excluded from **both** the displayed chrono and the server score. Tracked server-side:
+- `orienta_plays.paused_at` (NULL = active) + `paused_seconds` (cumulative away time).
+- Transitions are **server-timestamped** via the `pause-play` Edge Function (`{ play_id, action: 'pause' | 'resume' }`) — the client never sends a duration, so the pause is uncheatable. `start-play` auto-resumes (accumulates a still-open `paused_at`) when the grid is reopened.
+- Effective time = `(now − started_at) − paused_seconds − (paused_at ? now − paused_at : 0)`, computed **identically** in `check-attempt` (score) and `PlayPage`'s interval (display). When paused, `PlayPage` freezes the display via a local `pausedAtRef`; the server cumulative `paused_seconds` (returned by `resume`) is the source of truth.
+- Edge case not covered: hard tab-close while actively playing (no pause signal) — degrades to the old continuous behaviour for that interval only.
 
 ### In-progress play restoration
 When a player returns to a grid mid-game (`completed_at = null`), `fetchGrid` in `PlayPage`:
@@ -239,3 +250,40 @@ VITE_SUPABASE_ANON_KEY=<anon key>
 ```
 
 Dev server: `localhost:5173` (or `:5174` if port taken).
+
+## Deployment (Supabase CLI)
+
+Backend (DB migrations + Edge Functions) is deployed with the **Supabase CLI**, not the MCP. The frontend is deployed separately via **git push → Vercel**.
+
+**Setup facts:**
+- The CLI is **not on PATH** → always invoke with `npx supabase`.
+- The project is already **linked** and the CLI is **authenticated** (token saved). Project ref: **`baqvosadoijsvvelugmp`**.
+- `--linked` runs against the remote project via the **Management API** — no DB password needed.
+
+### ⚠️ Migration history is divergent — never `supabase db push`
+The local `supabase/migrations/00X_*.sql` files are **not** recorded in the remote migration history (the remote tracks timestamp-versioned migrations applied out-of-band). `npx supabase migration list` shows the whole `001…019` local column with an **empty Remote column**. So `supabase db push` would try to **replay 001→018** on prod (and `001_initial_schema.sql` even creates a `plays` table that doesn't match prod's `orienta_plays`). **Do not run `db push`.**
+
+### Apply a migration
+1. Write the migration as `supabase/migrations/0XX_name.sql` (git record). **Keep it idempotent**: `ADD COLUMN IF NOT EXISTS`, `CREATE … IF NOT EXISTS`, etc.
+2. Apply it directly on prod (bypasses the divergent history):
+   ```bash
+   npx supabase db query --linked --file supabase/migrations/0XX_name.sql
+   ```
+3. Verify, e.g.:
+   ```bash
+   npx supabase db query --linked -o csv "SELECT column_name FROM information_schema.columns WHERE table_name='orienta_plays';"
+   ```
+
+### Deploy an Edge Function
+```bash
+npx supabase functions deploy <name> --project-ref baqvosadoijsvvelugmp --no-verify-jwt
+```
+- **Match the existing `verify_jwt`.** Game/public functions are `verify_jwt=false` (`check-attempt`, `start-play`, `pause-play`, `social`, `create-grid`, `get-solution`, `get-grid-attempts`, `daily-rollover`) → use `--no-verify-jwt`. `account` and `admin` are `verify_jwt=true` → omit the flag. Check current settings: `npx supabase functions list --output-format json` (read `verify_jwt`).
+- The CLI bundles relative imports automatically (e.g. `check-attempt` pulls in `_shared/scoring.ts`). No `config.toml` exists.
+- **`WARNING: Docker is not running` is harmless** — the native bundler is used; deploy still succeeds.
+
+### Order of operations (important)
+Apply DB migrations **before** deploying functions that read the new columns — otherwise the live functions error in prod. (e.g. add `paused_*` columns, *then* deploy `start-play`/`check-attempt`.)
+
+### Frontend
+`src/**` changes reach prod via **git push → Vercel** (auto-deploy). Never commit/push without explicit user approval.
