@@ -529,23 +529,22 @@ export default function ResultPage() {
 
           {grid && !isOwnGrid && (
             <div className={`result-upvote${hasUpvoted ? ' result-upvote--done' : ''}`}>
-              <div className="result-upvote-head">
-                <span className="result-upvote-icon">👍</span>
-                <p className="result-upvote-text">
-                  {hasUpvoted
-                    ? 'Merci ! Tu as recommandé cette grille à la communauté.'
-                    : "Cette grille t'a plu, tu l'as trouvée pertinente ? N'hésite pas à la recommander aux autres joueurs."}
-                </p>
-              </div>
               <button
                 className="result-upvote-btn"
                 onClick={handleUpvoteToggle}
                 disabled={upvoteBusy}
                 type="button"
+                aria-pressed={hasUpvoted}
+                aria-label={hasUpvoted ? 'Retirer mon vote' : 'Voter pour cette grille'}
               >
-                {hasUpvoted ? '✓ Recommandée' : 'Recommander cette grille'}
-                {upvoteCount > 0 && <span className="result-upvote-count">{upvoteCount}</span>}
+                <span className="result-upvote-thumb">👍</span>
+                <span className="result-upvote-count">{upvoteCount}</span>
               </button>
+              <p className="result-upvote-text">
+                {hasUpvoted
+                  ? 'Merci ! Ton vote aide à mettre cette grille en avant.'
+                  : "Cette grille t'a plu ? Vote pour la mettre en avant auprès des autres joueurs."}
+              </p>
             </div>
           )}
 
