@@ -47,7 +47,8 @@ export function evaluateAttempt(answer, solution) {
 
   for (const a of answer) {
     const s = solutionMap[a.card_id]
-    if (!s) { neither++; continue }
+    // Carte leurre (position -1) ou inconnue : toujours "à revoir" (cf. scoring.ts).
+    if (!s || s.position === -1) { neither++; continue }
 
     const posMatch = a.position === s.position
     const rotMatch = a.rotation === s.rotation

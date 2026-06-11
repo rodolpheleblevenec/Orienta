@@ -46,7 +46,11 @@ export function evaluateAttempt(answer: Answer[], solution: Solution[]) {
 
   for (const a of answer) {
     const s = solutionMap[a.card_id]
-    if (!s) { neither++; cardFeedbacks[a.card_id] = 'wrong'; continue }
+    // Carte inconnue, ou carte leurre (position -1) posée sur la grille : jamais
+    // correcte. Son rotation: 0 stocké n'est qu'un remplissage, pas une orientation
+    // cible — sans ce garde-fou, poser le leurre à 0° le comptait à tort comme
+    // "partiellement correct" (orange). Le leurre est toujours "à revoir" (rouge).
+    if (!s || s.position === -1) { neither++; cardFeedbacks[a.card_id] = 'wrong'; continue }
     const posMatch = a.position === s.position
     const rotMatch = a.rotation === s.rotation
     if (posMatch && rotMatch) { correctFull++; cardFeedbacks[a.card_id] = 'correct' }
