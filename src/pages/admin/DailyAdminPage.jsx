@@ -38,6 +38,14 @@ function cluesPreview(g) {
   return cs.length ? cs.join(' · ') : 'Grille sans indice'
 }
 
+// Origine d'une grille datée : créée par un gagnant (joueur réel) OU par le
+// compte « maison » Orienta (réserve promue / clone d'archive du rollover).
+function gridOrigin(g) {
+  const u = g.orienta_users
+  if (u && u.is_system === false) return { kind: 'winner', icon: '🏆', label: `par ${u.pseudo}` }
+  return { kind: 'house', icon: '🏠', label: 'Orienta (maison)' }
+}
+
 async function fetchCardPool() {
   const { data } = await supabase.from('orienta_word_cards').select('*').limit(1000)
   return data ?? []
@@ -116,7 +124,7 @@ export default function DailyAdminPage() {
         .eq('daily_status', 'reserve')
         .order('reserve_priority', { ascending: true }),
       supabase.from('orienta_grids')
-        .select('id, daily_date, daily_status, clue_top, clue_right, clue_bottom, clue_left, difficulty, creator_id')
+        .select('id, daily_date, daily_status, clue_top, clue_right, clue_bottom, clue_left, difficulty, creator_id, orienta_users(pseudo, is_system)')
         .not('daily_date', 'is', null)
         .gte('daily_date', new Date(Date.now() - 5 * 86400000).toISOString().split('T')[0])
         .order('daily_date', { ascending: true }),
@@ -352,43 +360,77 @@ export default function DailyAdminPage() {
           </section>
         </main>
       ) : (
-        // ───────────── LISTE : RÉSERVE + PROGRAMME ─────────────
+        // ───── LISTE : COMMENT ÇA MARCHE → ① PROCHAINES → ② RÉSERVE → ③ GAGNANTS ─────
         <main className="admin-main admin-main--single admin-reserve-page">
-          {/* Droits de création (gagnants) — qui a gagné, et s'il a créé la grille (et quand) */}
-          <section className="admin-grants">
-            <h2 className="admin-editor-title">Droits de création (gagnants)</h2>
-            <p className="admin-section-sub">Le 1er du classement de chaque jour gagne le droit de créer la grille du jour de J+3. Suis ici qui a gagné et s'il l'a fait.</p>
-            {grants.length === 0 ? (
-              <p className="admin-empty">Aucun droit de création pour l'instant — le rollover nocturne en crée un chaque nuit pour le vainqueur.</p>
+          {/* Bandeau pédagogique — relie les 3 sections entre elles */}
+          <section className="admin-howto">
+            <span className="admin-howto-icon">ℹ️</span>
+            <p className="admin-howto-text">
+              Chaque jour, le <strong>1ᵉʳ du classement</strong> gagne le droit de créer la grille de <strong>J+3</strong>.
+              S'il ne la crée pas à temps, la <strong>réserve</strong> (filet de sécurité) comble le jour automatiquement.
+            </p>
+          </section>
+
+          {/* ① Prochaines grilles (datées) — ce qui sera réellement joué, et d'où ça vient */}
+          <section className="admin-programme">
+            <h2 className="admin-editor-title"><span className="admin-step-num">①</span> Prochaines grilles</h2>
+            <p className="admin-section-sub">Les grilles datées qui seront jouées. Chaque ligne indique son origine (gagnant 🏆 ou maison 🏠). Tu peux corriger ou supprimer (modération).</p>
+
+            {upcoming.length === 0 ? (
+              <p className="admin-empty">Aucune grille datée à venir — les jours seront comblés par la réserve.</p>
             ) : (
-              <ul className="grants-list">
-                {grants.map(g => (
-                  <li key={g.id} className={`grant-row grant-row--${g.status}`}>
-                    <span className="grant-winner">🏆 {g.winner?.pseudo ?? '?'}</span>
-                    <span className="grant-dates">gagné le {fmtDate(g.source_date)} → grille du <strong>{fmtDate(g.target_date)}</strong></span>
-                    <span className={`grant-status grant-status--${g.status}`}>
-                      {g.status === 'claimed'
-                        ? `✓ Créée${g.created_grid?.created_at ? ' le ' + fmtDateTime(g.created_grid.created_at) : ''}`
-                        : g.status === 'pending'
-                          ? '⏳ En attente'
-                          : '⌛ Expirée (non créée)'}
-                    </span>
-                    {g.created_grid?.id && (
-                      <Link to={`/play/${g.created_grid.id}`} className="reserve-edit">Voir</Link>
-                    )}
-                  </li>
-                ))}
+              <ul className="programme-list">
+                {upcoming.map(g => {
+                  const origin = gridOrigin(g)
+                  return (
+                    <li key={g.id} className={`programme-row${g.daily_date === today ? ' programme-row--today' : ''}`}>
+                      <span className="programme-date">
+                        {g.daily_date === today ? "Aujourd'hui" : fmtDate(g.daily_date)}
+                        <span className={`programme-origin programme-origin--${origin.kind}`}>{origin.icon} {origin.label}</span>
+                      </span>
+                      <span className="programme-clues">{cluesPreview(g)}</span>
+                      <span className="programme-actions">
+                        <Link to={`/play/${g.id}`} className="reserve-edit">Jouer</Link>
+                        <button className="reserve-edit" onClick={() => openEditGrid(g, 'dated', g.daily_date)} type="button">Modifier</button>
+                        <button className="reserve-del" onClick={() => handleDelete(g)} type="button">Suppr.</button>
+                      </span>
+                    </li>
+                  )
+                })}
               </ul>
+            )}
+
+            {past.length > 0 && (
+              <details className="programme-history">
+                <summary>Historique récent ({past.length})</summary>
+                <ul className="programme-list">
+                  {past.map(g => {
+                    const origin = gridOrigin(g)
+                    return (
+                      <li key={g.id} className="programme-row programme-row--past">
+                        <span className="programme-date">
+                          {fmtDate(g.daily_date)}
+                          <span className={`programme-origin programme-origin--${origin.kind}`}>{origin.icon} {origin.label}</span>
+                        </span>
+                        <span className="programme-clues">{cluesPreview(g)}</span>
+                        <span className="programme-actions">
+                          <Link to={`/play/${g.id}`} className="reserve-edit">Jouer</Link>
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </details>
             )}
           </section>
 
-          {/* Réserve */}
+          {/* ② Réserve (filet de sécurité) */}
           <section className="admin-reserve">
             <div className="admin-section-head">
               <div>
-                <h2 className="admin-editor-title">Réserve de grilles</h2>
+                <h2 className="admin-editor-title"><span className="admin-step-num">②</span> Réserve — filet de sécurité</h2>
                 <p className="admin-section-sub">
-                  Pool de secours sans date, piochée par priorité quand un gagnant ne crée pas sa grille.
+                  Grilles de secours sans date, piochées par priorité (de haut en bas) quand aucun gagnant n'a créé sa grille.
                 </p>
               </div>
               <button className="btn-primary" onClick={openNewReserve} type="button">＋ Nouvelle grille</button>
@@ -414,47 +456,31 @@ export default function DailyAdminPage() {
             )}
           </section>
 
-          {/* Programme (lecture + override) */}
-          <section className="admin-programme">
-            <h2 className="admin-editor-title">Programme</h2>
-            <p className="admin-section-sub">Grille du jour et grilles programmées par les gagnants. Tu peux corriger ou supprimer (modération).</p>
-
-            {upcoming.length === 0 ? (
-              <p className="admin-empty">Aucune grille datée à venir — les jours seront comblés par la réserve.</p>
+          {/* ③ Gagnants & droits de création — audit : qui a gagné, et s'il a créé sa grille */}
+          <section className="admin-grants">
+            <h2 className="admin-editor-title"><span className="admin-step-num">③</span> Gagnants &amp; droits de création</h2>
+            <p className="admin-section-sub">Qui a gagné chaque jour, et s'il a bien créé la grille à laquelle il avait droit (J+3).</p>
+            {grants.length === 0 ? (
+              <p className="admin-empty">Aucun droit de création pour l'instant — le rollover nocturne en crée un chaque nuit pour le vainqueur.</p>
             ) : (
-              <ul className="programme-list">
-                {upcoming.map(g => (
-                  <li key={g.id} className={`programme-row${g.daily_date === today ? ' programme-row--today' : ''}`}>
-                    <span className="programme-date">
-                      {g.daily_date === today ? "Aujourd'hui" : fmtDate(g.daily_date)}
-                      {g.daily_status === 'scheduled' && <span className="programme-tag">🏆 gagnant</span>}
+              <ul className="grants-list">
+                {grants.map(g => (
+                  <li key={g.id} className={`grant-row grant-row--${g.status}`}>
+                    <span className="grant-winner">🏆 {g.winner?.pseudo ?? '?'}</span>
+                    <span className="grant-dates">gagné le {fmtDate(g.source_date)} → grille du <strong>{fmtDate(g.target_date)}</strong></span>
+                    <span className={`grant-status grant-status--${g.status}`}>
+                      {g.status === 'claimed'
+                        ? `✓ Créée${g.created_grid?.created_at ? ' le ' + fmtDateTime(g.created_grid.created_at) : ''}`
+                        : g.status === 'pending'
+                          ? '⏳ En attente'
+                          : '⌛ Expirée (non créée)'}
                     </span>
-                    <span className="programme-clues">{cluesPreview(g)}</span>
-                    <span className="programme-actions">
-                      <Link to={`/play/${g.id}`} className="reserve-edit">Jouer</Link>
-                      <button className="reserve-edit" onClick={() => openEditGrid(g, 'dated', g.daily_date)} type="button">Modifier</button>
-                      <button className="reserve-del" onClick={() => handleDelete(g)} type="button">Suppr.</button>
-                    </span>
+                    {g.created_grid?.id && (
+                      <Link to={`/play/${g.created_grid.id}`} className="reserve-edit">Voir</Link>
+                    )}
                   </li>
                 ))}
               </ul>
-            )}
-
-            {past.length > 0 && (
-              <details className="programme-history">
-                <summary>Historique récent ({past.length})</summary>
-                <ul className="programme-list">
-                  {past.map(g => (
-                    <li key={g.id} className="programme-row programme-row--past">
-                      <span className="programme-date">{fmtDate(g.daily_date)}</span>
-                      <span className="programme-clues">{cluesPreview(g)}</span>
-                      <span className="programme-actions">
-                        <Link to={`/play/${g.id}`} className="reserve-edit">Jouer</Link>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </details>
             )}
           </section>
         </main>

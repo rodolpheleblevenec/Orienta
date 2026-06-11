@@ -31,7 +31,7 @@ serve(async (req) => {
   // Grille (vérifie l'existence ; les indices restent lisibles côté client)
   const { data: grid } = await supabase
     .from('orienta_grids')
-    .select('id, status')
+    .select('id, status, creator_id, daily_date')
     .eq('id', grid_id)
     .single()
   if (!grid) return json({ error: 'grid not found' }, 404)
@@ -47,6 +47,13 @@ serve(async (req) => {
 
   // Mode rejeu : aucune partie, aucune écriture.
   if (replay) return json({ replay: true, cards })
+
+  // Le créateur d'une grille DU JOUR ne peut pas la jouer (il en connaît la
+  // solution → fausserait le classement et le droit de créer J+3). Le mode
+  // rejeu, lui, reste autorisé (aucun score, déjà retourné plus haut).
+  if (player_id && grid.daily_date && grid.creator_id === player_id) {
+    return json({ error: 'creator_cannot_play_daily' }, 403)
+  }
 
   // Partie existante ? L'unicité (grid_id, player_id) est garantie en base,
   // mais on garde order+limit(1) par défense (ne lève jamais sur d'éventuels

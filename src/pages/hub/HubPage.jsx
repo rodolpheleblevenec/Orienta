@@ -221,10 +221,13 @@ export default function HubPage() {
     ? todayDaily.orienta_users.pseudo
     : null
 
+  // Le créateur de la grille du jour ne peut pas y jouer (il en connaît la solution).
+  const isDailyCreator = !!user && !!todayDaily && todayDaily.creator_id === user.id
+
   const hasCompletedDaily = !!myDailyPlay
   const hasSucceededDaily = myDailyPlay?.success === true
   const statusSpillClass = hasSucceededDaily ? 'hub-spill--teal' : hasCompletedDaily ? 'hub-spill--coral' : ''
-  const statusText = hasSucceededDaily ? 'Terminé ✓' : hasCompletedDaily ? 'Échoué' : statusLabel(dailyPlayInfo)
+  const statusText = isDailyCreator ? 'Créée par toi' : hasSucceededDaily ? 'Terminé ✓' : hasCompletedDaily ? 'Échoué' : statusLabel(dailyPlayInfo)
 
   return (
     <div className="hub-page">
@@ -279,7 +282,9 @@ export default function HubPage() {
                 {dailyCreator && (
                   <div className="hub-creator-credit">
                     <span className="hub-creator-credit-icon">✍️</span>
-                    Grille créée par <strong>{dailyCreator}</strong>
+                    {isDailyCreator
+                      ? <>Tu as créé la grille d'aujourd'hui</>
+                      : <>Grille créée par <strong>{dailyCreator}</strong></>}
                   </div>
                 )}
                 <div className="hub-stat-row">
@@ -315,8 +320,18 @@ export default function HubPage() {
                     </>
                   )}
                 </div>
-                <div className={`hub-actions${hasCompletedDaily ? ' hub-actions--done' : ''}`}>
-                  {hasCompletedDaily ? (
+                <div className={`hub-actions${(hasCompletedDaily || isDailyCreator) ? ' hub-actions--done' : ''}`}>
+                  {isDailyCreator ? (
+                    <>
+                      <span className="hub-btn-play hub-btn-play--disabled" aria-disabled="true" title="Tu ne peux pas jouer une grille que tu as créée">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        Ta grille — tu ne peux pas y jouer
+                      </span>
+                      <button className="hub-ghost-link" onClick={() => navigate(`/dashboard/${todayDaily.id}`)} type="button">
+                        Statistiques du jour →
+                      </button>
+                    </>
+                  ) : hasCompletedDaily ? (
                     <>
                       {archiveDailies.length > 0 && (
                         <Link to="/daily-archives" className="hub-btn-secondary">

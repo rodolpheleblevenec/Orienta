@@ -72,6 +72,13 @@ serve(async (req) => {
   // Grille du jour = grille "maison" (créateur = compte système) : pas de notif de jeu.
   const isDailyGrid = !!(play.orienta_grids as { daily_date?: string }).daily_date
 
+  // Ceinture+bretelles : le créateur d'une grille du jour ne peut pas y inscrire
+  // de score (start-play bloque déjà la création). Couvre une partie self-play
+  // en cours créée AVANT ce garde-fou — on refuse sans rien enregistrer.
+  if (isDailyGrid && creatorId && creatorId === play.player_id && !play.completed_at) {
+    return json({ error: 'creator_cannot_play_daily' }, 403)
+  }
+
   const { data: solution } = await supabase
     .from('orienta_grid_cards').select('card_id, position, rotation').eq('grid_id', gridIdResolved)
   if (!solution) return json({ error: 'solution not found' }, 404)
