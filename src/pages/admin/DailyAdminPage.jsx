@@ -47,7 +47,8 @@ function gridOrigin(g) {
 }
 
 async function fetchCardPool() {
-  const { data } = await supabase.from('orienta_word_cards').select('*').limit(1000)
+  // playable=true : même filtre que le tirage joueur (cartes trop dures exclues).
+  const { data } = await supabase.from('orienta_word_cards').select('*').eq('playable', true).limit(1000)
   return data ?? []
 }
 

@@ -205,12 +205,23 @@ export default function CreatePage() {
 
   useEffect(() => {
     if (phase !== 'placement' || !difficulty) return
-    supabase.from('orienta_word_cards').select('*').limit(1000)
+    // Mécanique « pool de mots » : on tire des MOTS distincts dans le pool et on
+    // COMPOSE les cartes à la volée (plus de cartes figées → on ne retombe jamais
+    // sur les mêmes 4 mots ensemble). Les cartes ne sont persistées qu'à la
+    // publication (côté Edge Function), avec un id définitif.
+    supabase.from('orienta_words').select('text').eq('playable', true).limit(5000)
       .then(({ data }) => {
         if (!data) return
         const cardCount = difficulty === 'difficile' ? 5 : 4
-        const shuffled = sample(data, cardCount)
-        setTrayCards(shuffled.map((card, i) => ({ card, rotation: 0, colorIndex: i })))
+        const words = sample(data.map(r => r.text), cardCount * 4) // 16 (ou 20) mots distincts
+        const cards = []
+        for (let i = 0; i < words.length; i += 4) {
+          cards.push({
+            id: crypto.randomUUID(), // id temporaire (drag-and-drop / layout), non persisté
+            word_top: words[i], word_right: words[i + 1], word_bottom: words[i + 2], word_left: words[i + 3],
+          })
+        }
+        setTrayCards(cards.map((card, i) => ({ card, rotation: 0, colorIndex: i })))
       })
   }, [phase, difficulty])
 
@@ -304,16 +315,19 @@ export default function CreatePage() {
     setPublishError(false)
     const creatorTime = difficulty === 'facile' ? null : usedTime ?? (TIMER_DURATION - timeLeft)
 
+    // On envoie les MOTS de chaque carte (la carte est composée/persistée serveur).
+    const wordsOf = card => ({ top: card.word_top, right: card.word_right, bottom: card.word_bottom, left: card.word_left })
+
     const gridPlacements = Object.entries(placements)
       .filter(([, v]) => v)
       .map(([pos, { card, rotation }]) => ({
-        card_id: card.id,
+        words: wordsOf(card),
         position: parseInt(pos),
         rotation: ((rotation % 360) + 360) % 360,
       }))
 
-    const decoyCardId = (difficulty === 'difficile' && trayCards.length === 1)
-      ? trayCards[0].card.id
+    const decoy = (difficulty === 'difficile' && trayCards.length === 1)
+      ? { words: wordsOf(trayCards[0].card) }
       : null
 
     // Création serveur (validations + écritures côté Edge Function)
@@ -323,7 +337,7 @@ export default function CreatePage() {
         difficulty,
         clues: { top: clues.top, right: clues.right, bottom: clues.bottom, left: clues.left },
         placements: gridPlacements,
-        decoy_card_id: decoyCardId,
+        decoy,
         creator_time_seconds: creatorTime,
         grant_id: grant?.id ?? null,
       },

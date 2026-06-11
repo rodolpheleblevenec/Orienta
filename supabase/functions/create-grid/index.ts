@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { resolveGridCards, type CardSpec } from '../_shared/cardComposition.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,7 +15,9 @@ const ROTATIONS = [0, 90, 180, 270]
 const MAX_CLUE_LENGTH = 80
 const norm = (r: number) => (((r % 360) + 360) % 360)
 
-type Placement = { card_id: string; position: number; rotation: number }
+type CardWords = { top: string; right: string; bottom: string; left: string }
+// Une carte est désignée SOIT par ses mots (pool, nouveau), SOIT par card_id (legacy).
+type Placement = { card_id?: string; words?: CardWords; position: number; rotation: number }
 
 // Création d'une grille communautaire — entièrement validée côté serveur :
 // limite quotidienne, difficulté débloquée, intégrité des cartes, conflit de mot.
@@ -29,11 +32,14 @@ serve(async (req) => {
   let body: {
     user_id?: string; difficulty?: string
     clues?: { top?: string; right?: string; bottom?: string; left?: string }
-    placements?: Placement[]; decoy_card_id?: string | null; creator_time_seconds?: number | null
+    placements?: Placement[]
+    decoy_card_id?: string | null            // legacy
+    decoy?: { words?: CardWords } | null      // pool
+    creator_time_seconds?: number | null
     grant_id?: string | null
   }
   try { body = await req.json() } catch { return json({ error: 'invalid body' }, 400) }
-  const { user_id, difficulty, clues, placements, decoy_card_id, creator_time_seconds, grant_id } = body
+  const { user_id, difficulty, clues, placements, decoy_card_id, decoy, creator_time_seconds, grant_id } = body
 
   // ── Validation de base ──
   if (!user_id) return json({ error: 'user_id required' }, 400)
@@ -52,9 +58,11 @@ serve(async (req) => {
   const positions = placements.map(p => p.position).sort()
   if (positions.join(',') !== '0,1,2,3') return json({ error: 'positions must be 0..3' }, 400)
   for (const p of placements) {
-    if (!p.card_id || !ROTATIONS.includes(norm(p.rotation))) return json({ error: 'invalid placement' }, 400)
+    const hasCard = !!(p.card_id || p.words)
+    if (!hasCard || !ROTATIONS.includes(norm(p.rotation))) return json({ error: 'invalid placement' }, 400)
   }
-  if (difficulty === 'difficile' && !decoy_card_id) return json({ error: 'decoy required for difficile' }, 400)
+  const hasDecoy = !!(decoy?.words || decoy_card_id)
+  if (difficulty === 'difficile' && !hasDecoy) return json({ error: 'decoy required for difficile' }, 400)
 
   // ── L'utilisateur existe ? ──
   const { data: user } = await supabase.from('orienta_users').select('id').eq('id', user_id).single()
@@ -103,22 +111,24 @@ serve(async (req) => {
     }
   }
 
-  // ── Intégrité des cartes + conflit de mot ──
-  const cardIds = [...placements.map(p => p.card_id), ...(decoy_card_id ? [decoy_card_id] : [])]
-  const { data: cards } = await supabase
-    .from('orienta_word_cards')
-    .select('id, word_top, word_right, word_bottom, word_left')
-    .in('id', cardIds)
-  if (!cards || cards.length !== cardIds.length) return json({ error: 'invalid cards' }, 400)
+  // ── Intégrité des cartes (compose depuis le pool, ou réutilise par id) ──
+  // specs alignés sur placements (0..3) puis le leurre éventuel en dernier.
+  const specs: CardSpec[] = placements.map(p => (p.words ? { words: p.words } : { card_id: p.card_id }))
+  if (hasDecoy) specs.push(decoy?.words ? { words: decoy.words } : { card_id: decoy_card_id! })
 
-  const words = new Set<string>()
-  for (const card of cards) {
-    for (const w of [card.word_top, card.word_right, card.word_bottom, card.word_left]) {
-      if (w) words.add(String(w).toLowerCase().trim())
-    }
+  const resolved = await resolveGridCards(supabase, specs)
+  if (!resolved.ok) return json({ error: resolved.error }, resolved.status)
+  // Nettoyage des cartes fraîchement composées si on échoue plus loin.
+  const cleanupComposed = async () => {
+    if (resolved.created) await supabase.from('orienta_word_cards').delete().in('id', resolved.cardIds)
   }
+
+  // ── Conflit de mot : un indice ne peut pas réutiliser un mot d'une carte ──
   for (const val of [c.top, c.right, c.bottom, c.left]) {
-    if (words.has(val.toLowerCase())) return json({ error: 'clue conflict: word used on a card' }, 400)
+    if (resolved.words.has(val.toLowerCase().trim())) {
+      await cleanupComposed()
+      return json({ error: 'clue conflict: word used on a card' }, 400)
+    }
   }
 
   // ── Insertion ──
@@ -148,18 +158,20 @@ serve(async (req) => {
         expires_at: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
       }
   const { data: grid, error: gridErr } = await supabase.from('orienta_grids').insert(gridRow).select('id').single()
-  if (gridErr || !grid) return json({ error: 'could not create grid' }, 500)
+  if (gridErr || !grid) { await cleanupComposed(); return json({ error: 'could not create grid' }, 500) }
 
-  const rows = placements.map(p => ({
-    grid_id: grid.id, card_id: p.card_id, position: p.position, rotation: norm(p.rotation),
+  // cardIds alignés sur specs : placements[i] ↔ resolved.cardIds[i], leurre en dernier.
+  const rows = placements.map((p, i) => ({
+    grid_id: grid.id, card_id: resolved.cardIds[i], position: p.position, rotation: norm(p.rotation),
   }))
-  if (difficulty === 'difficile' && decoy_card_id) {
-    rows.push({ grid_id: grid.id, card_id: decoy_card_id, position: -1, rotation: 0 })
+  if (hasDecoy) {
+    rows.push({ grid_id: grid.id, card_id: resolved.cardIds[placements.length], position: -1, rotation: 0 })
   }
   const { error: cardsErr } = await supabase.from('orienta_grid_cards').insert(rows)
   if (cardsErr) {
-    // rollback de la grille pour ne pas laisser une grille sans cartes
+    // rollback de la grille + des cartes composées pour ne rien laisser d'orphelin
     await supabase.from('orienta_grids').delete().eq('id', grid.id)
+    await cleanupComposed()
     return json({ error: 'could not insert grid cards' }, 500)
   }
 
