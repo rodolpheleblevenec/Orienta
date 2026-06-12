@@ -1028,6 +1028,34 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 }
 .hub-dateline-sep { width: 4px; height: 4px; border-radius: 50%; background: var(--ink-3); opacity: 0.6; }
 
+/* ── Onglet « Nouveauté » (changelog du Profil) ── */
+.changelog-list { list-style: none; margin: 0; padding: 0; }
+.changelog-entry {
+  position: relative; display: flex; gap: 14px; padding: 0 0 18px 4px;
+}
+.changelog-entry::before {
+  content: ''; position: absolute; left: 9px; top: 16px; bottom: -2px; width: 2px;
+  background: var(--line);
+}
+.changelog-entry:last-child::before { display: none; }
+.changelog-dot {
+  position: relative; z-index: 1; flex-shrink: 0; width: 14px; height: 14px; margin-top: 4px;
+  border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 3px var(--teal-soft);
+}
+.changelog-body {
+  flex: 1; min-width: 0; background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r-sm); padding: 12px 14px; box-shadow: var(--shadow-xs);
+}
+.changelog-head { display: flex; align-items: center; gap: 8px; }
+.changelog-emoji { font-size: 18px; line-height: 1; }
+.changelog-title { margin: 0; font-family: var(--display); font-weight: 700; font-size: 15px; color: var(--ink); }
+.changelog-date {
+  display: inline-block; margin-top: 2px; font-size: 11.5px; font-weight: 600;
+  color: var(--teal-700); letter-spacing: 0.02em;
+}
+.changelog-items { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+.changelog-items li { font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+
 /* ── Page Quêtes & Boutique (route /quetes) ── */
 .hub-main.quests-page { max-width: 680px; padding-top: 8px; }
 .quests-page-head { margin: 18px 0 16px; }
@@ -5050,14 +5078,25 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-monster canvas { display: block; }
 .raid-monster-loading { position: absolute; inset: 0; display: grid; place-items: center; color: #9fb4cf; font-size: 14px; }
 .raid-monster-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 18px 16px; background: linear-gradient(to top, rgba(8,16,30,.92), rgba(8,16,30,0)); pointer-events: none; }
-.raid-monster-name { font-family: var(--display); font-weight: 800; font-size: 22px; color: #fff; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; text-shadow: 0 2px 8px rgba(0,0,0,.5); }
+.raid-monster-topline { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.raid-monster-name { font-family: var(--display); font-weight: 800; font-size: 22px; color: #fff; display: flex; align-items: center; gap: 8px; text-shadow: 0 2px 8px rgba(0,0,0,.5); }
 .raid-monster-emoji { font-size: 26px; }
-.raid-monster .raid-hp { background: rgba(255,255,255,.16); max-width: 420px; margin-top: 0; }
+.raid-monster-stats { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.rms-chip { background: rgba(255,255,255,.14); color: #fff; border-radius: var(--r-pill); padding: 5px 12px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.rms-chip b { font-weight: 800; }
+.rms-chip--time { font-size: 16px; font-weight: 800; background: rgba(79,214,160,.28); }
+.rms-chip--time .raid-timer { color: #fff; font-weight: 800; }
+.rms-chip--time .raid-timer--low { color: #ffb4a8; }
+.rms-chip--lives { font-size: 15px; }
+.raid-monster .raid-hp { background: rgba(255,255,255,.16); max-width: 100%; margin-top: 0; }
 .raid-monster .raid-hp-txt { color: #fff; }
 
-/* Télémétrie + équipage */
-.raid-telemetry { display: flex; align-items: stretch; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
-.raid-telemetry .raid-rolestrip { flex: 1; min-width: 240px; }
+/* Bandeau équipage (sous la 3D) */
+.raid-crewbar { margin-bottom: 16px; }
+.raid-crewbar .raid-rolestrip { width: 100%; }
+
+/* Réserve : 4 cartes sur une seule ligne, sous la grille */
+.raid-board-wrap .raid-tray { flex-wrap: nowrap; --slot-size: 100px; overflow-x: auto; justify-content: flex-start; }
 
 /* Sonar du Capitaine */
 .raid-sonar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }

@@ -5,7 +5,13 @@ import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import { getLevelProgress, getLevelProgressCollective } from '../../lib/levels'
 import { MARINE_ITEMS, getMarineItem } from '../../lib/marineItems'
+import { CHANGELOG } from '../../lib/changelog'
 import Header from '../../components/ui/Header'
+
+// '2026-06-12' → '12 juin 2026' (pour l'onglet Nouveauté).
+function formatChangelogDate(d) {
+  return new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+}
 
 export default function ProfilePage() {
   const { user, refreshUser, shop, fetchShop, setStatus } = useAuthStore()
@@ -128,7 +134,7 @@ export default function ProfilePage() {
       <main className="profile-main">
 
         <div className="profile-tabs">
-          {[['profil', 'Profil'], ['activite', 'Activité']].map(([id, label]) => (
+          {[['profil', 'Profil'], ['activite', 'Activité'], ['nouveaute', 'Nouveauté']].map(([id, label]) => (
             <button
               key={id}
               className={`profile-tab${activeTab === id ? ' profile-tab--active' : ''}`}
@@ -300,6 +306,32 @@ export default function ProfilePage() {
               )}
             </section>
           </>
+        )}
+
+        {activeTab === 'nouveaute' && (
+          <section className="profile-section">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
+              <h2 style={{ marginBottom: 0 }}>Nouveautés</h2>
+              <span style={{ fontSize: '12px', color: 'var(--ink-3)' }}>Les dernières features</span>
+            </div>
+            <ol className="changelog-list">
+              {CHANGELOG.map((entry, i) => (
+                <li key={entry.date + i} className="changelog-entry">
+                  <span className="changelog-dot" aria-hidden="true" />
+                  <div className="changelog-body">
+                    <div className="changelog-head">
+                      <span className="changelog-emoji">{entry.emoji}</span>
+                      <h3 className="changelog-title">{entry.title}</h3>
+                    </div>
+                    <span className="changelog-date">{formatChangelogDate(entry.date)}</span>
+                    <ul className="changelog-items">
+                      {entry.items.map((it, j) => <li key={j}>{it}</li>)}
+                    </ul>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
         )}
 
         {activeTab === 'activite' && (

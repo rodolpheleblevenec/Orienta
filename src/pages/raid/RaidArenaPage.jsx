@@ -188,31 +188,21 @@ export default function RaidArenaPage() {
             <RaidMonster3D crew={crew} hp={session.current_hp} maxHp={session.max_hp} hitSignal={hitSignal} attackSignal={attackSignal} />
           </Suspense>
           <div className="raid-monster-overlay">
-            <div className="raid-monster-name"><span className="raid-monster-emoji">{boss.emoji}</span> {boss.name}</div>
+            <div className="raid-monster-topline">
+              <div className="raid-monster-name"><span className="raid-monster-emoji">{boss.emoji}</span> {boss.name}</div>
+              <div className="raid-monster-stats">
+                <span className="rms-chip rms-chip--time"><Timer deadline={session.assault_deadline} onExpire={actions.signalTimeout} /></span>
+                <span className="rms-chip">Assaut <b>{Math.min(session.assault_index + 1, session.assault_count)}/{session.assault_count}</b></span>
+                <span className="rms-chip">Essais <b>{session.attempts_remaining}</b></span>
+                <span className="rms-chip rms-chip--lives">{'🛟'.repeat(Math.max(0, session.lives)) || '—'}</span>
+              </div>
+            </div>
             <HpBar hp={session.current_hp} max={session.max_hp} />
           </div>
         </div>
 
-        {/* Télémétrie (assaut · essais · bouées · temps) + équipage */}
-        <div className="raid-telemetry">
-          <div className="raid-stats">
-            <div className="raid-stat">
-              <span className="raid-stat-k">Assaut</span>
-              <span className="raid-stat-v">{Math.min(session.assault_index + 1, session.assault_count)}/{session.assault_count}</span>
-            </div>
-            <div className="raid-stat">
-              <span className="raid-stat-k">Essais</span>
-              <span className="raid-stat-v">{session.attempts_remaining}</span>
-            </div>
-            <div className="raid-stat">
-              <span className="raid-stat-k">Bouées</span>
-              <span className="raid-stat-v">{'🛟'.repeat(Math.max(0, session.lives)) || '—'}</span>
-            </div>
-            <div className="raid-stat">
-              <span className="raid-stat-k">Temps</span>
-              <span className="raid-stat-v"><Timer deadline={session.assault_deadline} onExpire={actions.signalTimeout} /></span>
-            </div>
-          </div>
+        {/* Bandeau équipage */}
+        <div className="raid-crewbar">
           <RoleStrip roster={roster} meId={user?.id} />
         </div>
 
