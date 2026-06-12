@@ -10,58 +10,114 @@ function Conductor({ refs }) {
   return null
 }
 
-// ── Décor : ruines englouties (médiéval + aquatique) ──
-function Environment() {
-  const columns = [[-4.5, -2], [4.6, -2.6], [-3, -3.4], [3.2, -1.4]]
-  const rocks = [[-2.2, -1.9, -1.2, 0.5], [3, -1.95, -0.5, 0.42], [1.4, -1.95, 1.3, 0.34], [-3.6, -1.92, 0.4, 0.4]]
-  return (
-    <>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.05, -0.5]}>
-        <circleGeometry args={[12, 56]} />
-        <meshStandardMaterial color="#16314a" roughness={1} />
-      </mesh>
-      {columns.map(([x, z], i) => (
-        <group key={i} position={[x, 0, z]}>
-          <mesh position={[0, -1.2, 0]}>
-            <cylinderGeometry args={[0.36, 0.42, 1.6 + (i % 2) * 0.7, 12]} />
-            <meshStandardMaterial color="#2c4256" roughness={0.95} />
-          </mesh>
-          <mesh position={[0, -0.35 + (i % 2) * 0.35, 0]}>
-            <boxGeometry args={[1, 0.18, 1]} />
-            <meshStandardMaterial color="#33506a" roughness={0.95} />
-          </mesh>
-        </group>
-      ))}
-      {rocks.map(([x, y, z, s], i) => (
-        <mesh key={i} position={[x, y, z]} rotation={[i, i * 2, i]}>
-          <dodecahedronGeometry args={[s, 0]} />
-          <meshStandardMaterial color="#1f3850" roughness={1} />
-        </mesh>
-      ))}
-    </>
-  )
+// Fond en dégradé (cyan en haut → turquoise en bas).
+function GradientBackground() {
+  const tex = useMemo(() => {
+    const c = document.createElement('canvas'); c.width = 4; c.height = 256
+    const ctx = c.getContext('2d')
+    const g = ctx.createLinearGradient(0, 0, 0, 256)
+    g.addColorStop(0, '#54c6e0'); g.addColorStop(0.5, '#2f9ec0'); g.addColorStop(1, '#0e6a82')
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 4, 256)
+    return new THREE.CanvasTexture(c)
+  }, [])
+  useEffect(() => () => tex.dispose(), [tex])
+  return <primitive object={tex} attach="background" />
 }
 
-function Bubbles() {
+// Rayons de soleil (faux god rays : plans très transparents en additif).
+function SunRays() {
   const ref = useRef()
-  const data = useMemo(() => Array.from({ length: 26 }, () => ({
-    x: (Math.random() - 0.5) * 11, y: -2 + Math.random() * 5, z: (Math.random() - 0.5) * 4,
-    s: 0.02 + Math.random() * 0.05, sp: 0.25 + Math.random() * 0.5,
-  })), [])
-  useFrame((_, dt) => {
-    if (!ref.current) return
-    ref.current.children.forEach((m, i) => { m.position.y += data[i].sp * dt; if (m.position.y > 3.6) m.position.y = -2 })
-  })
+  useFrame((s) => { if (ref.current) ref.current.rotation.y = s.clock.elapsedTime * 0.03 })
+  const rays = [-2.4, -1.2, 0, 1.4, 2.6]
   return (
-    <group ref={ref}>
-      {data.map((b, i) => (
-        <mesh key={i} position={[b.x, b.y, b.z]}><sphereGeometry args={[b.s, 8, 8]} /><meshStandardMaterial color="#bfe6ff" transparent opacity={0.3} /></mesh>
+    <group ref={ref} position={[0, 4, -2]} rotation={[0, 0, 0.12]}>
+      {rays.map((x, i) => (
+        <mesh key={i} position={[x, 0, i % 2 ? -1 : 1]} rotation={[0, 0, (i - 2) * 0.05]}>
+          <planeGeometry args={[0.7, 13]} />
+          <meshBasicMaterial color="#dff3ff" transparent opacity={0.07} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.DoubleSide} />
+        </mesh>
       ))}
     </group>
   )
 }
 
-// ── Méduse ──
+// Sol sableux lumineux.
+function Floor() {
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.05, -0.5]}>
+      <circleGeometry args={[13, 56]} />
+      <meshStandardMaterial color="#e0d2a4" roughness={1} />
+    </mesh>
+  )
+}
+
+// Corail coloré (quelques branches en éventail).
+function Coral({ position, color }) {
+  const branches = useMemo(() => Array.from({ length: 5 }, (_, i) => ({
+    rot: (i - 2) * 0.35, h: 0.6 + (i % 3) * 0.35, tilt: (Math.random() - 0.5) * 0.3,
+  })), [])
+  return (
+    <group position={position}>
+      <mesh position={[0, 0.1, 0]}><sphereGeometry args={[0.22, 12, 10]} /><meshStandardMaterial color={color} roughness={0.6} /></mesh>
+      {branches.map((b, i) => (
+        <mesh key={i} position={[Math.sin(b.rot) * 0.18, 0.2 + b.h / 2, Math.cos(b.rot) * 0.05]} rotation={[b.tilt, 0, b.rot]}>
+          <coneGeometry args={[0.07, b.h, 6]} />
+          <meshStandardMaterial color={color} roughness={0.6} emissive={color} emissiveIntensity={0.12} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+// Touffe d'algues qui ondulent.
+function Seaweed({ x, z, phase, count = 4 }) {
+  const refs = useRef([])
+  useFrame((s) => {
+    const t = s.clock.elapsedTime
+    refs.current.forEach((g, i) => { if (g) g.rotation.z = Math.sin(t * 1.3 + phase + i) * 0.22 })
+  })
+  const blades = useMemo(() => Array.from({ length: count }, (_, i) => ({
+    x: (i - count / 2) * 0.12, h: 1.1 + (i % 3) * 0.5, c: i % 2 ? '#3cb371' : '#2f9d5b',
+  })), [count])
+  return (
+    <group position={[x, -2.05, z]}>
+      {blades.map((b, i) => (
+        <group key={i} ref={(el) => (refs.current[i] = el)} position={[b.x, 0, 0]}>
+          <mesh position={[0, b.h / 2, 0]}><coneGeometry args={[0.06, b.h, 5]} /><meshStandardMaterial color={b.c} roughness={0.7} /></mesh>
+        </group>
+      ))}
+    </group>
+  )
+}
+
+// Petit poisson qui traverse.
+function Fish({ y, z, speed, color, offset }) {
+  const ref = useRef()
+  useFrame((s) => {
+    if (!ref.current) return
+    const t = s.clock.elapsedTime
+    ref.current.position.x = ((t * speed + offset) % 16) - 8
+    ref.current.position.y = y + Math.sin(t * 2 + offset) * 0.12
+    ref.current.rotation.z = Math.sin(t * 8 + offset) * 0.12
+  })
+  return (
+    <group ref={ref} position={[0, y, z]}>
+      <mesh scale={[0.26, 0.16, 0.12]}><sphereGeometry args={[1, 12, 10]} /><meshStandardMaterial color={color} roughness={0.5} /></mesh>
+      <mesh position={[-0.22, 0, 0]} rotation={[0, 0, Math.PI / 2]}><coneGeometry args={[0.1, 0.18, 6]} /><meshStandardMaterial color={color} roughness={0.5} /></mesh>
+    </group>
+  )
+}
+
+function Bubbles() {
+  const ref = useRef()
+  const data = useMemo(() => Array.from({ length: 24 }, () => ({
+    x: (Math.random() - 0.5) * 12, y: -2 + Math.random() * 5, z: (Math.random() - 0.5) * 4,
+    s: 0.02 + Math.random() * 0.05, sp: 0.25 + Math.random() * 0.5,
+  })), [])
+  useFrame((_, dt) => { if (ref.current) ref.current.children.forEach((m, i) => { m.position.y += data[i].sp * dt; if (m.position.y > 3.6) m.position.y = -2 }) })
+  return <group ref={ref}>{data.map((b, i) => <mesh key={i} position={[b.x, b.y, b.z]}><sphereGeometry args={[b.s, 8, 8]} /><meshStandardMaterial color="#eafdff" transparent opacity={0.35} /></mesh>)}</group>
+}
+
 function Bell({ recoilRef, lowHp }) {
   const ref = useRef(); const matRef = useRef()
   useFrame((s) => {
@@ -70,13 +126,12 @@ function Bell({ recoilRef, lowHp }) {
     ref.current.scale.set(pulse, 1 - (pulse - 1) * 0.7, pulse)
     ref.current.position.y = 1.0 + Math.sin(t * 0.8) * 0.15 + r * 0.9
     ref.current.position.z = -0.6 - r * 0.6
-    if (matRef.current) matRef.current.emissiveIntensity = 0.45 + r * 1.6 + (lowHp ? 0.2 : 0)
+    if (matRef.current) matRef.current.emissiveIntensity = 0.4 + r * 1.6 + (lowHp ? 0.2 : 0)
   })
   return (
     <mesh ref={ref} position={[0, 1.0, -0.6]}>
       <sphereGeometry args={[1.3, 40, 28, 0, Math.PI * 2, 0, Math.PI * 0.62]} />
-      <meshStandardMaterial ref={matRef} color="#c06bff" emissive="#6b1fb0" emissiveIntensity={0.5}
-        transparent opacity={0.8} roughness={0.25} metalness={0.1} side={THREE.DoubleSide} />
+      <meshStandardMaterial ref={matRef} color="#e26bd6" emissive="#a01f8a" emissiveIntensity={0.45} transparent opacity={0.82} roughness={0.25} metalness={0.1} side={THREE.DoubleSide} />
     </mesh>
   )
 }
@@ -101,10 +156,9 @@ function Tentacle({ baseAngle, baseRadius, targetX, phase, strikeRef }) {
     meshRef.current.geometry.dispose(); meshRef.current.geometry = geo
   })
   useEffect(() => () => meshRef.current?.geometry?.dispose(), [])
-  return <mesh ref={meshRef} geometry={initial}><meshStandardMaterial color="#cf86ff" emissive="#8a3ce0" emissiveIntensity={0.55} transparent opacity={0.85} roughness={0.4} /></mesh>
+  return <mesh ref={meshRef} geometry={initial}><meshStandardMaterial color="#f29ae6" emissive="#c23ca8" emissiveIntensity={0.5} transparent opacity={0.85} roughness={0.4} /></mesh>
 }
 
-// ── Armes médiévales ──
 function Weapon({ type, swingRef }) {
   const g = useRef()
   useFrame(() => { if (g.current) g.current.rotation.x = -0.3 - swingRef.current * 1.5 })
@@ -130,13 +184,12 @@ function Weapon({ type, swingRef }) {
   )
 }
 
-// ── Symbole de rôle (sprite emoji billboard) ──
 function RoleSprite({ role, hue }) {
   const tex = useMemo(() => {
     const c = document.createElement('canvas'); c.width = c.height = 128
     const ctx = c.getContext('2d')
-    ctx.beginPath(); ctx.arc(64, 64, 56, 0, Math.PI * 2); ctx.fillStyle = `hsl(${hue} 55% 42%)`; ctx.fill()
-    ctx.lineWidth = 7; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.stroke()
+    ctx.beginPath(); ctx.arc(64, 64, 56, 0, Math.PI * 2); ctx.fillStyle = `hsl(${hue} 60% 46%)`; ctx.fill()
+    ctx.lineWidth = 7; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.stroke()
     ctx.font = '64px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
     ctx.fillText(ORGANS[role]?.emoji || '•', 64, 70)
     const t = new THREE.CanvasTexture(c); t.needsUpdate = true; return t
@@ -145,7 +198,6 @@ function RoleSprite({ role, hue }) {
   return <sprite position={[0, 1.55, 0]} scale={[0.55, 0.55, 0.55]}><spriteMaterial map={tex} transparent depthWrite={false} /></sprite>
 }
 
-// ── Matelot (un joueur) ──
 function Matelot({ x, hue, role, weapon, phase, attackRef, hitRef }) {
   const g = useRef(); const bodyMat = useRef()
   useFrame((s) => {
@@ -172,6 +224,9 @@ function Matelot({ x, hue, role, weapon, phase, attackRef, hitRef }) {
 }
 
 const WEAPONS = ['trident', 'sword', 'mace']
+const CORALS = [[-4.3, -2, '#ff7eb6'], [4.4, -2.4, '#ff9e5e'], [-2.6, -3.2, '#b07bff'], [3, -1.4, '#ff6f91'], [0.6, -3.4, '#ffd166']]
+const WEEDS = [[-3.4, -1, 0], [3.6, -1.4, 1.4], [-1.6, -2.6, 2.6], [2.2, -2.4, 3.8], [-4.6, 0.2, 5], [4.8, -0.4, 1]]
+const FISH = [[1.2, -1, 0.9, '#ffb703', 0], [0.2, -2.5, 0.6, '#ff5d8f', 6], [-0.6, -3, 1.3, '#48cae4', 11], [2.0, -1.6, 0.7, '#ffd166', 3]]
 
 function Scene({ crew, refs, lowHp }) {
   const n = Math.max(1, crew.length)
@@ -179,13 +234,18 @@ function Scene({ crew, refs, lowHp }) {
   const TENT = 8
   return (
     <>
-      <ambientLight intensity={0.45} />
-      <pointLight position={[2, 4, 4]} intensity={70} color="#a06bff" />
-      <pointLight position={[-3, 1, 4]} intensity={40} color="#3fd0c0" />
-      <pointLight position={[0, 0, 5]} intensity={25} color="#ffd9a0" />
-      <fog attach="fog" args={['#0a1626', 9, 18]} />
+      <GradientBackground />
+      <ambientLight intensity={0.75} />
+      <directionalLight position={[2, 9, 4]} intensity={1.5} color="#fff3d0" />
+      <pointLight position={[-3, 1, 5]} intensity={30} color="#7fe6d0" />
+      <pointLight position={[3, 0, 4]} intensity={18} color="#ffd9a0" />
+      <fog attach="fog" args={['#2f9ec0', 11, 24]} />
       <Conductor refs={refs.all} />
-      <Environment />
+      <Floor />
+      <SunRays />
+      {CORALS.map(([x, z, c], i) => <Coral key={i} position={[x, -1.85, z]} color={c} />)}
+      {WEEDS.map(([x, z, p], i) => <Seaweed key={i} x={x} z={z} phase={p} count={3 + (i % 3)} />)}
+      {FISH.map(([y, z, sp, c, o], i) => <Fish key={i} y={y} z={z} speed={sp} color={c} offset={o} />)}
       <Bubbles />
       <Bell recoilRef={refs.mRecoil} lowHp={lowHp} />
       {Array.from({ length: TENT }).map((_, i) => (
@@ -205,8 +265,7 @@ export default function RaidMonster3D({ crew = [], hp = 1, maxHp = 1, hitSignal 
   useEffect(() => { if (hitSignal > 0) { mRecoil.current = 1; sAttack.current = 1 } }, [hitSignal])
   useEffect(() => { if (attackSignal > 0) { mAttack.current = 1; sHit.current = 1 } }, [attackSignal])
   return (
-    <Canvas dpr={[1, 1.5]} camera={{ position: [0, 0.4, 8.2], fov: 44 }} style={{ width: '100%', height: '100%' }}
-      gl={{ antialias: true, alpha: false }} onCreated={({ gl }) => gl.setClearColor('#0a1626')}>
+    <Canvas dpr={[1, 1.5]} camera={{ position: [0, 0.4, 8.2], fov: 44 }} style={{ width: '100%', height: '100%' }} gl={{ antialias: true }}>
       <Scene crew={crew} refs={refs} lowHp={lowHp} />
     </Canvas>
   )
