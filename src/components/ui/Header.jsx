@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import { supabase } from '../../lib/supabase'
@@ -22,7 +22,15 @@ export default function Header() {
   const [showNotifs, setShowNotifs] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [showAdminModal, setShowAdminModal] = useState(false)
-  useBodyScrollLock(showStreakModal || showNotifs)
+  useBodyScrollLock(showStreakModal || showNotifs || navOpen)
+
+  // Fermeture du tiroir mobile à la touche Échap.
+  useEffect(() => {
+    if (!navOpen) return
+    const onKey = (e) => { if (e.key === 'Escape') setNavOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [navOpen])
 
   // Contrôle du mot de passe admin AU CLIC sur la roue crantée : la modal appelle
   // verifyAdminSecret, qui valide le secret côté serveur. L'interface ne s'ouvre
@@ -51,45 +59,14 @@ export default function Header() {
           <span className="brand-name">Orienta</span>
         </Link>
 
-        <nav className={`top-nav${navOpen ? ' top-nav--open' : ''}`}>
-          <NavLink to="/hub"        className={({ isActive }) => `nlink${isActive ? ' nlink--active' : ''}`} onClick={() => setNavOpen(false)}>Hub</NavLink>
-          <NavLink to="/classement" className={({ isActive }) => `nlink${isActive ? ' nlink--active' : ''}`} onClick={() => setNavOpen(false)}>Classement</NavLink>
-          <NavLink to="/tutoriel"   className={({ isActive }) => `nlink${isActive ? ' nlink--active' : ''}`} onClick={() => setNavOpen(false)}>Tutoriel</NavLink>
+        <nav className="top-nav">
+          <NavLink to="/hub"        className={({ isActive }) => `nlink${isActive ? ' nlink--active' : ''}`}>Hub</NavLink>
+          <NavLink to="/classement" className={({ isActive }) => `nlink${isActive ? ' nlink--active' : ''}`}>Classement</NavLink>
+          <NavLink to="/tutoriel"   className={({ isActive }) => `nlink${isActive ? ' nlink--active' : ''}`}>Tutoriel</NavLink>
           {/* Lien RAID visible pour l'admin ET les comptes testeurs (Testeur 1–4) tant que la feature est en test en prod. */}
           {canSeeRaid(user?.pseudo) && (
-            <NavLink to="/raid" className={({ isActive }) => `nlink nlink--raid${isActive ? ' nlink--active' : ''}`} onClick={() => setNavOpen(false)}>⚔️ RAID</NavLink>
+            <NavLink to="/raid" className={({ isActive }) => `nlink nlink--raid${isActive ? ' nlink--active' : ''}`}>⚔️ RAID</NavLink>
           )}
-
-          {/* Notifications — déplacées dans le burger sur mobile (header allégé). */}
-          <button className="nlink nav-notif-mobile" type="button" onClick={() => { setNavOpen(false); setShowNotifs(true) }}>
-            🔔 Notifications
-            {notifCount > 0 && <span className="nav-notif-count">{notifCount > 9 ? '9+' : notifCount}</span>}
-          </button>
-
-          {/* Joueurs en ligne — visible uniquement dans le burger (mobile). */}
-          {onlinePlayers.length > 0 && (
-            <div className="nav-online">
-              <div className="nav-online-head">
-                <span className="hub-ldot" />
-                En ligne
-                <span className="nav-online-count">{onlinePlayers.length}</span>
-              </div>
-              <ul className="nav-online-list">
-                {onlinePlayers.map(p => (
-                  <OnlinePlayerItem key={p.id} player={p} isMe={p.id === user?.id} />
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <button className="nlink nlink-logout-mobile" type="button" onClick={() => { setNavOpen(false); logout() }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" style={{marginRight: '6px', flexShrink: 0}}>
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-              <polyline points="16 17 21 12 16 7"/>
-              <line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-            Se déconnecter
-          </button>
         </nav>
 
         <span className="nav-spacer" />
@@ -153,6 +130,97 @@ export default function Header() {
       </div>
 
     </header>
+
+    {/* ─── Tiroir de navigation mobile ───────────────────────────────
+        Rendu HORS de .topbar : le backdrop-filter de la topbar crée un
+        bloc englobant qui piégerait un enfant position:fixed. */}
+    <div
+      className={`nav-scrim${navOpen ? ' nav-scrim--show' : ''}`}
+      onClick={() => setNavOpen(false)}
+      aria-hidden="true"
+    />
+    <aside className={`nav-drawer${navOpen ? ' nav-drawer--open' : ''}`} aria-label="Menu" aria-hidden={!navOpen}>
+      <div className="nav-drawer-head">
+        <Link to="/profile" className="nav-drawer-me" onClick={() => setNavOpen(false)}>
+          <RankAvatar player={user} className="nav-drawer-ava" />
+          <span className="nav-drawer-id">
+            <span className="nav-drawer-name" style={user?.equipped_color ? { color: user.equipped_color } : undefined}>{user?.pseudo}</span>
+            <span className="nav-drawer-link">Voir mon profil →</span>
+          </span>
+        </Link>
+        <button className="nav-drawer-close" type="button" aria-label="Fermer le menu" onClick={() => setNavOpen(false)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <line x1="6" y1="6" x2="18" y2="18"/>
+            <line x1="18" y1="6" x2="6" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div className="nav-drawer-stats">
+        <button className="nav-stat" type="button" onClick={() => { setNavOpen(false); navigate('/quetes') }}>
+          <span className="nav-stat-ic nav-stat-ic--jetons" aria-hidden="true">🪙</span>
+          <span className="nav-stat-val">{jetons}</span>
+          <span className="nav-stat-lbl">jetons</span>
+        </button>
+        <button className="nav-stat" type="button" onClick={() => { setNavOpen(false); setShowStreakModal(true) }}>
+          <span className="nav-stat-ic nav-stat-ic--streak" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+              <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/>
+            </svg>
+          </span>
+          <span className="nav-stat-val">{streak}</span>
+          <span className="nav-stat-lbl">{freezes > 0 ? `série · 🛡️${freezes}` : 'série'}</span>
+        </button>
+      </div>
+
+      <nav className="nav-drawer-links">
+        <NavLink to="/hub"        className={({ isActive }) => `nav-drawer-link-item${isActive ? ' nav-drawer-link-item--active' : ''}`} onClick={() => setNavOpen(false)}>Hub</NavLink>
+        <NavLink to="/classement" className={({ isActive }) => `nav-drawer-link-item${isActive ? ' nav-drawer-link-item--active' : ''}`} onClick={() => setNavOpen(false)}>Classement</NavLink>
+        <NavLink to="/tutoriel"   className={({ isActive }) => `nav-drawer-link-item${isActive ? ' nav-drawer-link-item--active' : ''}`} onClick={() => setNavOpen(false)}>Tutoriel</NavLink>
+        {canSeeRaid(user?.pseudo) && (
+          <NavLink to="/raid" className={({ isActive }) => `nav-drawer-link-item nav-drawer-link-item--raid${isActive ? ' nav-drawer-link-item--active' : ''}`} onClick={() => setNavOpen(false)}>⚔️ RAID</NavLink>
+        )}
+      </nav>
+
+      <div className="nav-drawer-sec">
+        <button className="nav-drawer-row" type="button" onClick={() => { setNavOpen(false); setShowNotifs(true) }}>
+          <span className="nav-drawer-row-ic" aria-hidden="true">🔔</span>
+          Notifications
+          {notifCount > 0 && <span className="nav-drawer-badge">{notifCount > 9 ? '9+' : notifCount}</span>}
+        </button>
+        {isAdmin && (
+          <button className="nav-drawer-row" type="button" onClick={() => { setNavOpen(false); setShowAdminModal(true) }}>
+            <span className="nav-drawer-row-ic" aria-hidden="true">⚙️</span>
+            Administration
+          </button>
+        )}
+      </div>
+
+      {onlinePlayers.length > 0 && (
+        <div className="nav-drawer-online">
+          <div className="nav-online-head">
+            <span className="hub-ldot" />
+            En ligne
+            <span className="nav-online-count">{onlinePlayers.length}</span>
+          </div>
+          <ul className="nav-online-list">
+            {onlinePlayers.map(p => (
+              <OnlinePlayerItem key={p.id} player={p} isMe={p.id === user?.id} />
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <button className="nav-drawer-logout" type="button" onClick={() => { setNavOpen(false); logout() }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Se déconnecter
+      </button>
+    </aside>
+
     {showStreakModal && <StreakModal onClose={() => setShowStreakModal(false)} />}
     {showAdminModal && <AdminPasswordModal onClose={() => setShowAdminModal(false)} onSubmit={verifyAdminSecret} />}
     </>

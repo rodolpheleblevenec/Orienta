@@ -862,14 +862,15 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .me-name { font-size: 14px; font-weight: 600; color: var(--ink); }
 
 .burger-btn { display: none; }
-.nlink-logout-mobile { display: none; }
-.nav-notif-mobile { display: none; }   /* notif : bouton visible seulement dans le burger (mobile) */
 .burger-badge { display: none; }
 
-/* Liste « joueurs en ligne » dans le burger — affichée uniquement sur mobile. */
-.nav-online { display: none; }
+/* Tiroir de navigation mobile + voile : masqués sur desktop, activés <768px. */
+.nav-scrim { display: none; }
+.nav-drawer { display: none; }
+
+/* Liste « joueurs en ligne » — affichée dans le tiroir mobile. */
 .nav-online-head {
-  display: flex; align-items: center; gap: 8px; padding: 8px 12px 6px;
+  display: flex; align-items: center; gap: 8px; padding: 4px 0 6px;
   font-family: var(--display); font-weight: 700; font-size: 13px; color: var(--ink);
 }
 .nav-online-count {
@@ -878,52 +879,138 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   min-width: 22px; height: 22px; padding: 0 7px; border-radius: var(--r-pill);
   display: inline-flex; align-items: center; justify-content: center;
 }
-.nav-online-list { list-style: none; margin: 0; padding: 0 8px 2px; max-height: 46vh; overflow-y: auto; }
+.nav-online-list { list-style: none; margin: 0; padding: 0; }
 
-/* Navigation en burger dès que la barre se charge (pastille jetons + série + notifs). */
+/* ── Header mobile épuré + tiroir de navigation ───────────────────── */
 @media (max-width: 768px) {
+  /* Barre mobile : logo + nom · pastille jetons · burger. Le profil, la
+     série, l'admin, les notifs et la déconnexion vivent dans le tiroir. */
   .topbar-in { padding: 11px 16px; gap: 8px; }
   .top-nav { display: none; }
-  /* Header mobile épuré : logo seul + pièces + rond profil + burger.
-     Le nom de l'app, la série, l'admin et la cloche de notifs sortent de la barre. */
-  .brand-name { display: none; }
+  .brand { font-size: 19px; gap: 8px; }
+  .brand-mark { width: 30px; height: 30px; }
   .streak-pill { display: none; }
   .header-admin-btn { display: none; }
   .header-notif-btn { display: none; }
-  .nav-notif-mobile {
-    display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
-    background: none; border: none; cursor: pointer;
-  }
-  .nav-notif-count {
-    margin-left: auto; font-family: var(--display); font-weight: 700; font-size: 11px;
-    color: #fff; background: var(--coral); border-radius: 999px; padding: 1px 7px; min-width: 18px; text-align: center;
-  }
+  .me-link { display: none; }
+  .logout-btn { display: none; }
+  .topbar-divider { display: none; }
+  .burger-btn { display: flex; }
   .burger-badge {
     display: block; position: absolute; top: 7px; right: 7px;
     width: 8px; height: 8px; border-radius: 50%; background: var(--coral);
-    box-shadow: 0 0 0 2px var(--card);
+    box-shadow: 0 0 0 2px var(--bg);
   }
-  .top-nav--open .nav-online {
-    display: block; margin-top: 4px; border-top: 1px solid var(--line); padding-top: 4px;
+
+  /* Voile sombre — clic pour fermer. */
+  .nav-scrim {
+    display: block; position: fixed; inset: 0; z-index: 1150;
+    background: rgba(12,17,24,0.46);
+    opacity: 0; pointer-events: none; transition: opacity .28s ease;
   }
-  .top-nav--open {
+  .nav-scrim--show { opacity: 1; pointer-events: auto; }
+
+  /* Tiroir glissant depuis la droite. */
+  .nav-drawer {
     display: flex; flex-direction: column;
-    position: absolute; top: 62px; left: 16px; right: 16px;
-    background: var(--card); border: 1px solid var(--line);
-    border-radius: 16px; padding: 8px; box-shadow: var(--shadow);
-    gap: 2px; z-index: 200;
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 1200;
+    width: min(86vw, 340px);
+    background: var(--card);
+    box-shadow: -10px 0 40px -10px rgba(15,23,35,0.35);
+    overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+    transform: translateX(100%); visibility: hidden;
+    transition: transform .28s cubic-bezier(.22,.61,.36,1), visibility 0s linear .28s;
   }
-  .top-nav--open .nlink { padding: 12px 14px; }
-  .nlink-logout-mobile {
-    display: flex; align-items: center;
-    margin-top: 4px; border-top: 1px solid var(--line); padding-top: 8px;
-    color: var(--red, #e05) !important; background: none; border-left: none; border-right: none; border-bottom: none;
-    cursor: pointer; width: 100%; text-align: left;
+  .nav-drawer--open {
+    transform: translateX(0); visibility: visible;
+    transition: transform .28s cubic-bezier(.22,.61,.36,1), visibility 0s;
   }
-  .logout-btn   { display: none; }
-  .burger-btn   { display: flex; }
-  .me-name      { display: none; }
-  .topbar-divider { display: none; }
+
+  /* En-tête du tiroir : profil + fermeture. */
+  .nav-drawer-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 18px 14px 16px; border-bottom: 1px solid var(--line);
+  }
+  .nav-drawer-me { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; text-decoration: none; }
+  .nav-drawer-ava {
+    width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--teal), var(--green));
+    color: #fff; font-family: var(--display); font-weight: 700; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .nav-drawer-ava--emoji { background: var(--bg-tint); font-size: 24px; }
+  .nav-drawer-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .nav-drawer-name {
+    font-family: var(--display); font-weight: 700; font-size: 16px; color: var(--ink);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .nav-drawer-link { font-size: 12.5px; font-weight: 600; color: var(--teal-700); }
+  .nav-drawer-close {
+    flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; border: none;
+    background: var(--bg-tint); color: var(--ink-2); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s, color .15s;
+  }
+  .nav-drawer-close:hover { background: var(--line); color: var(--ink); }
+  .nav-drawer-close svg { width: 18px; height: 18px; }
+
+  /* Stats : jetons + série. */
+  .nav-drawer-stats { display: flex; gap: 8px; padding: 14px 14px 6px; }
+  .nav-stat {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 12px 8px; border-radius: var(--r-sm); border: 1px solid var(--line);
+    background: var(--bg-tint); cursor: pointer; transition: background .15s;
+  }
+  .nav-stat:hover { background: var(--line); }
+  .nav-stat-ic { font-size: 18px; line-height: 1; display: inline-flex; }
+  .nav-stat-ic--streak svg { width: 18px; height: 18px; color: var(--coral); }
+  .nav-stat-val { font-family: var(--display); font-weight: 800; font-size: 20px; color: var(--ink); line-height: 1; }
+  .nav-stat-lbl { font-size: 11px; font-weight: 600; color: var(--ink-3); }
+
+  /* Liens principaux. */
+  .nav-drawer-links { display: flex; flex-direction: column; gap: 2px; padding: 8px; }
+  .nav-drawer-link-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 13px 14px; border-radius: var(--r-sm);
+    font-size: 15px; font-weight: 600; color: var(--ink); text-decoration: none;
+    transition: background .15s, color .15s;
+  }
+  .nav-drawer-link-item:hover { background: var(--bg-tint); }
+  .nav-drawer-link-item--active { color: var(--teal); background: var(--teal-soft); }
+  .nav-drawer-link-item--raid { color: var(--coral); font-weight: 700; }
+
+  /* Section secondaire : notifications, admin. */
+  .nav-drawer-sec {
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 8px; margin: 0 6px; border-top: 1px solid var(--line);
+  }
+  .nav-drawer-row {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    padding: 13px 14px; border: none; background: none; cursor: pointer;
+    font-size: 15px; font-weight: 600; color: var(--ink); border-radius: var(--r-sm);
+    transition: background .15s;
+  }
+  .nav-drawer-row:hover { background: var(--bg-tint); }
+  .nav-drawer-row-ic { font-size: 17px; line-height: 1; }
+  .nav-drawer-badge {
+    margin-left: auto; font-family: var(--display); font-weight: 700; font-size: 11px;
+    color: #fff; background: var(--coral); border-radius: var(--r-pill);
+    min-width: 20px; padding: 1px 7px; text-align: center;
+  }
+
+  /* Joueurs en ligne. */
+  .nav-drawer-online { padding: 8px 14px 4px; margin: 0 6px; border-top: 1px solid var(--line); }
+
+  /* Déconnexion — épinglée en bas du tiroir. */
+  .nav-drawer-logout {
+    display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    margin-top: auto; padding: 16px 16px 18px;
+    border: none; border-top: 1px solid var(--line); background: none; cursor: pointer;
+    font-size: 15px; font-weight: 600; color: #e0533d;
+    transition: background .15s;
+  }
+  .nav-drawer-logout:hover { background: rgba(224,83,61,0.07); }
+  .nav-drawer-logout svg { width: 18px; height: 18px; flex-shrink: 0; }
 }
 /* Très petits écrans : on garde la flamme/jetons mais on allège le superflu. */
 @media (max-width: 480px) {
