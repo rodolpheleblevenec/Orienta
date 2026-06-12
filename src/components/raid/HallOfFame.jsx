@@ -18,7 +18,9 @@ function Member({ pseudo, role }) {
   )
 }
 
-export default function HallOfFame({ level, fetchHof }) {
+// `compact` : variante allégée pour le sas de préparation (titre « record à battre »,
+// top 3 + meilleur temps en avant). Sinon : Hall of Fame complet (arène vide).
+export default function HallOfFame({ level, fetchHof, compact = false }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -38,6 +40,40 @@ export default function HallOfFame({ level, fetchHof }) {
   const boss = getBossByKey(data?.boss_key)
   const teams = data?.teams || []
   const first = data?.firstClear
+
+  // ── Variante compacte (sas) : le record à battre + le podium de la semaine. ──
+  if (compact) {
+    const top = teams.slice(0, 3)
+    const best = teams[0]?.clear_seconds
+    return (
+      <div className="raid-hof raid-hof--compact">
+        <div className="raid-hof-head">
+          <span className="raid-hof-emoji">🏆</span>
+          <div className="raid-hof-headtxt">
+            <h2 className="raid-hof-title">Le record à battre cette semaine</h2>
+            <p className="raid-hof-sub">
+              {best != null
+                ? <>Meilleur temps : <b>{fmtTime(best)}</b> · {boss.name}</>
+                : <>Personne n’a encore vaincu {boss.name} — à vous de marquer l’histoire !</>}
+            </p>
+          </div>
+        </div>
+        {top.length > 0 && (
+          <ol className="raid-hof-list raid-hof-list--compact">
+            {top.map((t, i) => (
+              <li key={t.session_id} className={`raid-hof-row${i === 0 ? ' raid-hof-row--gold' : ''}`}>
+                <span className="raid-hof-rank">{i + 1}</span>
+                <span className="raid-hof-time">{fmtTime(t.clear_seconds)}</span>
+                <span className="raid-hof-team">
+                  {t.members.map(m => <Member key={m.pseudo + m.role} pseudo={m.pseudo} role={m.role} />)}
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className="raid-hof">

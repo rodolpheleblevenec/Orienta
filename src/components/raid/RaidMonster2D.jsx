@@ -1,6 +1,7 @@
 import { useId, useEffect } from 'react'
 import { motion, useAnimationControls } from 'framer-motion'
 import { ORGANS } from '../../lib/raid'
+import { getRaidArt } from '../../lib/raidArt'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Scène RAID 100 % 2D (SVG vectoriel à calques), remplace l'ancien rendu 3D.
@@ -345,6 +346,36 @@ const BOSS_RENDERERS = {
   leviathan: BossLeviathan,
 }
 
+// ── Boss illustré (PNG fourni via le manifeste raidArt) ──────────────────────
+// Sprite unique : respiration sur la créature entière ; en teaser → silhouette.
+function BossSprite({ art, teaser }) {
+  const W = art.width ?? 560, H = art.height ?? W
+  const X = art.x ?? (500 - W / 2), Y = art.y ?? (250 - H / 2)
+  return (
+    <image className="r2d-boss-breathe" href={art.full} x={X} y={Y} width={W} height={H}
+      preserveAspectRatio="xMidYMid meet"
+      style={{ filter: teaser ? 'brightness(.14) saturate(.5)' : 'drop-shadow(0 14px 22px rgba(0,0,0,.4))' }} />
+  )
+}
+
+// Créature découpée en pièces articulées (pinces qui claquent, pattes, etc.).
+function BossRig({ parts, teaser }) {
+  return (
+    <g>
+      {parts.map((p, i) => (
+        <image key={i} href={p.src} x={p.x} y={p.y} width={p.w}
+          preserveAspectRatio="xMidYMid meet"
+          className={p.anim ? `r2d-rig r2d-rig--${p.anim}` : undefined}
+          style={{
+            transformOrigin: `${p.pivotX ?? 50}% ${p.pivotY ?? 50}%`,
+            animationDelay: p.delay != null ? `${p.delay}s` : undefined,
+            filter: teaser ? 'brightness(.14) saturate(.5)' : 'drop-shadow(0 10px 16px rgba(0,0,0,.35))',
+          }} />
+      ))}
+    </g>
+  )
+}
+
 // ═══ ÉQUIPAGE ════════════════════════════════════════════════════════════════
 function Weapon({ type }) {
   if (type === 'trident') {
@@ -508,6 +539,7 @@ const FISH_CFG = [
 
 function Scene({ uid, boss, crew, teaser, lowHp, bossControls, crewControls, hurtControls }) {
   const BossArt = BOSS_RENDERERS[boss] || BossMeduse
+  const art = getRaidArt(boss)
   const n = Math.max(1, crew.length)
   const xs = crew.map((_, i) => (n === 1 ? 500 : 250 + (500 * i) / (n - 1)))
   return (
@@ -529,9 +561,13 @@ function Scene({ uid, boss, crew, teaser, lowHp, bossControls, crewControls, hur
         <Fish key={i} y={y} color={['#ffb703', '#ff5d8f', '#48cae4', '#ffd166'][i]} dur={dur} delay={i * 1.6} scale={sc} dir={dir} />
       ))}
 
-      {/* BOSS — wrapper de réaction (recul / frappe) */}
+      {/* BOSS — wrapper de réaction (recul / frappe). Illustration fournie si dispo, sinon vectoriel codé. */}
       <motion.g animate={bossControls} initial={{ y: 0, scale: 1 }} style={{ transformBox: 'fill-box', transformOrigin: '50% 72%' }}>
-        <BossArt uid={uid} teaser={teaser} lowHp={lowHp} />
+        {art?.full
+          ? <BossSprite art={art} teaser={teaser} />
+          : art?.parts
+            ? <BossRig parts={art.parts} teaser={teaser} />
+            : <BossArt uid={uid} teaser={teaser} lowHp={lowHp} />}
       </motion.g>
 
       {/* décor d'avant-plan */}

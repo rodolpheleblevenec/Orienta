@@ -288,11 +288,13 @@ serve(async (req) => {
   }
 
   // ── hof : Hall of Fame d'un niveau (semaine). Lecture publique, aucun effet. ──
+  // Classement PUBLIC uniquement (is_test = false) → les arènes de test ne polluent
+  // pas le record de la semaine.
   if (action === 'hof') {
     const level = body.level != null ? Number(body.level) : currentRaidLevel(Date.now())
     const { data: wins } = await supabase.from('orienta_raid_sessions')
       .select('id, boss_key, boss_level, tier, started_at, ended_at')
-      .eq('status', 'won').eq('boss_level', level)
+      .eq('status', 'won').eq('boss_level', level).eq('is_test', false)
     const sessions = (wins ?? []) as { id: string; tier: number; started_at: string; ended_at: string }[]
     const ids = sessions.map((s) => s.id)
     const partsBySession = new Map<string, { pseudo: string; role: string }[]>()
@@ -316,6 +318,57 @@ serve(async (req) => {
       clear_seconds: clearSec(firstWin), members: partsBySession.get(firstWin.id) ?? [],
     } : null
     return json({ level, boss_key: bossKeyForLevel(level), teams, firstClear })
+  }
+
+  // ── result : résultat d'une session terminée (won/lost). Lecture publique. ──
+  // Alimente les pages /raid/resultat/:id (récap équipage, temps, rang, XP, record).
+  // Aucun secret exposé. Les arènes de test sont renvoyées mais marquées hors classement.
+  if (action === 'result') {
+    if (!sessionId) return json({ error: 'session_id required' }, 400)
+    const { data: s } = await supabase.from('orienta_raid_sessions')
+      .select('id, boss_key, boss_level, status, tier, assault_index, assault_count, lives, max_hp, current_hp, is_test, started_at, ended_at')
+      .eq('id', sessionId).maybeSingle()
+    if (!s) return json({ error: 'not found' }, 404)
+
+    const { data: members } = await supabase.from('orienta_raid_participants')
+      .select('pseudo, role').eq('session_id', sessionId).order('joined_at')
+
+    const secOf = (st: string, en: string) =>
+      (st && en) ? Math.round((new Date(en).getTime() - new Date(st).getTime()) / 1000) : null
+    const clear_seconds = secOf(s.started_at, s.ended_at)
+    const level = s.boss_level ?? currentRaidLevel(Date.now())
+
+    // Classement de la semaine (victoires publiques) → rang de CETTE session + record.
+    const { data: wins } = await supabase.from('orienta_raid_sessions')
+      .select('id, started_at, ended_at')
+      .eq('status', 'won').eq('boss_level', level).eq('is_test', false)
+    const ranked = ((wins ?? []) as { id: string; started_at: string; ended_at: string }[])
+      .map((w) => ({ id: w.id, sec: secOf(w.started_at, w.ended_at) }))
+      .filter((w) => w.sec != null)
+      .sort((a, b) => (a.sec! - b.sec!))
+    const best_clear_seconds = ranked.length ? ranked[0].sec : null
+
+    let rank: { position: number; total: number } | null = null
+    if (s.status === 'won' && !s.is_test) {
+      const idx = ranked.findIndex((w) => w.id === s.id)
+      if (idx >= 0) rank = { position: idx + 1, total: ranked.length }
+    }
+
+    // XP collectif (miroir de award_raid_victory : 200 × tier × niveau).
+    const xp_awarded = s.status === 'won' ? 200 * (s.tier ?? 0) * level : 0
+
+    return json({
+      session: {
+        id: s.id, boss_key: s.boss_key, boss_level: level, status: s.status, tier: s.tier,
+        assault_index: s.assault_index, assault_count: s.assault_count,
+        is_test: s.is_test, started_at: s.started_at, ended_at: s.ended_at,
+      },
+      members: members ?? [],
+      clear_seconds,
+      rank,                 // null si défaite / test / introuvable
+      best_clear_seconds,   // record de la semaine à battre
+      xp_awarded,
+    })
   }
 
   // ── open-test (admin OU compte testeur) : ouvre une arène hors fenêtre. ──

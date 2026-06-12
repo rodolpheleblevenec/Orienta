@@ -20,6 +20,9 @@ export const CHANGELOG = [
     items: [
       'Affrontez le Boss d\'Équipage à plusieurs, en temps réel.',
       'Chacun son rôle et ses propres informations : communiquez pour coordonner vos coups.',
+      'Écran de victoire et de défaite : récap de l\'équipage, temps de clear et XP gagné.',
+      'Battez le record de la semaine : les équipages les plus rapides sont mis à l\'honneur.',
+      'Le record à battre s\'affiche dès la salle d\'attente pour vous motiver.',
       'Une toute nouvelle façon de jouer ensemble, en équipe.',
     ],
   },
