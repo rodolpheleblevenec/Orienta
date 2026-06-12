@@ -160,9 +160,27 @@ serve(async (req) => {
 
     const { data: prog } = await supabase.from('orienta_collective_progress').select('boss_index_cleared').eq('id', 1).maybeSingle()
     const boss = BOSSES[(prog?.boss_index_cleared ?? 0) % BOSSES.length]
-    const { data: grids } = await supabase.from('orienta_grids')
-      .select('id').eq('status', 'published').in('difficulty', ['facile', 'moyen']).limit(80)
-    const pool = shuffle((grids ?? []).map((g: { id: string }) => g.id))
+    // Grilles d'assaut : publiées, DÉJÀ JOUÉES, avec un taux de réussite entre
+    // 60% et 85% (ni triviales, ni impossibles), sans leurre (facile/moyen = 4 cartes).
+    const { data: candidates } = await supabase.from('orienta_grids')
+      .select('id').eq('status', 'published').in('difficulty', ['facile', 'moyen']).limit(400)
+    const candIds = (candidates ?? []).map((g: { id: string }) => g.id)
+    let eligible: string[] = []
+    if (candIds.length) {
+      const { data: plays } = await supabase.from('orienta_plays')
+        .select('grid_id, success').not('completed_at', 'is', null).in('grid_id', candIds)
+      const agg: Record<string, { t: number; s: number }> = {}
+      for (const p of (plays ?? []) as { grid_id: string; success: boolean }[]) {
+        const a = agg[p.grid_id] ?? (agg[p.grid_id] = { t: 0, s: 0 })
+        a.t++; if (p.success) a.s++
+      }
+      const MIN_PLAYS = 5
+      eligible = Object.entries(agg)
+        .filter(([, a]) => a.t >= MIN_PLAYS && a.s / a.t >= 0.60 && a.s / a.t <= 0.85)
+        .map(([id]) => id)
+    }
+    // Repli si trop peu de grilles éligibles (jeu jeune / peu de données de jeu).
+    const pool = shuffle(eligible.length >= 1 ? eligible : candIds)
     if (pool.length < 1) return json({ error: 'no grids available' }, 409)
     const gridIds = pool.slice(0, boss.assault_count)
     const maxHp = gridIds.length * HP_PER_ASSAULT

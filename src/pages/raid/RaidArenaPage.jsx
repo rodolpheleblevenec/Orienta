@@ -150,30 +150,44 @@ export default function RaidArenaPage() {
     <>
       <Header />
       <main className="raid-page raid-page--combat">
-        <div className="raid-combat-top">
-          <div className="raid-boss-head raid-boss-head--sm">
-            <span className="raid-boss-emoji">{boss.emoji}</span>
-            <div className="raid-boss-meta">
-              <h1 className="raid-h1">{boss.name}</h1>
+        {/* En-tête : boss mis en avant + HUD (assaut/essais/timer) + équipage */}
+        <div className="raid-combat-header">
+          <div className="raid-boss-card">
+            <span className="raid-boss-card-emoji">{boss.emoji}</span>
+            <div className="raid-boss-card-body">
+              <h1 className="raid-boss-card-name">{boss.name}</h1>
               <HpBar hp={session.current_hp} max={session.max_hp} />
             </div>
           </div>
-          <div className="raid-combat-stats">
-            <span className="raid-assault">Assaut {Math.min(session.assault_index + 1, session.assault_count)}/{session.assault_count}</span>
-            <span className="raid-lives">{'🛟'.repeat(Math.max(0, session.lives))}</span>
-            <span className="raid-tries">Essais : {session.attempts_remaining}</span>
-            <Timer deadline={session.assault_deadline} onExpire={actions.signalTimeout} />
+          <div className="raid-hud">
+            <div className="raid-stats">
+              <div className="raid-stat">
+                <span className="raid-stat-k">Assaut</span>
+                <span className="raid-stat-v">{Math.min(session.assault_index + 1, session.assault_count)}/{session.assault_count}</span>
+              </div>
+              <div className="raid-stat">
+                <span className="raid-stat-k">Essais</span>
+                <span className="raid-stat-v">{session.attempts_remaining}</span>
+              </div>
+              <div className="raid-stat">
+                <span className="raid-stat-k">Bouées</span>
+                <span className="raid-stat-v">{'🛟'.repeat(Math.max(0, session.lives)) || '—'}</span>
+              </div>
+              <div className="raid-stat">
+                <span className="raid-stat-k">Temps</span>
+                <span className="raid-stat-v"><Timer deadline={session.assault_deadline} onExpire={actions.signalTimeout} /></span>
+              </div>
+            </div>
+            <RoleStrip roster={roster} meId={user?.id} />
           </div>
         </div>
 
-        {myOrgan && (
-          <div className="raid-myrole">
-            Tu es <b>{myOrgan.emoji} {myOrgan.label}</b> — {myOrgan.blurb}
-          </div>
-        )}
-
-        <div className="raid-combat-grid">
-          <div className="raid-combat-board">
+        {/* Deux colonnes : grille + réserve | chat (large) */}
+        <div className="raid-combat-cols">
+          <div className="raid-col-board">
+            {myOrgan && (
+              <div className="raid-myrole-sm">Tu es <b>{myOrgan.emoji} {myOrgan.label}</b> — {myOrgan.blurb}</div>
+            )}
             <RaidBoard
               board={board}
               cardOrder={session.card_order || []}
@@ -200,8 +214,7 @@ export default function RaidArenaPage() {
             )}
           </div>
 
-          <div className="raid-combat-side">
-            <RoleStrip roster={roster} meId={user?.id} />
+          <div className="raid-col-chat">
             <RaidChat chat={chat} onSend={actions.sendChat} me={me} />
           </div>
         </div>

@@ -2,7 +2,6 @@ import { DndContext, DragOverlay, closestCorners, useDroppable, PointerSensor, T
 import { useState, useRef } from 'react'
 import WordCard from '../game/WordCard'
 
-const NUMERALS = ['①', '②', '③', '④']
 const handleIndex = (h) => Number(String(h).replace('c', '')) || 0
 
 // Placeholders flottés pour les joueurs NON autorisés : on ne leur envoie JAMAIS
@@ -22,8 +21,6 @@ function Slot({ pos, cell, feedback, interactive, onRotate, cardFor, blurWords }
           id={`raid-placed-${cell.handle}`}
           card={cardFor(cell.handle)}
           blur={blurWords}
-          showNotch
-          label={NUMERALS[handleIndex(cell.handle)]}
           colorIndex={handleIndex(cell.handle)}
           rotation={cell.rotation}
           feedback={feedback ?? 'neutral'}
@@ -46,8 +43,6 @@ function Tray({ handles, interactive, cardFor, blurWords }) {
           id={`raid-tray-${h}`}
           card={cardFor(h)}
           blur={blurWords}
-          showNotch
-          label={NUMERALS[handleIndex(h)]}
           colorIndex={handleIndex(h)}
           rotation={0}
           draggable={interactive}
@@ -162,8 +157,7 @@ export default function RaidBoard({
       </div>
       <DragOverlay>
         {activeHandle != null && (
-          <WordCard id="raid-overlay" card={cardFor(activeHandle)} blur={blurWords} showNotch
-            label={NUMERALS[handleIndex(activeHandle)]} colorIndex={handleIndex(activeHandle)}
+          <WordCard id="raid-overlay" card={cardFor(activeHandle)} blur={blurWords} colorIndex={handleIndex(activeHandle)}
             rotation={board[slotOfHandle(activeHandle)]?.rotation ?? 0} draggable={false} />
         )}
       </DragOverlay>
