@@ -8,7 +8,7 @@ import { MARINE_ITEMS, getMarineItem } from '../../lib/marineItems'
 import Header from '../../components/ui/Header'
 
 export default function ProfilePage() {
-  const { user, refreshUser } = useAuthStore()
+  const { user, refreshUser, shop, fetchShop, setStatus } = useAuthStore()
   const [activeTab, setActiveTab] = useState('profil')
   const [activityTab, setActivityTab] = useState('jouees')
   const [stats, setStats] = useState(null)
@@ -19,10 +19,17 @@ export default function ProfilePage() {
   const [suggestion, setSuggestion] = useState('')
   const [suggestionSending, setSuggestionSending] = useState(false)
   const [suggestionSent, setSuggestionSent] = useState(false)
+  const [statusVal, setStatusVal] = useState(user?.status_text ?? '')
+  const [statusMsg, setStatusMsg] = useState(null)
+  const [savingStatus, setSavingStatus] = useState(false)
 
   useEffect(() => {
     if (user?.selected_skin != null) setSelectedSkin(user.selected_skin)
   }, [user?.selected_skin])
+
+  // Charge la boutique (pour savoir si « Statut perso » est possédé) + synchronise le champ.
+  useEffect(() => { fetchShop() }, [])
+  useEffect(() => { setStatusVal(user?.status_text ?? '') }, [user?.status_text])
 
   useEffect(() => {
     if (!user) return
@@ -55,6 +62,15 @@ export default function ProfilePage() {
       }
     })
   }, [user])
+
+  const ownsStatus = (shop?.items ?? []).some(i => i.code === 'status_custom' && i.owned)
+  async function handleSetStatus() {
+    setSavingStatus(true)
+    const res = await setStatus(statusVal.trim())
+    setSavingStatus(false)
+    if (res?.ok) setStatusMsg({ ok: true, text: res.status ? '✅ Statut enregistré.' : '✅ Statut effacé.' })
+    else setStatusMsg({ ok: false, text: 'Échec — réessaie.' })
+  }
 
   if (!user) return null
 
@@ -158,6 +174,28 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
+
+            {ownsStatus && (
+              <section className="profile-section profile-status-section">
+                <h2 style={{ marginBottom: 10 }}>Mon statut</h2>
+                <div className="comfort-editor">
+                  <p className="comfort-editor-title">💬 Affiché sous ton pseudo dans la bulle « En ligne »</p>
+                  <div className="comfort-editor-row">
+                    <input
+                      className="comfort-input"
+                      placeholder="Ex. 🔥 en chasse"
+                      value={statusVal}
+                      maxLength={40}
+                      onChange={e => { setStatusVal(e.target.value); setStatusMsg(null) }}
+                    />
+                    <button className="shop-btn shop-btn--buy" type="button" disabled={savingStatus} onClick={handleSetStatus}>
+                      {savingStatus ? '…' : 'Enregistrer'}
+                    </button>
+                  </div>
+                  {statusMsg && <p className={`comfort-msg${statusMsg.ok ? ' comfort-msg--ok' : ' comfort-msg--err'}`}>{statusMsg.text}</p>}
+                </div>
+              </section>
+            )}
 
             {stats && (
               <div className="profile-stats-card">

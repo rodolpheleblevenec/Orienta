@@ -4,11 +4,10 @@ import { useAuthStore } from '../../stores/authStore'
 import { supabase } from '../../lib/supabase'
 import { setAdminSecret } from '../../lib/adminSecret'
 import StreakModal from './StreakModal'
-import QuestsModal from './QuestsModal'
-import WheelModal from './WheelModal'
 import NotificationsPanel from './NotificationsPanel'
 import AdminPasswordModal from './AdminPasswordModal'
 import { OnlinePlayerItem } from './OnlinePlayersPanel'
+import RankAvatar from './RankAvatar'
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 import { useOnlinePlayers } from '../../lib/useOnlinePlayers'
 import { canSeeRaid } from '../../lib/raid'
@@ -20,12 +19,10 @@ export default function Header() {
   const onlinePlayers = useOnlinePlayers(user)
   const navigate = useNavigate()
   const [showStreakModal, setShowStreakModal] = useState(false)
-  const [showQuestsModal, setShowQuestsModal] = useState(false)
-  const [showWheelModal, setShowWheelModal] = useState(false)
   const [showNotifs, setShowNotifs] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [showAdminModal, setShowAdminModal] = useState(false)
-  useBodyScrollLock(showStreakModal || showNotifs || showQuestsModal || showWheelModal)
+  useBodyScrollLock(showStreakModal || showNotifs)
 
   // Contrôle du mot de passe admin AU CLIC sur la roue crantée : la modal appelle
   // verifyAdminSecret, qui valide le secret côté serveur. L'interface ne s'ouvre
@@ -44,7 +41,6 @@ export default function Header() {
   const jetons = user?.jetons ?? 0
   const freezes = user?.streak_freeze_tokens ?? 0
   const isAdmin = user?.pseudo === ADMIN_PSEUDO
-  const initial = user?.pseudo?.[0]?.toUpperCase() ?? '?'
 
   return (
     <>
@@ -98,7 +94,7 @@ export default function Header() {
 
         <span className="nav-spacer" />
 
-        <button className="jetons-pill" onClick={() => setShowQuestsModal(true)} type="button" title="Tes quêtes & jetons">
+        <button className="jetons-pill" onClick={() => navigate('/quetes')} type="button" title="Tes quêtes & jetons">
           <span className="jetons-coin" aria-hidden="true">🪙</span>
           <span className="jetons-txt">{jetons}</span>
         </button>
@@ -134,8 +130,8 @@ export default function Header() {
         <span className="topbar-divider" />
 
         <Link to="/profile" className="me-link">
-          <span className="me-ava">{initial}</span>
-          <span className="me-name">{user?.pseudo}</span>
+          <RankAvatar player={user} className="me-ava" />
+          <span className="me-name" style={user?.equipped_color ? { color: user.equipped_color } : undefined}>{user?.pseudo}</span>
         </Link>
 
         <button className="icon-btn logout-btn" type="button" title="Se déconnecter" onClick={logout}>
@@ -158,13 +154,6 @@ export default function Header() {
 
     </header>
     {showStreakModal && <StreakModal onClose={() => setShowStreakModal(false)} />}
-    {showQuestsModal && (
-      <QuestsModal
-        onClose={() => setShowQuestsModal(false)}
-        onOpenWheel={() => { setShowQuestsModal(false); setShowWheelModal(true) }}
-      />
-    )}
-    {showWheelModal && <WheelModal onClose={() => setShowWheelModal(false)} />}
     {showAdminModal && <AdminPasswordModal onClose={() => setShowAdminModal(false)} onSubmit={verifyAdminSecret} />}
     </>
   )

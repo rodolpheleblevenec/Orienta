@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '../../stores/authStore'
-import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 import { FAMILY_LABEL } from '../../lib/shopCosmetics'
+import Header from '../../components/ui/Header'
+import WheelModal from '../../components/ui/WheelModal'
 
 // Une ligne de quête : progression + récompense en jetons + action (récupérer).
 function QuestRow({ q, onClaim, busy }) {
@@ -38,7 +39,7 @@ function QuestRow({ q, onClaim, busy }) {
 function ShopRow({ item, jetons, ownedCount, onBuy, onEquip, busy }) {
   const affordable = jetons >= item.cost_jetons
   const isUnlock = item.kind === 'unlock'
-  const equippable = isUnlock && !!item.payload?.slot   // les unlocks "fonctionnels" (ex. difficultés) ne s'équipent pas
+  const equippable = isUnlock && !!item.payload?.slot   // les unlocks "fonctionnels" ne s'équipent pas
   return (
     <li className={`shop-row${item.equipped ? ' shop-row--equipped' : ''}`}>
       <div className="shop-row-main">
@@ -70,13 +71,13 @@ function ShopRow({ item, jetons, ownedCount, onBuy, onEquip, busy }) {
   )
 }
 
-// Modale jetons : onglet Quêtes (gagner) + onglet Boutique (dépenser).
-// Ouverte depuis la pastille jetons du header. Rafraîchit tout à l'ouverture.
-export default function QuestsModal({ onClose, onOpenWheel }) {
-  useBodyScrollLock()
-  const { user, quests, fetchQuests, claimQuest, shop, fetchShop, buyItem, equipItem, giftJetons, renameUser, setStatus } = useAuthStore()
+// Page jetons : onglet Quêtes (gagner) + onglet Boutique (dépenser).
+// Ouverte depuis la pastille jetons du header (route /quetes).
+export default function QuestsPage() {
+  const { user, quests, fetchQuests, claimQuest, shop, fetchShop, buyItem, equipItem, giftJetons, renameUser } = useAuthStore()
   const [tab, setTab] = useState('quests')
   const [busyId, setBusyId] = useState(null)
+  const [showWheel, setShowWheel] = useState(false)
   const [giftPseudo, setGiftPseudo] = useState('')
   const [giftAmount, setGiftAmount] = useState('')
   const [giftMsg, setGiftMsg] = useState(null)
@@ -84,19 +85,14 @@ export default function QuestsModal({ onClose, onOpenWheel }) {
   const [renameVal, setRenameVal] = useState('')
   const [renameMsg, setRenameMsg] = useState(null)
   const [renaming, setRenaming] = useState(false)
-  const [statusVal, setStatusVal] = useState(user?.status_text ?? '')
-  const [statusMsg, setStatusMsg] = useState(null)
-  const [savingStatus, setSavingStatus] = useState(false)
   const jetons = user?.jetons ?? 0
   const daily = quests?.daily ?? []
   const weekly = quests?.weekly ?? []
   const items = shop?.items ?? []
   const counters = shop?.counters ?? {}
   const renameTokens = counters.rename_tokens ?? 0
-  const ownsStatus = items.some(i => i.code === 'status_custom' && i.owned)
 
-  useEffect(() => { fetchQuests(); fetchShop() }, []) // recharge à l'ouverture
-  useEffect(() => { setStatusVal(user?.status_text ?? '') }, [user?.status_text])
+  useEffect(() => { fetchQuests(); fetchShop() }, [])
 
   async function handleClaim(progressId) {
     setBusyId(progressId)
@@ -154,13 +150,6 @@ export default function QuestsModal({ onClose, onOpenWheel }) {
       setRenameMsg({ ok: false, text: map[res?.error] ?? 'Échec du renommage.' })
     }
   }
-  async function handleSetStatus() {
-    setSavingStatus(true)
-    const res = await setStatus(statusVal.trim())
-    setSavingStatus(false)
-    if (res?.ok) setStatusMsg({ ok: true, text: res.status ? '✅ Statut enregistré.' : '✅ Statut effacé.' })
-    else setStatusMsg({ ok: false, text: 'Échec — réessaie.' })
-  }
 
   // Articles boutique groupés par famille (ordre d'affichage stable).
   const families = ['cosmetic', 'convenience', 'social']
@@ -169,11 +158,12 @@ export default function QuestsModal({ onClose, onOpenWheel }) {
     .filter(g => g.items.length > 0)
 
   return (
-    <div className="streak-modal-backdrop" onClick={onClose}>
-      <div className="streak-modal quests-modal" onClick={e => e.stopPropagation()}>
-        <div className="streak-modal-header">
-          <h2 className="streak-modal-title">🪙 {jetons} jeton{jetons !== 1 ? 's' : ''}</h2>
-          <button className="streak-modal-close" onClick={onClose} type="button">✕</button>
+    <div className="hub-page">
+      <Header />
+      <main className="hub-main quests-page">
+        <div className="quests-page-head">
+          <h1 className="quests-page-title">🪙 {jetons} jeton{jetons !== 1 ? 's' : ''}</h1>
+          <p className="quests-page-sub">Accomplis des quêtes pour gagner des jetons, puis dépense-les en boutique.</p>
         </div>
 
         <div className="jetons-tabs">
@@ -210,17 +200,16 @@ export default function QuestsModal({ onClose, onOpenWheel }) {
           )
         ) : (
           <>
-            {onOpenWheel && (
-              <button type="button" className="wheel-entry-btn" onClick={onOpenWheel}>
-                <span className="wheel-entry-emoji">🎡</span>
-                <span className="wheel-entry-body">
-                  <strong>Roue de la fortune</strong>
-                  <small>Tente ta chance : rien, ou des gains de ouf !</small>
-                </span>
-                <span className="wheel-entry-arrow">→</span>
-              </button>
-            )}
-            {/* Confort actif : éditeurs disponibles une fois l'article possédé */}
+            <button type="button" className="wheel-entry-btn" onClick={() => setShowWheel(true)}>
+              <span className="wheel-entry-emoji">🎡</span>
+              <span className="wheel-entry-body">
+                <strong>Roue de la fortune</strong>
+                <small>Tente ta chance : souvent rien, parfois le jackpot !</small>
+              </span>
+              <span className="wheel-entry-arrow">→</span>
+            </button>
+
+            {/* Confort actif : éditeur de renommage si au moins un jeton possédé. */}
             {renameTokens > 0 && (
               <div className="comfort-editor">
                 <p className="comfort-editor-title">✏️ Changer ton pseudo · {renameTokens} jeton{renameTokens > 1 ? 's' : ''} de renommage</p>
@@ -237,24 +226,6 @@ export default function QuestsModal({ onClose, onOpenWheel }) {
                   </button>
                 </div>
                 {renameMsg && <p className={`comfort-msg${renameMsg.ok ? ' comfort-msg--ok' : ' comfort-msg--err'}`}>{renameMsg.text}</p>}
-              </div>
-            )}
-            {ownsStatus && (
-              <div className="comfort-editor">
-                <p className="comfort-editor-title">💬 Ton statut — visible dans la bulle « En ligne »</p>
-                <div className="comfort-editor-row">
-                  <input
-                    className="comfort-input"
-                    placeholder="Ex. 🔥 en chasse"
-                    value={statusVal}
-                    maxLength={40}
-                    onChange={e => { setStatusVal(e.target.value); setStatusMsg(null) }}
-                  />
-                  <button className="shop-btn shop-btn--buy" type="button" disabled={savingStatus} onClick={handleSetStatus}>
-                    {savingStatus ? '…' : 'Enregistrer'}
-                  </button>
-                </div>
-                {statusMsg && <p className={`comfort-msg${statusMsg.ok ? ' comfort-msg--ok' : ' comfort-msg--err'}`}>{statusMsg.text}</p>}
               </div>
             )}
 
@@ -309,7 +280,9 @@ export default function QuestsModal({ onClose, onOpenWheel }) {
             </div>
           </>
         )}
-      </div>
+      </main>
+
+      {showWheel && <WheelModal onClose={() => setShowWheel(false)} />}
     </div>
   )
 }

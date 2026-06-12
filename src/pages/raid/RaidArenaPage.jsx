@@ -74,6 +74,11 @@ export default function RaidArenaPage() {
     if (a != null) prevAtkRef.current = a
     if (l != null) prevLivesRef.current = l
   }, [session?.attempts_remaining, session?.lives])
+  // À chaque issue de validation (réussite ou échec), tous les écrans remontent en haut
+  // pour voir l'animation de combat de la méduse.
+  useEffect(() => {
+    if (hitSignal > 0 || attackSignal > 0) window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [hitSignal, attackSignal])
 
   async function openTestArena() {
     setOpening(true)
@@ -143,15 +148,8 @@ export default function RaidArenaPage() {
       <>
         <Header />
         <main className="raid-page raid-page--waiting">
-          <div className="raid-boss-head">
-            <span className="raid-boss-emoji">{boss.emoji}</span>
-            <div>
-              <h1 className="raid-h1">{boss.name}</h1>
-              <p className="raid-sub">Répartissez les organes — le boss est imbattable s’il en manque un.</p>
-            </div>
-          </div>
-          <div className="raid-waiting-grid">
-            <RosterBoard roster={roster} me={me} actions={actions} busy={busy} />
+          <div className="raid-lobby">
+            <RosterBoard boss={boss} roster={roster} me={me} actions={actions} busy={busy} />
             <RaidChat chat={chat} onSend={actions.sendChat} me={me} />
           </div>
         </main>
@@ -167,7 +165,7 @@ export default function RaidArenaPage() {
   const boardFeedbacks = sharedFeedback || (canSeeFeedback(role) ? view.feedback : null) || {}
   const boardFull = Object.keys(board).length === 4
   const myOrgan = role ? ORGANS[role] : null
-  const crew = roster.map(p => ({ id: p.user_id, hue: hueOf(p.pseudo) }))
+  const crew = roster.map(p => ({ id: p.user_id, hue: hueOf(p.pseudo), role: p.role, pseudo: p.pseudo }))
 
   async function onValidate() {
     const res = await actions.validate()

@@ -81,10 +81,12 @@ function publicSession(s: any) {
 }
 
 // Prépare un assaut : ordre neutre (handles c0..c3) + card_map (handle→card_id).
+// `deterministic` (arènes de test/dev) : pas de mélange → même disposition à chaque assaut.
 // deno-lint-ignore no-explicit-any
-async function buildAssault(supabase: any, gridId: string) {
-  const { data: gc } = await supabase.from('orienta_grid_cards').select('card_id').eq('grid_id', gridId)
-  const ids = shuffle((gc ?? []).map((g: { card_id: string }) => g.card_id)).slice(0, 4)
+async function buildAssault(supabase: any, gridId: string, deterministic = false) {
+  const { data: gc } = await supabase.from('orienta_grid_cards').select('card_id').eq('grid_id', gridId).order('card_id')
+  const ids0 = (gc ?? []).map((g: { card_id: string }) => g.card_id)
+  const ids = (deterministic ? ids0 : shuffle(ids0)).slice(0, 4)
   const handles = ids.map((_: string, i: number) => `c${i}`)
   const card_map: Record<string, string> = {}
   ids.forEach((id: string, i: number) => { card_map[handles[i]] = id })
@@ -160,29 +162,16 @@ serve(async (req) => {
 
     const { data: prog } = await supabase.from('orienta_collective_progress').select('boss_index_cleared').eq('id', 1).maybeSingle()
     const boss = BOSSES[(prog?.boss_index_cleared ?? 0) % BOSSES.length]
-    // Grilles d'assaut : publiées, DÉJÀ JOUÉES, avec un taux de réussite entre
-    // 60% et 85% (ni triviales, ni impossibles), sans leurre (facile/moyen = 4 cartes).
+    // DEV : une arène de test (open-test) utilise TOUJOURS la même grille, et la
+    // même à chaque assaut, pour tester sans avoir à re-résoudre. Épinglable via
+    // RAID_DEV_GRID_ID ; sinon 1ère grille publiée facile/moyen (déterministe par id).
+    // (Les vraies arènes publiques, via raid-spawn, utiliseront la sélection 60–85%.)
     const { data: candidates } = await supabase.from('orienta_grids')
-      .select('id').eq('status', 'published').in('difficulty', ['facile', 'moyen']).limit(400)
+      .select('id').eq('status', 'published').in('difficulty', ['facile', 'moyen']).order('id').limit(400)
     const candIds = (candidates ?? []).map((g: { id: string }) => g.id)
-    let eligible: string[] = []
-    if (candIds.length) {
-      const { data: plays } = await supabase.from('orienta_plays')
-        .select('grid_id, success').not('completed_at', 'is', null).in('grid_id', candIds)
-      const agg: Record<string, { t: number; s: number }> = {}
-      for (const p of (plays ?? []) as { grid_id: string; success: boolean }[]) {
-        const a = agg[p.grid_id] ?? (agg[p.grid_id] = { t: 0, s: 0 })
-        a.t++; if (p.success) a.s++
-      }
-      const MIN_PLAYS = 5
-      eligible = Object.entries(agg)
-        .filter(([, a]) => a.t >= MIN_PLAYS && a.s / a.t >= 0.60 && a.s / a.t <= 0.85)
-        .map(([id]) => id)
-    }
-    // Repli si trop peu de grilles éligibles (jeu jeune / peu de données de jeu).
-    const pool = shuffle(eligible.length >= 1 ? eligible : candIds)
-    if (pool.length < 1) return json({ error: 'no grids available' }, 409)
-    const gridIds = pool.slice(0, boss.assault_count)
+    if (candIds.length < 1) return json({ error: 'no grids available' }, 409)
+    const devGrid = Deno.env.get('RAID_DEV_GRID_ID') || candIds[0]
+    const gridIds = Array(boss.assault_count).fill(devGrid)
     const maxHp = gridIds.length * HP_PER_ASSAULT
 
     const { data: session, error } = await supabase.from('orienta_raid_sessions').insert({
@@ -221,7 +210,19 @@ serve(async (req) => {
       roster.map(r => ({ session_id: sessionId, user_id: r.user_id, pseudo: r.pseudo ?? '', role: r.role }))
     )
     const { data: secrets } = await supabase.from('orienta_raid_session_secrets').select('grid_ids').eq('session_id', sessionId).single()
-    const { card_order, card_map } = await buildAssault(supabase, (secrets?.grid_ids ?? [])[0])
+    let gridIds: string[] = secrets?.grid_ids ?? []
+    // DEV : au lancement d'une arène de test, on (re)fixe la grille de dev — même
+    // pour une arène ouverte avant ce changement.
+    if (session.is_test) {
+      const { data: dg } = await supabase.from('orienta_grids')
+        .select('id').eq('status', 'published').in('difficulty', ['facile', 'moyen']).order('id').limit(1)
+      const devGrid = Deno.env.get('RAID_DEV_GRID_ID') || dg?.[0]?.id
+      if (devGrid) {
+        gridIds = Array(session.assault_count).fill(devGrid)
+        await supabase.from('orienta_raid_session_secrets').update({ grid_ids: gridIds }).eq('session_id', sessionId)
+      }
+    }
+    const { card_order, card_map } = await buildAssault(supabase, gridIds[0], session.is_test)
     await supabase.from('orienta_raid_session_secrets').update({ card_map, last_feedback: null, updated_at: nowIso() }).eq('session_id', sessionId)
     await supabase.from('orienta_raid_sessions').update({
       status: 'active', tier: count, card_order, assault_index: 0,
@@ -288,7 +289,7 @@ serve(async (req) => {
         await supabase.rpc('award_raid_victory', { p_session_id: sessionId })
         return json({ ...(await buildView(supabase, sessionId, playerId)), feedback: fbBySlot, success: true })
       }
-      const { card_order, card_map } = await buildAssault(supabase, (secrets?.grid_ids ?? [])[next])
+      const { card_order, card_map } = await buildAssault(supabase, (secrets?.grid_ids ?? [])[next], session.is_test)
       await supabase.from('orienta_raid_session_secrets').update({ card_map, last_feedback: null, updated_at: nowIso() }).eq('session_id', sessionId)
       // Timer GLOBAL : on ne réinitialise pas le chrono entre assauts.
       await supabase.from('orienta_raid_sessions').update({
