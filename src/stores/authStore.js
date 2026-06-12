@@ -146,6 +146,9 @@ export const useAuthStore = create((set, get) => ({
     }
     // Débit optimiste du solde renvoyé par le serveur.
     if (typeof data.jetons === 'number') set({ user: { ...get().user, jetons: data.jetons } })
+    // Resynchronise le user complet : les compteurs consommables (extra_create_slots,
+    // streak_freeze_tokens) vivent sur la row user et doivent être à jour tout de suite.
+    await get().refreshUser()
     get().fetchShop(user.id)
     return { ok: true, jetons: data.jetons, already_owned: data.already_owned === true }
   },

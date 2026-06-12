@@ -525,6 +525,13 @@ export default function HubPage() {
           {createdGrid ? (
             <div className="my-grid-card-container">
               <CreatedGridCard grid={createdGrid} index={0} />
+              {/* Slot de création supplémentaire (boutique) : entrée pour créer une grille de plus. */}
+              {(user?.extra_create_slots ?? 0) > 0 && (
+                <Link to="/create" className="hub-btn-create" style={{ marginTop: 12 }}>
+                  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2.4"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Créer une grille en plus 🪙 ({user.extra_create_slots})
+                </Link>
+              )}
             </div>
           ) : hasForfeited ? (
             <div className="hub-create-block hub-create-block--disabled">
