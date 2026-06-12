@@ -1,113 +1,177 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from './supabase'
-import { canPlace, canRotate } from './raid'
 
-// Hook du mode RAID : pilote une session d'arène coopérative.
-// - rejoint l'arène ouverte (join) et récupère l'état + la vue SCOPED de l'organe
-// - s'abonne aux postgres_changes (état autoritaire : statut, roster, PV, board…)
-// - s'abonne au canal broadcast (chat, board live, partage des couleurs)
-// L'autorité reste l'Edge Function `raid` — ce hook ne fait qu'orchestrer.
+// Hook du mode RAID — temps réel via Supabase Realtime :
+//   • PRESENCE  → le lobby (qui est là, son organe, son « prêt ») : instantané, zéro serveur.
+//   • BROADCAST → les cartes qui bougent + le chat + le partage des couleurs : instantané.
+//   • Edge Function `raid` UNIQUEMENT pour le rare/autoritaire : find / open-test /
+//     start / view (vue scoped) / validate / timeout.
+// Le déplacement des cartes ne touche jamais le serveur en cours de partie.
 export function useRaidArena(user) {
   const [sessionId, setSessionId] = useState(null)
-  const [data, setData] = useState(null)          // { session, roster, me, view }
-  const [board, setBoard] = useState({})          // { slot: {handle, rotation} } (live)
-  const [chat, setChat] = useState([])
-  const [sharedFeedback, setSharedFeedback] = useState(null)
   const [loading, setLoading] = useState(true)
   const [noArena, setNoArena] = useState(false)
-  const channelRef = useRef(null)
-  const lastAssaultRef = useRef(-1)
-  const lastStatusRef = useRef(null)
+  const [pub, setPub] = useState(null)           // session publique (statut + jeu)
+  const [presenceRoster, setPresenceRoster] = useState([])  // lobby (Presence)
+  const [serverRoster, setServerRoster] = useState([])      // combat (persisté au start)
+  const [serverMe, setServerMe] = useState(null)
+  const [view, setView] = useState({})           // vue scoped (clues/words/feedback)
+  const [board, setBoard] = useState({})          // { slot: {handle, rotation} } (Broadcast)
+  const [chat, setChat] = useState([])
+  const [sharedFeedback, setSharedFeedback] = useState(null)
+  const [busy, setBusy] = useState(false)         // start/validate en cours
 
-  const role = data?.me?.role ?? null
-  const iControlBoard = !!role && (canPlace(role) || canRotate(role))
-  const iControlRef = useRef(false)
-  iControlRef.current = iControlBoard
+  // Présence locale (mon organe / mon prêt) — mirroré dans le canal.
+  const [myRole, setMyRole] = useState(null)
+  const [myReady, setMyReady] = useState(false)
+
+  const channelRef = useRef(null)
+  const subscribedRef = useRef(false)
+  const pubRef = useRef(null)
+  const fetchViewRef = useRef(() => {})
+
+  const status = pub?.status ?? null
+  const inLobby = status === 'waiting' || status == null
+  const roster = inLobby ? presenceRoster : serverRoster
+  const role = inLobby ? myRole : (serverMe?.role ?? null)
+  const me = inLobby ? { user_id: user?.id, pseudo: user?.pseudo, role: myRole, is_ready: myReady } : serverMe
 
   const call = useCallback(async (action, extra = {}) => {
-    const { data: res, error } = await supabase.functions.invoke('raid', {
+    const { data, error } = await supabase.functions.invoke('raid', {
       body: { action, player_id: user?.id, pseudo: user?.pseudo, session_id: sessionId, ...extra },
     })
     if (error) return { error: error.message || 'error' }
-    return res
+    return data
   }, [user?.id, user?.pseudo, sessionId])
 
-  // Applique une réponse d'état du serveur + réconcilie le board local.
-  const applyState = useCallback((res) => {
-    if (!res || res.error) return
-    setData(res)
-    const s = res.session
-    if (!s) return
-    const assaultChanged = s.assault_index !== lastAssaultRef.current
-    const statusChanged = s.status !== lastStatusRef.current
-    lastAssaultRef.current = s.assault_index
-    lastStatusRef.current = s.status
-    if (s.status !== 'active') { setBoard({}); setSharedFeedback(null); return }
-    // En combat : on accepte le board serveur sauf si JE contrôle le board et
-    // qu'on est dans le même assaut (sinon je clobbe mes mouvements en cours).
-    if (assaultChanged || statusChanged) { setBoard(s.board || {}); setSharedFeedback(null) }
-    else if (!iControlRef.current) setBoard(s.board || {})
+  // Applique une réponse autoritaire (start/validate/timeout/view) en local.
+  const applyResult = useCallback((res) => {
+    if (!res?.session) return
+    const prev = pubRef.current
+    pubRef.current = res.session
+    setPub(res.session)
+    if (res.roster) setServerRoster(res.roster)
+    if ('me' in res) setServerMe(res.me)
+    if (res.view) setView(res.view)
+    const changed = !prev || prev.assault_index !== res.session.assault_index || prev.status !== res.session.status
+    if (changed) { setBoard({}); setSharedFeedback(null) }
   }, [])
 
-  // Rejoint l'arène ouverte au montage.
+  // Récupère ma vue scoped (indices/mots) — appelée à chaque nouvel assaut.
+  const fetchView = useCallback(async () => {
+    const res = await call('view')
+    if (res?.session) applyResult(res)
+  }, [call, applyResult])
+  fetchViewRef.current = fetchView
+
+  // ── Démarrage : trouver l'arène ouverte. ──
   useEffect(() => {
     if (!user?.id) return
     let alive = true
     ;(async () => {
-      const { data: res, error } = await supabase.functions.invoke('raid', {
-        body: { action: 'join', player_id: user.id, pseudo: user.pseudo },
-      })
+      const { data, error } = await supabase.functions.invoke('raid', { body: { action: 'find', player_id: user.id } })
       if (!alive) return
-      if (error || res?.error) { setNoArena(true); setLoading(false); return }
-      setSessionId(res.session.id)
-      applyState(res)
+      if (error || !data?.session) { setNoArena(true); setLoading(false); return }
+      pubRef.current = data.session
+      setPub(data.session)
+      setSessionId(data.session.id)
       setLoading(false)
     })()
     return () => { alive = false }
-  }, [user?.id, user?.pseudo, applyState])
+  }, [user?.id])
 
-  // Abonnements realtime (pg changes + broadcast) une fois la session connue.
+  // ── Canal Realtime (Presence + Broadcast). ──
   useEffect(() => {
     if (!sessionId || !user?.id) return
-    const refresh = async () => {
-      const res = await supabase.functions.invoke('raid', {
-        body: { action: 'state', player_id: user.id, session_id: sessionId },
-      })
-      if (res.data) applyState(res.data)
-    }
-    const channel = supabase.channel(`raid-${sessionId}`, { config: { broadcast: { self: false } } })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orienta_raid_sessions', filter: `id=eq.${sessionId}` }, refresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orienta_raid_participants', filter: `session_id=eq.${sessionId}` }, refresh)
-      .on('broadcast', { event: 'chat' }, ({ payload }) => setChat(c => [...c.slice(-80), payload]))
-      .on('broadcast', { event: 'board' }, ({ payload }) => { if (!iControlRef.current) setBoard(payload.board || {}) })
-      .on('broadcast', { event: 'feedback' }, ({ payload }) => setSharedFeedback(payload.fb || null))
-      .subscribe()
+    subscribedRef.current = false
+    const channel = supabase.channel(`raid-${sessionId}`, {
+      config: { presence: { key: user.id }, broadcast: { self: false } },
+    })
+
+    channel.on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState()
+      const list = Object.values(state).map(metas => metas[0]).filter(Boolean)
+        .map(m => ({ user_id: m.id, pseudo: m.pseudo, role: m.role ?? null, is_ready: !!m.ready }))
+      list.sort((a, b) => String(a.user_id).localeCompare(String(b.user_id)))
+      setPresenceRoster(list)
+    })
+
+    channel.on('broadcast', { event: 'session' }, ({ payload }) => {
+      const prev = pubRef.current
+      pubRef.current = payload
+      setPub(payload)
+      const changed = !prev || prev.assault_index !== payload.assault_index || prev.status !== payload.status
+      if (changed) {
+        setBoard({}); setSharedFeedback(null)
+        if (payload.status === 'active') fetchViewRef.current()
+      }
+    })
+    channel.on('broadcast', { event: 'board' }, ({ payload }) => setBoard(payload.board || {}))
+    channel.on('broadcast', { event: 'chat' }, ({ payload }) => setChat(c => [...c.slice(-80), payload]))
+    channel.on('broadcast', { event: 'feedback' }, ({ payload }) => setSharedFeedback(payload.fb || null))
+
+    channel.subscribe((s) => {
+      if (s !== 'SUBSCRIBED') return
+      subscribedRef.current = true
+      channel.track({ id: user.id, pseudo: user.pseudo, role: null, ready: false })
+    })
     channelRef.current = channel
-    return () => { supabase.removeChannel(channel); channelRef.current = null }
-  }, [sessionId, user?.id, applyState])
+    return () => { subscribedRef.current = false; supabase.removeChannel(channel); channelRef.current = null }
+  }, [sessionId, user?.id, user?.pseudo])
 
-  const broadcast = useCallback((event, payload) => {
-    channelRef.current?.send({ type: 'broadcast', event, payload })
-  }, [])
+  // Re-track la présence quand mon organe / prêt change.
+  useEffect(() => {
+    if (subscribedRef.current && channelRef.current) {
+      channelRef.current.track({ id: user?.id, pseudo: user?.pseudo, role: myRole, ready: myReady })
+    }
+  }, [myRole, myReady, user?.id, user?.pseudo])
 
-  // ── Actions ────────────────────────────────────────────────────────
-  const claimRole   = useCallback((r) => call('claim-role', { role: r }).then(applyState), [call, applyState])
-  const releaseRole = useCallback(()  => call('release-role').then(applyState), [call, applyState])
-  const setReady    = useCallback((ready) => call('ready', { ready }).then(applyState), [call, applyState])
+  // Résolution de conflit d'organe : si quelqu'un de "plus petit" tient le même → je lâche.
+  useEffect(() => {
+    if (!inLobby || !myRole) return
+    const conflict = presenceRoster.find(p => p.role === myRole && p.user_id !== user?.id && String(p.user_id) < String(user?.id))
+    if (conflict) setMyRole(null)
+  }, [presenceRoster, myRole, inLobby, user?.id])
 
-  // La Main pose/tourne : optimiste local + persistance + broadcast.
-  const moveBoard = useCallback((next) => {
-    if (!iControlRef.current) return
-    setBoard(next)
-    broadcast('board', { board: next })
-    call('move', { board: next })
-  }, [broadcast, call])
+  // Quand le combat démarre (statut → active), récupère ma vue scoped.
+  useEffect(() => {
+    if (status === 'active' && !view.clues && !view.words && serverMe == null) fetchView()
+  }, [status]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const broadcast = useCallback((event, payload) => channelRef.current?.send({ type: 'broadcast', event, payload }), [])
+
+  // ── Actions lobby (Presence — instantané) ──
+  const claimRole = useCallback((r) => {
+    const taken = presenceRoster.some(p => p.role === r && p.user_id !== user?.id)
+    if (!taken) setMyRole(r)
+  }, [presenceRoster, user?.id])
+  const releaseRole = useCallback(() => setMyRole(null), [])
+  const setReady = useCallback((v) => setMyReady(!!v), [])
+
+  // ── Lancement (Edge `start`) — n'importe quel joueur prêt peut déclencher. ──
+  const startGame = useCallback(async () => {
+    setBusy(true)
+    const ros = presenceRoster.filter(p => p.role).map(p => ({ user_id: p.user_id, pseudo: p.pseudo, role: p.role }))
+    const res = await call('start', { roster: ros })
+    setBusy(false)
+    if (res?.error) return res
+    applyResult(res)
+    if (res.session) broadcast('session', res.session)
+    return res
+  }, [presenceRoster, call, applyResult, broadcast])
+
+  // ── Combat ──
+  const moveBoard = useCallback((next) => { setBoard(next); broadcast('board', { board: next }) }, [broadcast])
 
   const validate = useCallback(async () => {
-    const res = await call('validate')
-    if (res?.state) applyState(res.state)
+    setBusy(true)
+    const res = await call('validate', { board })
+    setBusy(false)
+    if (res?.error) return res
+    applyResult(res)
+    if (res.session) broadcast('session', res.session)
     return res
-  }, [call, applyState])
+  }, [call, board, applyResult, broadcast])
 
   const shareFeedback = useCallback((fb) => broadcast('feedback', { fb }), [broadcast])
   const sendChat = useCallback((text) => {
@@ -118,25 +182,18 @@ export function useRaidArena(user) {
     broadcast('chat', msg)
   }, [broadcast, user?.pseudo])
 
-  const signalTimeout = useCallback(() => call('timeout').then(r => { if (r?.state) applyState(r.state) }), [call, applyState])
+  const signalTimeout = useCallback(async () => {
+    const res = await call('timeout')
+    if (res?.session) { applyResult(res); broadcast('session', res.session) }
+  }, [call, applyResult, broadcast])
+
   const openTest = useCallback((adminSecret) => call('open-test', { admin_secret: adminSecret }), [call])
 
-  // Quitte proprement à la fermeture.
-  useEffect(() => {
-    if (!sessionId || !user?.id) return
-    const onUnload = () => { supabase.functions.invoke('raid', { body: { action: 'leave', player_id: user.id, session_id: sessionId } }) }
-    window.addEventListener('beforeunload', onUnload)
-    return () => window.removeEventListener('beforeunload', onUnload)
-  }, [sessionId, user?.id])
-
   return {
-    loading, noArena, sessionId,
-    session: data?.session ?? null,
-    roster: data?.roster ?? [],
-    me: data?.me ?? null,
-    view: data?.view ?? {},
+    loading, noArena, sessionId, busy,
+    session: pub,
+    roster, me, view, role,
     board, chat, sharedFeedback,
-    role,
-    actions: { claimRole, releaseRole, setReady, moveBoard, validate, shareFeedback, sendChat, signalTimeout, openTest },
+    actions: { claimRole, releaseRole, setReady, startGame, moveBoard, validate, shareFeedback, sendChat, signalTimeout, openTest },
   }
 }

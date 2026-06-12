@@ -44,7 +44,7 @@ export default function RaidArenaPage() {
   const { user } = useAuthStore()
   const navigate = useNavigate()
   const arena = useRaidArena(user)
-  const { loading, noArena, session, roster, me, view, board, chat, sharedFeedback, role, actions } = arena
+  const { loading, noArena, session, roster, me, view, board, chat, sharedFeedback, role, actions, busy } = arena
   const canOpen = canSeeRaid(user?.pseudo)
   const [opening, setOpening] = useState(false)
 
@@ -124,7 +124,7 @@ export default function RaidArenaPage() {
             </div>
           </div>
           <div className="raid-waiting-grid">
-            <RosterBoard roster={roster} me={me} actions={actions} />
+            <RosterBoard roster={roster} me={me} actions={actions} busy={busy} />
             <RaidChat chat={chat} onSend={actions.sendChat} me={me} />
           </div>
         </main>
@@ -182,8 +182,8 @@ export default function RaidArenaPage() {
             />
             {amCaptain && (
               <div className="raid-captain-bar">
-                <button className="btn-primary" onClick={onValidate} disabled={!boardFull}>
-                  {boardFull ? 'Valider l’essai' : 'Place les 4 cartes…'}
+                <button className="btn-primary" onClick={onValidate} disabled={!boardFull || busy}>
+                  {busy ? 'Validation…' : boardFull ? 'Valider l’essai' : 'Place les 4 cartes…'}
                 </button>
                 {view.feedback && (
                   <button className="btn-secondary" onClick={() => actions.shareFeedback(view.feedback)}>

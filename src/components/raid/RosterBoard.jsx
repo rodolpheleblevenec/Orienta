@@ -2,7 +2,7 @@ import { ORGANS, getOrgansForTier, MIN_PLAYERS } from '../../lib/raid'
 
 // Salle d'attente : tableau des organes du palier (= effectif). Chacun réclame
 // le sien ; tout le monde doit être prêt pour lancer.
-export default function RosterBoard({ roster, me, actions }) {
+export default function RosterBoard({ roster, me, actions, busy }) {
   const count = roster.length
   const organs = getOrgansForTier(count)
   const byRole = {}
@@ -54,15 +54,21 @@ export default function RosterBoard({ roster, me, actions }) {
       <div className="raid-roster-actions">
         <button
           type="button"
-          className={`btn-primary raid-ready-btn${me?.is_ready ? ' raid-ready-btn--on' : ''}`}
+          className={`btn-secondary raid-ready-btn${me?.is_ready ? ' raid-ready-btn--on' : ''}`}
           disabled={!myRole}
           onClick={() => actions.setReady(!me?.is_ready)}
         >
           {!myRole ? 'Choisis un organe d’abord' : me?.is_ready ? '✓ Prêt — annuler' : 'Je suis prêt'}
         </button>
-        <p className="raid-launch-hint">
-          {canLaunch ? 'Lancement imminent…' : `En attente : ${!enoughPlayers ? `${MIN_PLAYERS - count} joueur(s)` : !allClaimed ? 'organes à couvrir' : 'que tout le monde soit prêt'}`}
-        </p>
+        {canLaunch ? (
+          <button type="button" className="btn-primary raid-launch-btn" disabled={busy} onClick={() => actions.startGame()}>
+            {busy ? 'Lancement…' : '⚔️ Lancer le raid'}
+          </button>
+        ) : (
+          <p className="raid-launch-hint">
+            En attente : {!enoughPlayers ? `${MIN_PLAYERS - count} joueur(s) de plus` : !allClaimed ? 'organes à couvrir' : 'que tout le monde soit prêt'}
+          </p>
+        )}
       </div>
     </div>
   )
