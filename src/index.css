@@ -5279,6 +5279,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 
 /* ── Hall of Fame (classement des équipages ayant vaincu le boss de la semaine) ── */
 .raid-hof { max-width: 640px; margin: 24px auto 40px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); padding: 20px; text-align: left; }
+/* Écran hors-créneau : le Hall of Fame s'aligne sur la largeur de la carte au-dessus (.raid-empty). */
+.raid-page--nowindow .raid-hof { max-width: 520px; }
 .raid-hof--loading { color: var(--ink-2); text-align: center; }
 .raid-hof-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .raid-hof-emoji { font-size: 40px; line-height: 1; }
@@ -5536,6 +5538,13 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .r2d-bubble { animation: r2dBubble 8s linear infinite; }
 .r2d-glowdot { animation: r2dGlow 2.4s ease-in-out infinite; }
 .r2d-matelot { transform-box: fill-box; transform-origin: 50% 100%; animation: r2dBob 3.6s ease-in-out infinite; }
+
+/* Pièces illustrées riggées (manifeste raidArt — créature découpée). */
+.r2d-rig { transform-box: fill-box; }
+.r2d-rig--breathe { transform-origin: 50% 90%; animation: r2dBreathe 4.5s ease-in-out infinite; }
+.r2d-rig--claw { transform-origin: 50% 100%; animation: r2dClaw 2.6s ease-in-out infinite; }
+.r2d-rig--sway { transform-origin: 50% 0%; animation: r2dSway 5s ease-in-out infinite; }
+.r2d-rig--tail { transform-origin: 100% 50%; animation: r2dTail 2.2s ease-in-out infinite; }
 
 @keyframes r2dRays { 0%, 100% { transform: rotate(-2deg); opacity: 1; } 50% { transform: rotate(2deg); opacity: .82; } }
 @keyframes r2dCaustic { 0%, 100% { opacity: .04; transform: translateX(-12px); } 50% { opacity: .1; transform: translateX(12px); } }
