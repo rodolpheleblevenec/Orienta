@@ -5495,7 +5495,10 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-lobby { display: grid; grid-template-columns: 1fr 360px; min-height: 540px; margin-top: 8px;
   background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow); }
 .raid-lobby-main { display: flex; flex-direction: column; min-width: 0; }
-.raid-lobby .rchat { height: 100%; border: none; border-left: 1px solid var(--line); border-radius: 0; box-shadow: none; }
+/* Le chat est en position:absolute pour le combat (rempli dans .raid-col-chat).
+   En salle d'attente il est un item de grille → on le remet dans le flux, sinon il
+   recouvre le bloc des rôles. */
+.raid-lobby .rchat { position: relative; inset: auto; height: 100%; border: none; border-left: 1px solid var(--line); border-radius: 0; box-shadow: none; }
 
 .raid-lobby-banner { background: linear-gradient(135deg, #0f2b3a, #15455a); color: #fff; padding: 18px 22px; display: flex; align-items: center; gap: 16px; }
 .raid-lobby-emoji { font-size: 46px; line-height: 1; filter: drop-shadow(0 4px 8px rgba(0,0,0,.3)); }
