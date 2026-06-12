@@ -206,6 +206,13 @@ export function useRaidArena(user) {
     return res
   }, [call, board, applyResult, broadcast])
 
+  // Pouvoir Capitaine : sonde une carte (1/assaut). Renvoie { green } au seul capitaine.
+  const sonar = useCallback(async (slot) => {
+    const res = await call('sonar', { slot })
+    if (res?.session) { applyResult(res); broadcast('session', res.session) }
+    return res
+  }, [call, applyResult, broadcast])
+
   const shareFeedback = useCallback((fb) => broadcast('feedback', { fb }), [broadcast])
   const sendChat = useCallback((text) => {
     const t = String(text || '').trim().slice(0, 240)
@@ -227,6 +234,6 @@ export function useRaidArena(user) {
     session: pub,
     roster, me, view, role,
     board, chat, sharedFeedback,
-    actions: { claimRole, releaseRole, setReady, startGame, moveBoard, previewBoard, validate, shareFeedback, sendChat, signalTimeout, openTest },
+    actions: { claimRole, releaseRole, setReady, startGame, moveBoard, previewBoard, validate, sonar, shareFeedback, sendChat, signalTimeout, openTest },
   }
 }

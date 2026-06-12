@@ -230,6 +230,31 @@ export const useAuthStore = create((set, get) => ({
     return { ok: true, jetons: data.jetons, segment: data.segment }
   },
 
+  // Renommage : consomme un jeton de renommage (validations + unicité côté serveur).
+  renameUser: async (newPseudo) => {
+    const { user } = get()
+    if (!user) return { error: 'no user' }
+    const { data, error } = await supabase.functions.invoke('shop', {
+      body: { action: 'rename', user_id: user.id, new_pseudo: newPseudo },
+    })
+    if (error || !data || data.error || data.ok === false) return { error: data?.error ?? 'rename_failed' }
+    await get().refreshUser()       // pseudo + rename_tokens à jour
+    get().fetchShop(user.id)
+    return { ok: true, pseudo: data.pseudo }
+  },
+
+  // Statut / humeur perso (exige l'unlock status_custom). statusText vide → efface.
+  setStatus: async (statusText) => {
+    const { user } = get()
+    if (!user) return { error: 'no user' }
+    const { data, error } = await supabase.functions.invoke('shop', {
+      body: { action: 'set_status', user_id: user.id, status: statusText },
+    })
+    if (error || !data || data.error || data.ok === false) return { error: data?.error ?? 'status_failed' }
+    set({ user: { ...get().user, status_text: data.status ?? null } })
+    return { ok: true, status: data.status ?? null }
+  },
+
   markTourDone: async (flag) => {
     const { user } = get()
     if (!user) return

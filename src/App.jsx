@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useAuthStore } from './stores/authStore'
 import RequireAuth from './components/ui/RequireAuth'
 import LoginPage from './pages/login/LoginPage'
 import HubPage from './pages/hub/HubPage'
@@ -14,9 +16,22 @@ import TutorielPage from './pages/tutoriel/TutorielPage'
 import RaidArenaPage from './pages/raid/RaidArenaPage'
 import './index.css'
 
+// Applique le thème d'interface équipé (boutique) sur <html data-theme="…">.
+// Sans thème équipé → attribut retiré (thème clair par défaut).
+function ThemeApplier() {
+  const theme = useAuthStore(s => s.user?.equipped_theme)
+  useEffect(() => {
+    const el = document.documentElement
+    if (theme) el.setAttribute('data-theme', theme)
+    else el.removeAttribute('data-theme')
+  }, [theme])
+  return null
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <ThemeApplier />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<Navigate to="/hub" replace />} />

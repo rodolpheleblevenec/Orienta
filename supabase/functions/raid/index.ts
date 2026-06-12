@@ -76,7 +76,7 @@ function publicSession(s: any) {
     assault_index: s.assault_index, assault_count: s.assault_count,
     attempts_remaining: s.attempts_remaining, assault_deadline: s.assault_deadline,
     lives: s.lives, max_hp: s.max_hp, current_hp: s.current_hp,
-    card_order: s.card_order, is_test: s.is_test,
+    card_order: s.card_order, is_test: s.is_test, sonar_used: s.sonar_used,
   }
 }
 
@@ -225,7 +225,7 @@ serve(async (req) => {
     await supabase.from('orienta_raid_session_secrets').update({ card_map, last_feedback: null, updated_at: nowIso() }).eq('session_id', sessionId)
     await supabase.from('orienta_raid_sessions').update({
       status: 'active', tier: count, card_order, assault_index: 0,
-      attempts_remaining: MAX_ATTEMPTS, lives: START_LIVES, current_hp: session.max_hp,
+      attempts_remaining: MAX_ATTEMPTS, lives: START_LIVES, current_hp: session.max_hp, sonar_used: false,
       assault_deadline: new Date(Date.now() + ASSAULT_SECONDS * 1000).toISOString(), started_at: nowIso(),
     }).eq('id', sessionId)
     return json(await buildView(supabase, sessionId, playerId))
@@ -290,7 +290,7 @@ serve(async (req) => {
       const { card_order, card_map } = await buildAssault(supabase, (secrets?.grid_ids ?? [])[next])
       await supabase.from('orienta_raid_session_secrets').update({ card_map, last_feedback: null, updated_at: nowIso() }).eq('session_id', sessionId)
       await supabase.from('orienta_raid_sessions').update({
-        assault_index: next, card_order, attempts_remaining: MAX_ATTEMPTS,
+        assault_index: next, card_order, attempts_remaining: MAX_ATTEMPTS, sonar_used: false,
         current_hp: session.max_hp - next * HP_PER_ASSAULT,
         assault_deadline: new Date(Date.now() + ASSAULT_SECONDS * 1000).toISOString(),
       }).eq('id', sessionId)
@@ -313,6 +313,30 @@ serve(async (req) => {
     return json(await failAssault(supabase, session, playerId, 'timeout'))
   }
 
+  // ── sonar : le Capitaine sonde UNE carte/assaut → vrai si parfaitement placée. ──
+  if (action === 'sonar') {
+    const { data: session } = await supabase.from('orienta_raid_sessions').select('*').eq('id', sessionId).single()
+    if (!session) return json({ error: 'session not found' }, 404)
+    if (session.status !== 'active') return json({ error: 'not_active' }, 409)
+    const { data: me } = await supabase.from('orienta_raid_participants').select('role').eq('session_id', sessionId).eq('user_id', playerId).maybeSingle()
+    if (!me?.role || !canValidate(me.role)) return json({ error: 'forbidden' }, 403)
+    if (session.sonar_used) return json({ error: 'sonar_spent' }, 409)
+
+    const slot = String(body.slot ?? '')
+    const cell = (session.board ?? {})[slot]
+    if (!cell) return json({ error: 'empty' }, 400)
+    const { data: secrets } = await supabase.from('orienta_raid_session_secrets').select('card_map, grid_ids').eq('session_id', sessionId).single()
+    const cardId = (secrets?.card_map ?? {})[cell.handle]
+    const gridId = (secrets?.grid_ids ?? [])[session.assault_index]
+    const { data: solution } = await supabase.from('orienta_grid_cards').select('card_id, position, rotation').eq('grid_id', gridId)
+    // deno-lint-ignore no-explicit-any
+    const sol = (solution ?? []).find((s: any) => s.card_id === cardId)
+    const green = !!sol && sol.position === Number(slot) && sol.rotation === cell.rotation
+
+    await supabase.from('orienta_raid_sessions').update({ sonar_used: true }).eq('id', sessionId)
+    return json({ ...(await buildView(supabase, sessionId, playerId)), green, slot: Number(slot) })
+  }
+
   return json({ error: 'unknown action' }, 400)
 })
 
@@ -324,7 +348,7 @@ async function failAssault(supabase: any, session: any, playerId: string, _reaso
     await supabase.from('orienta_raid_sessions').update({ status: 'lost', lives: 0, ended_at: nowIso() }).eq('id', session.id)
   } else {
     await supabase.from('orienta_raid_sessions').update({
-      lives, attempts_remaining: MAX_ATTEMPTS,
+      lives, attempts_remaining: MAX_ATTEMPTS, sonar_used: false,
       assault_deadline: new Date(Date.now() + ASSAULT_SECONDS * 1000).toISOString(),
     }).eq('id', session.id)
     await supabase.from('orienta_raid_session_secrets').update({ last_feedback: null, updated_at: nowIso() }).eq('session_id', session.id)

@@ -10,6 +10,8 @@ import RaidChat from '../../components/raid/RaidChat'
 import RoleStrip from '../../components/raid/RoleStrip'
 import RaidBoard from '../../components/raid/RaidBoard'
 
+const SLOT_LABELS = { 0: 'Haut', 1: 'Droite', 2: 'Bas', 3: 'Gauche' }
+
 function HpBar({ hp, max }) {
   const pct = max > 0 ? Math.max(0, Math.round((hp / max) * 100)) : 0
   return (
@@ -47,6 +49,9 @@ export default function RaidArenaPage() {
   const { loading, noArena, session, roster, me, view, board, chat, sharedFeedback, role, actions, busy } = arena
   const canOpen = canSeeRaid(user?.pseudo)
   const [opening, setOpening] = useState(false)
+  const [sonarResult, setSonarResult] = useState(null)
+  // Le sonar se recharge à chaque assaut → on efface le résultat affiché.
+  useEffect(() => { setSonarResult(null) }, [session?.assault_index, session?.status])
 
   async function openTestArena() {
     setOpening(true)
@@ -146,6 +151,12 @@ export default function RaidArenaPage() {
     if (res?.error === 'incomplete') alert('Les 4 cartes doivent être posées avant de valider.')
   }
 
+  async function onSonar(slot) {
+    const res = await actions.sonar(slot)
+    if (res?.error) { if (res.error === 'sonar_spent') alert('Sonar déjà utilisé cet assaut.'); return }
+    setSonarResult({ slot, green: res.green })
+  }
+
   return (
     <>
       <Header />
@@ -205,6 +216,19 @@ export default function RaidArenaPage() {
                 <button className="btn-primary" onClick={onValidate} disabled={!boardFull || busy}>
                   {busy ? 'Validation…' : boardFull ? 'Valider l’essai' : 'Place les 4 cartes…'}
                 </button>
+                {!session.sonar_used ? (
+                  <div className="raid-sonar">
+                    <span className="raid-sonar-label">🔍 Sonar (1×)</span>
+                    {[0, 1, 2, 3].filter(s => board[s]).map(s => (
+                      <button key={s} type="button" className="raid-sonar-btn" onClick={() => onSonar(s)} disabled={busy}>{SLOT_LABELS[s]}</button>
+                    ))}
+                    {[0, 1, 2, 3].filter(s => board[s]).length === 0 && <span className="raid-sonar-hint">pose une carte pour la sonder</span>}
+                  </div>
+                ) : sonarResult ? (
+                  <span className="raid-sonar-result">Sonar {SLOT_LABELS[sonarResult.slot]} : {sonarResult.green ? '✓ carte parfaite' : '✗ pas encore'}</span>
+                ) : (
+                  <span className="raid-sonar-result raid-sonar-result--spent">Sonar utilisé cet assaut</span>
+                )}
                 {view.feedback && (
                   <button className="btn-secondary" onClick={() => actions.shareFeedback(view.feedback)}>
                     Partager les couleurs

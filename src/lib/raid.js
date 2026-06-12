@@ -11,8 +11,8 @@ export const ORGANS = {
                 blurb: 'Tu vois les indices ET les mots. Dicte à la Main quoi poser et comment tourner.' },
   main:       { key: 'main',       label: 'Main',       emoji: '✋', sees: [], does: ['place', 'rotate'],
                 blurb: 'Tu places et tournes les cartes — mais tu ne vois ni indices ni mots. Suis les consignes.' },
-  capitaine:  { key: 'capitaine',  label: 'Capitaine',  emoji: '🧭', sees: ['feedback'], does: ['validate'],
-                blurb: 'Toi seul valides l’essai et vois les couleurs du résultat. Décide, puis partage-les.' },
+  capitaine:  { key: 'capitaine',  label: 'Capitaine',  emoji: '🧭', sees: ['feedback'], does: ['validate', 'sonar'],
+                blurb: 'Toi seul valides l’essai et vois les couleurs. Sonar : sonde 1 carte/assaut pour savoir si elle est parfaite.' },
   // Paliers supérieurs (itérations 2-3) — l’Œil et la Main se scindent, puis les périls.
   vigie:      { key: 'vigie',      label: 'Vigie',      emoji: '👁️', sees: ['clues'], does: [],
                 blurb: 'Tu vois les 4 indices. Décris-les à l’équipe.' },

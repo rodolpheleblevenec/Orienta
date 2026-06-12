@@ -3,10 +3,12 @@
 // orienta_users.equipped_*) pilotent l'affichage. Source de vérité visuelle côté
 // front (miroir conceptuel de marineItems.jsx pour les skins).
 
-// Cadres d'avatar : la value pointe vers une classe CSS (anneau autour de l'avatar).
+// Cadres d'avatar : la value pointe vers une classe CSS (anneau + décor autour de l'avatar).
 export const FRAMES = {
-  gold: { className: 'avatar-frame--gold', label: 'Cadre or' },
-  reef: { className: 'avatar-frame--reef', label: 'Cadre récif' },
+  gold:   { className: 'avatar-frame--gold',   label: 'Cadre or' },
+  reef:   { className: 'avatar-frame--reef',   label: 'Cadre récif' },
+  laurel: { className: 'avatar-frame--laurel', label: 'Cadre laurier' },
+  crown:  { className: 'avatar-frame--crown',  label: 'Cadre couronne' },
 }
 
 export function frameClass(value) {

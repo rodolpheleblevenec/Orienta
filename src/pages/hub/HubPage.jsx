@@ -53,9 +53,10 @@ export default function HubPage() {
   const [showWojoModal, setShowWojoModal] = useState(false)   // annonce des nouveaux paliers (1 fois)
 
   // Présence temps réel : qui est connecté sur le hub en ce moment.
-  // Panneau affiché (desktop only) uniquement s'il y a au moins un AUTRE joueur.
+  // Panneau affiché (desktop only) dès qu'on est connecté — c'est la vitrine des
+  // cosmétiques (avatar, cadre, couleur, statut), donc on s'y voit aussi soi-même.
   const onlinePlayers = useOnlinePlayers(user)
-  const showOnlinePanel = onlinePlayers.some(p => p.id !== user?.id)
+  const showOnlinePanel = onlinePlayers.length > 0
 
   useEffect(() => {
     if (!user) return
@@ -69,7 +70,7 @@ export default function HubPage() {
       const [{ data: activeGrids }, { data: plays }, { data: todayGrid }, { data: dailyGridData }, { data: grantData }, { data: boostsData }] = await Promise.all([
         supabase
           .from('orienta_grids')
-          .select('*, orienta_users(pseudo, selected_skin, equipped_frame, equipped_color), orienta_plays(success, player_id, completed_at)')
+          .select('*, orienta_users(pseudo, selected_skin), orienta_plays(success, player_id, completed_at)')
           .eq('status', 'published')
           .is('daily_date', null)
           .is('daily_status', null)   // exclut les grilles de réserve (piste quotidienne, sans date)

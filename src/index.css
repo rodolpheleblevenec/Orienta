@@ -935,14 +935,20 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   display: inline-flex; align-items: center; justify-content: center;
 }
 .hub-online-list { list-style: none; margin: 0; padding: 0; max-height: 56vh; overflow-y: auto; }
-.hub-online-item { display: flex; align-items: center; gap: 10px; padding: 7px 4px; }
+.hub-online-item { display: flex; align-items: center; gap: 12px; padding: 8px 4px; }
 .hub-online-ava {
-  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
-  color: #fff; font-family: var(--display); font-weight: 700; font-size: 13px;
+  color: #fff; font-family: var(--display); font-weight: 700; font-size: 14px;
 }
+.hub-online-ava--emoji { font-size: 20px; background: var(--bg-tint); }
+.hub-online-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .hub-online-name {
-  flex: 1; min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--ink);
+  min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hub-online-status {
+  min-width: 0; font-size: 11px; font-weight: 500; color: var(--ink-3);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .hub-online-me {
@@ -1065,19 +1071,42 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   .shop-btn { width: 100%; }
 }
 
-/* ── Cadre d'avatar (cosmétique équipé) ── */
+/* ── Cadres d'avatar (cosmétiques équipés — vitrine « En ligne ») ── */
 .avatar-frame { position: relative; display: inline-flex; border-radius: 50%; }
-.avatar-frame::after {
-  content: ''; position: absolute; inset: -3px; border-radius: 50%; pointer-events: none;
+
+/* Or — double anneau doré */
+.avatar-frame--gold {
+  box-shadow: 0 0 0 2px #f4d27a, 0 0 0 3.5px #c79320, 0 0 9px rgba(232,184,75,0.5);
 }
-.avatar-frame--gold::after { box-shadow: 0 0 0 2px #e8b84b, 0 0 8px rgba(232,184,75,0.55); }
-.avatar-frame--reef::after {
+/* Récif — anneau corail lumineux qui pulse */
+.avatar-frame--reef {
   box-shadow: 0 0 0 2px var(--coral);
   animation: avatarFramePulse 2.2s ease-in-out infinite;
 }
 @keyframes avatarFramePulse {
   0%, 100% { box-shadow: 0 0 0 2px var(--coral); }
-  50%      { box-shadow: 0 0 0 2px var(--coral), 0 0 10px rgba(242,96,63,0.65); }
+  50%      { box-shadow: 0 0 0 2px var(--coral), 0 0 11px rgba(242,96,63,0.7); }
+}
+/* Laurier — anneau doré + deux branches qui enlacent l'avatar */
+.avatar-frame--laurel {
+  box-shadow: 0 0 0 2px #d9b24a, 0 0 7px rgba(217,178,74,0.45);
+}
+.avatar-frame--laurel::before,
+.avatar-frame--laurel::after {
+  content: '🌿'; position: absolute; top: 50%; font-size: 15px; line-height: 1;
+  transform: translateY(-50%); pointer-events: none; z-index: 1;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.18));
+}
+.avatar-frame--laurel::before { left: -12px; transform: translateY(-50%) scaleX(-1); }
+.avatar-frame--laurel::after  { right: -12px; }
+/* Couronne — anneau violet + couronne royale posée sur le haut */
+.avatar-frame--crown {
+  box-shadow: 0 0 0 2px #7a64d6, 0 0 8px rgba(122,100,214,0.45);
+}
+.avatar-frame--crown::before {
+  content: '👑'; position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+  font-size: 16px; line-height: 1; pointer-events: none; z-index: 1;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
 }
 
 /* ── Titre de flair (classement) ── */
@@ -1136,15 +1165,74 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 
 /* Cadre d'avatar « carré » (avatars arrondis des cartes communauté) */
 .avatar-frame--square { border-radius: 14px; }
-.avatar-frame--square::after { inset: -2px; border-radius: 16px; }
 
-/* Badge protège-série sur la pastille de série (header) */
-.streak-freeze-badge {
-  margin-left: 4px; font-size: 10.5px; font-weight: 700; line-height: 1;
-  background: #e7f0ff; color: #2b5fae; border-radius: 999px; padding: 2px 5px;
+/* Bouclier protège-série sur la pastille de série (header) : emoji seul, sans pastille. */
+.streak-shield {
+  margin-left: 5px; font-size: 12.5px; line-height: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.15));
 }
 /* Section protège-série dans la modale streak */
 .streak-section--freeze { background: #eef4ff; border: 1px solid #cfe0f7; }
+
+/* ── Thèmes d'interface (boutique) — overrides des variables de couleur ──
+   Appliqués via data-theme sur <html> (cf. ThemeApplier dans App.jsx). */
+:root[data-theme="ocean"] {
+  --bg: #0f1d2e; --bg-tint: #18293d; --card: #17263a; --ink: #eaf2fb; --ink-2: #a7bcd4; --ink-3: #7088a3;
+  --line: rgba(255,255,255,0.10); --line-2: rgba(255,255,255,0.06);
+  --bg-primary: #17263a; --bg-secondary: #0f1d2e; --bg-surface: #18293d; --bg-card: #17263a; --card-bg: #17263a;
+  --text-primary: #eaf2fb; --text-secondary: #a7bcd4; --text-muted: #7088a3;
+  --border: rgba(255,255,255,0.10); --border-subtle: rgba(255,255,255,0.05);
+}
+:root[data-theme="ocean"] .topbar { background: rgba(15,29,46,0.88); }
+
+:root[data-theme="coral"] {
+  --bg: #fdf2ec; --bg-tint: #f8e5da; --card: #fffaf6; --ink: #3a2018; --ink-2: #7c574a; --ink-3: #ac8978;
+  --line: rgba(120,60,40,0.13); --line-2: rgba(120,60,40,0.06);
+  --bg-primary: #fffaf6; --bg-secondary: #fdf2ec; --bg-surface: #f8e5da; --bg-card: #fffaf6; --card-bg: #fffaf6;
+  --text-primary: #3a2018; --text-secondary: #7c574a; --text-muted: #ac8978;
+  --border: rgba(120,60,40,0.13); --border-subtle: rgba(120,60,40,0.06);
+}
+:root[data-theme="coral"] .topbar { background: rgba(253,242,236,0.9); }
+
+:root[data-theme="abyss"] {
+  --bg: #0a0d12; --bg-tint: #141922; --card: #11161e; --ink: #e7ecf2; --ink-2: #9aa6b4; --ink-3: #616f7e;
+  --line: rgba(255,255,255,0.08); --line-2: rgba(255,255,255,0.04);
+  --bg-primary: #11161e; --bg-secondary: #0a0d12; --bg-surface: #141922; --bg-card: #11161e; --card-bg: #11161e;
+  --text-primary: #e7ecf2; --text-secondary: #9aa6b4; --text-muted: #616f7e;
+  --border: rgba(255,255,255,0.08); --border-subtle: rgba(255,255,255,0.04);
+}
+:root[data-theme="abyss"] .topbar { background: rgba(10,13,18,0.9); }
+
+/* ── Sélecteur de thème (boutique) ── */
+.theme-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.theme-swatch {
+  display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  border: 1px solid var(--line); border-radius: var(--r-pill); padding: 6px 11px 6px 7px;
+  background: var(--card); font-family: var(--display); font-weight: 700; font-size: 12.5px; color: var(--ink);
+  transition: border-color .15s, background .15s;
+}
+.theme-swatch:hover { background: var(--bg-tint); }
+.theme-swatch--active { border-color: var(--teal); background: var(--teal-soft); color: var(--teal-700); }
+.theme-swatch:disabled { opacity: .5; cursor: default; }
+.theme-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+.theme-dot--default { background: linear-gradient(135deg,#f1f2f3,#cfd3d8); }
+.theme-dot--ocean   { background: linear-gradient(135deg,#1b3550,#0f1d2e); }
+.theme-dot--coral   { background: linear-gradient(135deg,#ffd0bd,#f0603f); }
+.theme-dot--abyss   { background: linear-gradient(135deg,#2a313c,#0a0d12); }
+
+/* ── Éditeurs confort (renommage / statut) dans la boutique ── */
+.comfort-editor {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 12px 14px; box-shadow: var(--shadow-xs); margin-bottom: 10px;
+}
+.comfort-editor-title { margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--ink); }
+.comfort-editor-row { display: flex; gap: 8px; }
+.comfort-input {
+  flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--line);
+  border-radius: var(--r-sm); font-size: 13px; background: var(--bg); color: var(--ink);
+}
+.comfort-msg { margin: 8px 0 0; font-size: 12.5px; font-weight: 600; }
+.comfort-msg--ok { color: var(--teal); }
+.comfort-msg--err { color: var(--coral); }
 
 /* ── Roue de la fortune ── */
 .wheel-modal { max-width: 380px; text-align: center; }
@@ -4897,6 +4985,16 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .rchat-input:focus { outline: none; border-color: var(--teal); }
 .rchat-send { width: 42px; height: 42px; border: none; background: var(--teal); color: #fff; border-radius: 50%; font-size: 14px; cursor: pointer; flex-shrink: 0; }
 .rchat-send:disabled { opacity: .4; cursor: default; }
+
+/* Sonar du Capitaine */
+.raid-sonar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.raid-sonar-label { font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.raid-sonar-btn { font-size: 12px; font-weight: 600; padding: 6px 12px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--card); color: var(--ink); cursor: pointer; }
+.raid-sonar-btn:hover:not(:disabled) { border-color: var(--teal); color: var(--teal-700); }
+.raid-sonar-btn:disabled { opacity: .5; cursor: default; }
+.raid-sonar-hint { font-size: 12px; color: var(--ink-3); }
+.raid-sonar-result { font-size: 13px; font-weight: 700; color: var(--teal-700); }
+.raid-sonar-result--spent { color: var(--ink-3); font-weight: 600; }
 
 @media (max-width: 920px) {
   .raid-waiting-grid { grid-template-columns: 1fr; }

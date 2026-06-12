@@ -8,7 +8,6 @@ import QuestsModal from './QuestsModal'
 import WheelModal from './WheelModal'
 import NotificationsPanel from './NotificationsPanel'
 import AdminPasswordModal from './AdminPasswordModal'
-import AvatarFrame from './AvatarFrame'
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 import { canSeeRaid } from '../../lib/raid'
 
@@ -83,7 +82,7 @@ export default function Header() {
             <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/>
           </svg>
           <span className="streak-txt">{streak}</span>
-          {freezes > 0 && <span className="streak-freeze-badge">🛡️{freezes}</span>}
+          {freezes > 0 && <span className="streak-shield" aria-hidden="true">🛡️</span>}
         </button>
 
         <div className="notif-anchor">
@@ -109,10 +108,8 @@ export default function Header() {
         <span className="topbar-divider" />
 
         <Link to="/profile" className="me-link">
-          <AvatarFrame frame={user?.equipped_frame}>
-            <span className="me-ava">{initial}</span>
-          </AvatarFrame>
-          <span className="me-name" style={user?.equipped_color ? { color: user.equipped_color } : undefined}>{user?.pseudo}</span>
+          <span className="me-ava">{initial}</span>
+          <span className="me-name">{user?.pseudo}</span>
         </Link>
 
         <button className="icon-btn logout-btn" type="button" title="Se déconnecter" onClick={logout}>

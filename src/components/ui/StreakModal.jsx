@@ -42,13 +42,6 @@ export default function StreakModal({ onClose }) {
             </ul>
           </div>
 
-          <div className="streak-section">
-            <h3>La grâce du week-end</h3>
-            <p>
-              Pas de stress le samedi et dimanche : si vous jouez le vendredi et de nouveau le lundi, votre streak continue comme si de rien n'était.
-            </p>
-          </div>
-
           <div className="streak-section highlight">
             <p>
               💡 Jouez chaque jour pour faire grimper votre streak et maximiser vos gains d'XP !

@@ -20,7 +20,7 @@ export default function FullLeaderboardModal({ user, onClose }) {
 
   useEffect(() => {
     supabase.from('orienta_users')
-      .select('pseudo, xp, equipped_color, equipped_title')
+      .select('pseudo, xp')
       .eq('is_system', false)
       .order('xp', { ascending: false })
       .then(({ data }) => {
@@ -68,8 +68,7 @@ export default function FullLeaderboardModal({ user, onClose }) {
                       {i + 1}
                     </span>
                     <span className="daily-lb-name">
-                      <span style={player.equipped_color ? { color: player.equipped_color } : undefined}>{player.pseudo ?? '?'}</span>
-                      {player.equipped_title && <span className="clsmt-title">{player.equipped_title}</span>}
+                      {player.pseudo ?? '?'}
                       {isMe && <span className="daily-lb-you">toi</span>}
                     </span>
                     <span className="daily-lb-score">{(player.xp ?? 0).toLocaleString()}<span> XP</span></span>

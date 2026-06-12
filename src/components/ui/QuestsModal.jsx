@@ -74,20 +74,29 @@ function ShopRow({ item, jetons, ownedCount, onBuy, onEquip, busy }) {
 // Ouverte depuis la pastille jetons du header. Rafraîchit tout à l'ouverture.
 export default function QuestsModal({ onClose, onOpenWheel }) {
   useBodyScrollLock()
-  const { user, quests, fetchQuests, claimQuest, shop, fetchShop, buyItem, equipItem, giftJetons } = useAuthStore()
+  const { user, quests, fetchQuests, claimQuest, shop, fetchShop, buyItem, equipItem, giftJetons, renameUser, setStatus } = useAuthStore()
   const [tab, setTab] = useState('quests')
   const [busyId, setBusyId] = useState(null)
   const [giftPseudo, setGiftPseudo] = useState('')
   const [giftAmount, setGiftAmount] = useState('')
   const [giftMsg, setGiftMsg] = useState(null)
   const [gifting, setGifting] = useState(false)
+  const [renameVal, setRenameVal] = useState('')
+  const [renameMsg, setRenameMsg] = useState(null)
+  const [renaming, setRenaming] = useState(false)
+  const [statusVal, setStatusVal] = useState(user?.status_text ?? '')
+  const [statusMsg, setStatusMsg] = useState(null)
+  const [savingStatus, setSavingStatus] = useState(false)
   const jetons = user?.jetons ?? 0
   const daily = quests?.daily ?? []
   const weekly = quests?.weekly ?? []
   const items = shop?.items ?? []
   const counters = shop?.counters ?? {}
+  const renameTokens = counters.rename_tokens ?? 0
+  const ownsStatus = items.some(i => i.code === 'status_custom' && i.owned)
 
   useEffect(() => { fetchQuests(); fetchShop() }, []) // recharge à l'ouverture
+  useEffect(() => { setStatusVal(user?.status_text ?? '') }, [user?.status_text])
 
   async function handleClaim(progressId) {
     setBusyId(progressId)
@@ -125,6 +134,32 @@ export default function QuestsModal({ onClose, onOpenWheel }) {
       }
       setGiftMsg({ ok: false, text: map[res?.error] ?? 'Échec de l\'envoi.' })
     }
+  }
+  async function handleRename() {
+    const v = renameVal.trim()
+    if (v.length < 2) { setRenameMsg({ ok: false, text: 'Pseudo trop court (2 caractères min).' }); return }
+    setRenaming(true)
+    const res = await renameUser(v)
+    setRenaming(false)
+    if (res?.ok) {
+      setRenameMsg({ ok: true, text: `✅ Tu es maintenant « ${res.pseudo} ».` }); setRenameVal('')
+    } else {
+      const map = {
+        taken: 'Ce pseudo est déjà pris.',
+        invalid_length: 'Entre 2 et 24 caractères.',
+        invalid_chars: 'Caractères non autorisés.',
+        reserved: 'Ce pseudo est réservé.',
+        no_token: 'Tu n\'as plus de jeton de renommage.',
+      }
+      setRenameMsg({ ok: false, text: map[res?.error] ?? 'Échec du renommage.' })
+    }
+  }
+  async function handleSetStatus() {
+    setSavingStatus(true)
+    const res = await setStatus(statusVal.trim())
+    setSavingStatus(false)
+    if (res?.ok) setStatusMsg({ ok: true, text: res.status ? '✅ Statut enregistré.' : '✅ Statut effacé.' })
+    else setStatusMsg({ ok: false, text: 'Échec — réessaie.' })
   }
 
   // Articles boutique groupés par famille (ordre d'affichage stable).
@@ -185,6 +220,44 @@ export default function QuestsModal({ onClose, onOpenWheel }) {
                 <span className="wheel-entry-arrow">→</span>
               </button>
             )}
+            {/* Confort actif : éditeurs disponibles une fois l'article possédé */}
+            {renameTokens > 0 && (
+              <div className="comfort-editor">
+                <p className="comfort-editor-title">✏️ Changer ton pseudo · {renameTokens} jeton{renameTokens > 1 ? 's' : ''} de renommage</p>
+                <div className="comfort-editor-row">
+                  <input
+                    className="comfort-input"
+                    placeholder="Nouveau pseudo"
+                    value={renameVal}
+                    maxLength={24}
+                    onChange={e => { setRenameVal(e.target.value); setRenameMsg(null) }}
+                  />
+                  <button className="shop-btn shop-btn--buy" type="button" disabled={renaming} onClick={handleRename}>
+                    {renaming ? '…' : 'Renommer'}
+                  </button>
+                </div>
+                {renameMsg && <p className={`comfort-msg${renameMsg.ok ? ' comfort-msg--ok' : ' comfort-msg--err'}`}>{renameMsg.text}</p>}
+              </div>
+            )}
+            {ownsStatus && (
+              <div className="comfort-editor">
+                <p className="comfort-editor-title">💬 Ton statut — visible dans la bulle « En ligne »</p>
+                <div className="comfort-editor-row">
+                  <input
+                    className="comfort-input"
+                    placeholder="Ex. 🔥 en chasse"
+                    value={statusVal}
+                    maxLength={40}
+                    onChange={e => { setStatusVal(e.target.value); setStatusMsg(null) }}
+                  />
+                  <button className="shop-btn shop-btn--buy" type="button" disabled={savingStatus} onClick={handleSetStatus}>
+                    {savingStatus ? '…' : 'Enregistrer'}
+                  </button>
+                </div>
+                {statusMsg && <p className={`comfort-msg${statusMsg.ok ? ' comfort-msg--ok' : ' comfort-msg--err'}`}>{statusMsg.text}</p>}
+              </div>
+            )}
+
             {grouped.length === 0 ? (
               <p className="quests-modal-empty">Chargement de la boutique…</p>
             ) : (

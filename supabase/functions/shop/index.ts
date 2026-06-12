@@ -35,6 +35,7 @@ serve(async (req) => {
   let body: {
     action?: string; user_id?: string; item_code?: string; equip?: boolean
     grid_id?: string; amount?: number; recipient_id?: string; recipient_pseudo?: string
+    new_pseudo?: string; status?: string | null
   }
   try { body = await req.json() } catch { return json({ error: 'invalid body' }, 400) }
   const { action } = body
@@ -52,7 +53,7 @@ serve(async (req) => {
         .select('item_code, equipped')
         .eq('user_id', userId),
       supabase.from('orienta_users')
-        .select('jetons, equipped_frame, equipped_color, equipped_title, equipped_victory, streak_freeze_tokens, extra_create_slots')
+        .select('jetons, equipped_frame, equipped_color, equipped_title, equipped_victory, equipped_theme, status_text, streak_freeze_tokens, extra_create_slots, rename_tokens')
         .eq('id', userId)
         .single(),
     ])
@@ -76,12 +77,15 @@ serve(async (req) => {
       counters: {
         streak_freeze_tokens: user?.streak_freeze_tokens ?? 0,
         extra_create_slots: user?.extra_create_slots ?? 0,
+        rename_tokens: user?.rename_tokens ?? 0,
       },
+      status: user?.status_text ?? null,
       equipped: {
         frame: user?.equipped_frame ?? null,
         color: user?.equipped_color ?? null,
         title: user?.equipped_title ?? null,
         victory: user?.equipped_victory ?? null,
+        theme: user?.equipped_theme ?? null,
       },
     })
   }
@@ -162,6 +166,22 @@ serve(async (req) => {
   if (action === 'spin') {
     const { data, error } = await supabase.rpc('spin_wheel', { p_user_id: userId })
     if (error) return json({ error: 'could not spin' }, 500)
+    return json(data ?? { ok: false })
+  }
+
+  // Renommage : consomme un jeton de renommage (validations + unicité côté RPC).
+  if (action === 'rename') {
+    const np = (body.new_pseudo ?? '').toString()
+    const { data, error } = await supabase.rpc('rename_user', { p_user_id: userId, p_new_pseudo: np })
+    if (error) return json({ error: 'could not rename' }, 500)
+    return json(data ?? { ok: false })
+  }
+
+  // Statut perso : exige l'unlock status_custom (vérifié côté RPC). status=null → efface.
+  if (action === 'set_status') {
+    const st = body.status == null ? '' : String(body.status)
+    const { data, error } = await supabase.rpc('set_user_status', { p_user_id: userId, p_status: st })
+    if (error) return json({ error: 'could not set status' }, 500)
     return json(data ?? { ok: false })
   }
 

@@ -98,11 +98,9 @@ function TrayDropZone({ empty, disabled, children }) {
 
 export default function CreatePage() {
   const navigate = useNavigate()
-  const { user, refreshUser, markTourDone, shop, fetchShop, rerollCards } = useAuthStore()
+  const { user, refreshUser, markTourDone, fetchShop, rerollCards } = useAuthStore()
   const [rerollCost, setRerollCost] = useState(null)
   const [rerolling, setRerolling] = useState(false)
-  // Déblocage boutique « toutes difficultés » : ouvre Moyen/Difficile sans paliers.
-  const ownsAllDifficulties = (shop?.items ?? []).some(i => i.code === 'unlock_all_difficulties' && i.owned)
   const extraSlots = user?.extra_create_slots ?? 0
 
   // Mode « grant » : le gagnant d'un jour crée la grille du jour de J+3 (?grant=ID).
@@ -501,7 +499,7 @@ export default function CreatePage() {
                     { id: 'moyen',     name: 'Moyen',     desc: '90 secondes · 4 cartes', lockMsg: 'Crée une grille Facile pour débloquer' },
                     { id: 'difficile', name: 'Difficile', desc: '90 secondes · 5 cartes (1 leurre)', lockMsg: 'Crée une grille Moyen pour débloquer' },
                   ].map(d => {
-                    const isLocked = !ownsAllDifficulties && !unlockedDifficulties.includes(d.id)
+                    const isLocked = !unlockedDifficulties.includes(d.id)
                     return (
                       <button key={d.id} className={`difficulty-card ${isLocked ? 'difficulty-card--locked' : ''}`} onClick={() => !isLocked && handleSelectDifficulty(d.id)} disabled={isLocked} type="button">
                         <div className="difficulty-name">{d.name}</div>
