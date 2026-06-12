@@ -25,7 +25,7 @@ export default function ClassementPage() {
       setLoading(true)
       const [{ data: topPlayers }, { data: currentUser }, { data: colProgress }] = await Promise.all([
         supabase.from('orienta_users')
-          .select('pseudo, xp')
+          .select('pseudo, xp, equipped_color, equipped_title')
           .eq('is_system', false)
           .order('xp', { ascending: false })
           .limit(10),
@@ -168,7 +168,10 @@ export default function ClassementPage() {
                         transition={{ delay: idx * 0.04 }}
                       >
                         <span className="clsmt-rank">{getMedal(idx)}</span>
-                        <span className="clsmt-name">{player.pseudo}</span>
+                        <span className="clsmt-name">
+                          <span style={player.equipped_color ? { color: player.equipped_color } : undefined}>{player.pseudo}</span>
+                          {player.equipped_title && <span className="clsmt-title">{player.equipped_title}</span>}
+                        </span>
                         <span className="clsmt-xp">{(player.xp ?? 0).toLocaleString()} XP</span>
                       </motion.div>
                     )
@@ -178,7 +181,10 @@ export default function ClassementPage() {
                       <div className="clsmt-sep">···</div>
                       <div className="clsmt-row clsmt-row--me">
                         <span className="clsmt-rank">#{userRank.rank}</span>
-                        <span className="clsmt-name">{userRank.pseudo}</span>
+                        <span className="clsmt-name">
+                          <span style={user?.equipped_color ? { color: user.equipped_color } : undefined}>{userRank.pseudo}</span>
+                          {user?.equipped_title && <span className="clsmt-title">{user.equipped_title}</span>}
+                        </span>
                         <span className="clsmt-xp">{(userRank.xp ?? 0).toLocaleString()} XP</span>
                       </div>
                     </>

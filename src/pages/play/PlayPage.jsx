@@ -514,6 +514,7 @@ export default function PlayPage() {
           streakCurrent: user.streak_current,
           justPlayed: true,
           combo: r.combo ?? null,
+          streakFreezeUsed: r.streakFreezeUsed === true,
         },
       })
     } else {

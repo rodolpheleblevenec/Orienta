@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '../../stores/authStore'
@@ -21,9 +22,27 @@ function pickAvaColor(str) {
   return AVA_COLORS[Math.abs(h) % AVA_COLORS.length]
 }
 
-export default function GridCard({ grid, playInfo, index, isDaily = false, isOwnGrid = false }) {
-  const { user } = useAuthStore()
+export default function GridCard({ grid, playInfo, index, isDaily = false, isOwnGrid = false, alreadyBoosted = false }) {
+  const { user, boostGrid, shop } = useAuthStore()
   const completed = playInfo?.completed === true
+
+  // Coup de projecteur (boutique) : disponible sur les grilles communautaires d'autrui.
+  const canBoost = !isDaily && !isOwnGrid && !!user
+  const boostCost = shop?.actionCosts?.boost_grid ?? null
+  const [boostCount, setBoostCount] = useState(grid.boost_count ?? 0)
+  const [boosted, setBoosted] = useState(alreadyBoosted)
+  const [boosting, setBoosting] = useState(false)
+  async function handleBoost(e) {
+    e.preventDefault(); e.stopPropagation()
+    if (boosting || boosted) return
+    setBoosting(true)
+    const res = await boostGrid(grid.id)
+    if (res?.ok) {
+      setBoosted(true)
+      setBoostCount(typeof res.boost_count === 'number' ? res.boost_count : c => c + 1)
+    }
+    setBoosting(false)
+  }
   // Grille du jour déjà terminée → dashboard de stats (la solution n'y est
   // révélée qu'aux finishers). Sinon : écran de jeu.
   const linkTo = (isOwnGrid || (isDaily && completed))
@@ -116,6 +135,21 @@ export default function GridCard({ grid, playInfo, index, isDaily = false, isOwn
           </svg>
         </div>
       </Link>
+
+      {canBoost && (
+        <button
+          type="button"
+          className={`pc-boost${boosted ? ' pc-boost--done' : ''}`}
+          onClick={handleBoost}
+          disabled={boosting || boosted || (boostCost != null && (user?.jetons ?? 0) < boostCost)}
+          title={boosted ? 'Tu as mis cette grille en avant' : boostCost != null ? `Mettre en avant · 🪙${boostCost}` : 'Mettre en avant'}
+        >
+          {boosted
+            ? <>✨ Mise en avant{boostCount > 0 ? ` · ${boostCount}` : ''}</>
+            : boosting ? '…'
+            : <>✨ Mettre en avant{boostCount > 0 ? ` · ${boostCount}` : ''}</>}
+        </button>
+      )}
     </motion.article>
   )
 }

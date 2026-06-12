@@ -6,6 +6,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { getLevelProgress, getLevelProgressCollective } from '../../lib/levels'
 import { MARINE_ITEMS, getMarineItem } from '../../lib/marineItems'
 import Header from '../../components/ui/Header'
+import AvatarFrame from '../../components/ui/AvatarFrame'
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuthStore()
@@ -126,12 +127,14 @@ export default function ProfilePage() {
           <>
             <div className="profile-header-block">
               <div className="profile-avatar-wrap">
-                <div className="profile-avatar">{avatarContent}</div>
+                <AvatarFrame frame={user.equipped_frame}>
+                  <div className="profile-avatar">{avatarContent}</div>
+                </AvatarFrame>
                 <div className="profile-level-badge">{user.level}</div>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="profile-name-row">
-                  <h1 className="profile-name">{user.pseudo}</h1>
+                  <h1 className="profile-name" style={user.equipped_color ? { color: user.equipped_color } : undefined}>{user.pseudo}</h1>
                   <div className="profile-streak-pills">
                     <span className="profile-streak-pill">🔥 {user.streak_current}</span>
                     <span className="profile-streak-pill">🏆 {user.streak_best}</span>

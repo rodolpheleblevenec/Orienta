@@ -65,8 +65,10 @@ serve(async (req) => {
   if (difficulty === 'difficile' && !hasDecoy) return json({ error: 'decoy required for difficile' }, 400)
 
   // ── L'utilisateur existe ? ──
-  const { data: user } = await supabase.from('orienta_users').select('id').eq('id', user_id).single()
+  const { data: user } = await supabase.from('orienta_users').select('id, extra_create_slots').eq('id', user_id).single()
   if (!user) return json({ error: 'user not found' }, 404)
+  // Slot de création supplémentaire (boutique) consommé seulement si la création réussit.
+  let usedExtraSlot = false
 
   // ── Mode « grant » : le gagnant d'un jour crée la grille du jour de J+3 ──
   // Déclenché par grant_id → bypass quota + déblocage de difficulté ; date verrouillée sur target_date.
@@ -98,16 +100,27 @@ serve(async (req) => {
       .is('daily_date', null)
       .is('daily_status', null)
       .gte('created_at', today + 'T00:00:00')
-    if ((todayCount ?? 0) > 0) return json({ error: 'daily limit reached' }, 403)
+    if ((todayCount ?? 0) > 0) {
+      // Limite atteinte → autorisé seulement si le joueur a un slot supplémentaire
+      // (boutique). On le consommera APRÈS création réussie (pas de perte si échec).
+      if ((user.extra_create_slots ?? 0) <= 0) return json({ error: 'daily limit reached' }, 403)
+      usedExtraSlot = true
+    }
 
     // ── Difficulté débloquée ? (facile → moyen → difficile) ──
+    // Sauf si le joueur possède le déblocage boutique « toutes difficultés ».
     if (difficulty !== 'facile') {
-      const { data: prior } = await supabase
-        .from('orienta_grids').select('difficulty')
-        .eq('creator_id', user_id).is('daily_date', null).is('daily_status', null).eq('status', 'published')
-      const set = new Set((prior ?? []).map(g => g.difficulty))
-      if (difficulty === 'moyen' && !set.has('facile')) return json({ error: 'moyen locked' }, 403)
-      if (difficulty === 'difficile' && !set.has('moyen')) return json({ error: 'difficile locked' }, 403)
+      const { data: unlock } = await supabase
+        .from('orienta_user_unlocks').select('item_code')
+        .eq('user_id', user_id).eq('item_code', 'unlock_all_difficulties').maybeSingle()
+      if (!unlock) {
+        const { data: prior } = await supabase
+          .from('orienta_grids').select('difficulty')
+          .eq('creator_id', user_id).is('daily_date', null).is('daily_status', null).eq('status', 'published')
+        const set = new Set((prior ?? []).map(g => g.difficulty))
+        if (difficulty === 'moyen' && !set.has('facile')) return json({ error: 'moyen locked' }, 403)
+        if (difficulty === 'difficile' && !set.has('moyen')) return json({ error: 'difficile locked' }, 403)
+      }
     }
   }
 
@@ -181,6 +194,12 @@ serve(async (req) => {
       .update({ status: 'claimed', created_grid_id: grid.id })
       .eq('id', grant.id)
     return json({ grid_id: grid.id, daily: true, target_date: grant.target_date })
+  }
+
+  // Consomme le slot de création supplémentaire (boutique) seulement maintenant que
+  // la grille est bien créée — un échec plus haut n'aura donc rien décompté.
+  if (usedExtraSlot) {
+    await supabase.rpc('consume_create_slot', { p_user_id: user_id })
   }
 
   return json({ grid_id: grid.id })

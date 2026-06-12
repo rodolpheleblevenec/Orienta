@@ -40,6 +40,16 @@ function rainClovers() {
   burst(0); burst(220); burst(end)
 }
 
+// Feu d'artifice (cosmétique de victoire « victory_fireworks ») — bursts colorés étagés.
+function fireworksBurst() {
+  const colors = ['#f0603f', '#0a9e84', '#e8b84b', '#3b82f6', '#a855f7']
+  const fire = (x) => confetti({ particleCount: 45, spread: 360, startVelocity: 32, ticks: 100, gravity: 0.9, scalar: 1, origin: { x, y: 0.4 }, colors })
+  fire(0.5)
+  setTimeout(() => fire(0.25), 200)
+  setTimeout(() => fire(0.75), 360)
+  setTimeout(() => fire(0.5), 560)
+}
+
 // Chute douce depuis le haut de l'écran (défaite) — pluie / feuilles
 function fallFromTop({ text, scalar, count, gravity, ticks, drift }) {
   const shape = confetti.shapeFromText ? confetti.shapeFromText({ text, scalar }) : undefined
@@ -66,7 +76,7 @@ export default function ResultPage() {
     score = 0, xp = 0, success = false,
     baseXp = 0, bonusXp = 0, attemptBonus = 0,
     timeSeconds = 0, attemptCount = 1, streakCurrent = 0,
-    justPlayed = false, combo = null,
+    justPlayed = false, combo = null, streakFreezeUsed = false,
   } = location.state ?? {}
 
   const [leaderboard, setLeaderboard] = useState([])
@@ -117,10 +127,16 @@ export default function ResultPage() {
   }
 
   useEffect(() => {
-    if (success) { rainClovers(); return }
+    if (success) {
+      // Effet de victoire cosmétique (boutique) si équipé, sinon trèfles.
+      if (user?.equipped_victory === 'fireworks') fireworksBurst()
+      else rainClovers()
+      return
+    }
     if (lossAnim === 'rain') rainDrops()
     else if (lossAnim === 'leaves') fallLeaves()
     // 'wilt' : animation CSS du trèfle, gérée au rendu
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [success, lossAnim])
 
   // Ferme la palette d'emojis au clic extérieur
@@ -362,6 +378,10 @@ export default function ResultPage() {
             </div>
             <h1 className="result-title">{congrats.title}</h1>
             {congrats.subtitle && <p className="result-congrats-sub">{congrats.subtitle}</p>}
+
+            {streakFreezeUsed && (
+              <div className="result-freeze-banner">🛡️ Protège-série utilisé — ta série continue&nbsp;!</div>
+            )}
 
             {success && (
               <div className="result-meta">

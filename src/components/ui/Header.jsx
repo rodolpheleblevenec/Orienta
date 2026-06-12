@@ -7,6 +7,7 @@ import StreakModal from './StreakModal'
 import QuestsModal from './QuestsModal'
 import NotificationsPanel from './NotificationsPanel'
 import AdminPasswordModal from './AdminPasswordModal'
+import AvatarFrame from './AvatarFrame'
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 import { canSeeRaid } from '../../lib/raid'
 
@@ -104,8 +105,10 @@ export default function Header() {
         <span className="topbar-divider" />
 
         <Link to="/profile" className="me-link">
-          <span className="me-ava">{initial}</span>
-          <span className="me-name">{user?.pseudo}</span>
+          <AvatarFrame frame={user?.equipped_frame}>
+            <span className="me-ava">{initial}</span>
+          </AvatarFrame>
+          <span className="me-name" style={user?.equipped_color ? { color: user.equipped_color } : undefined}>{user?.pseudo}</span>
         </Link>
 
         <button className="icon-btn logout-btn" type="button" title="Se déconnecter" onClick={logout}>

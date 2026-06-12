@@ -46,6 +46,7 @@ export default function HubPage() {
   const [dailyGrids, setDailyGrids] = useState([])
   const [showAllCommunity, setShowAllCommunity] = useState(false)
   const [communitySort, setCommunitySort] = useState('recent') // 'recent' | 'best' | 'unplayed'
+  const [boostedGrids, setBoostedGrids] = useState(() => new Set()) // grilles déjà mises en avant par le joueur
   const [livePlayStats, setLivePlayStats] = useState(null)
   const [pendingGrant, setPendingGrant] = useState(null)   // droit de créer la grille du jour (gagnant)
   const [showWinnerModal, setShowWinnerModal] = useState(false)
@@ -65,7 +66,7 @@ export default function HubPage() {
       const todayDate = now.split('T')[0]
       const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]
 
-      const [{ data: activeGrids }, { data: plays }, { data: todayGrid }, { data: dailyGridData }, { data: grantData }] = await Promise.all([
+      const [{ data: activeGrids }, { data: plays }, { data: todayGrid }, { data: dailyGridData }, { data: grantData }, { data: boostsData }] = await Promise.all([
         supabase
           .from('orienta_grids')
           .select('*, orienta_users(pseudo, selected_skin), orienta_plays(success, player_id, completed_at)')
@@ -105,6 +106,9 @@ export default function HubPage() {
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
+
+        // Grilles déjà mises en avant par ce joueur (pour désactiver le bouton boost).
+        supabase.from('orienta_grid_boosts').select('grid_id').eq('user_id', user.id),
       ])
 
       // Un joueur peut avoir plusieurs rows de play sur une même grille (doublons en base).
@@ -120,6 +124,7 @@ export default function HubPage() {
       }
       setGrids(activeGrids ?? [])
       setPlaysMap(playsById)
+      setBoostedGrids(new Set((boostsData ?? []).map(b => b.grid_id)))
       setDailyGrids(dailyGridData ?? [])
       if (todayGrid && todayGrid.id) {
         setCreatedGrid(todayGrid)
@@ -203,9 +208,11 @@ export default function HubPage() {
   const olderGroups = communityGroups.filter(([date]) => date < twoDaysAgoDate)
   const visibleGroups = showAllCommunity ? communityGroups : recentGroups
 
-  // Tri "meilleures" — toutes les grilles à plat, par upvotes décroissants
+  // Tri "meilleures" — score = upvotes + boosts pondérés (un boost = 3 upvotes).
+  const BOOST_WEIGHT = 3
+  const bestScore = g => (g.upvotes_count ?? 0) + (g.boost_count ?? 0) * BOOST_WEIGHT
   const bestGrids = [...grids].sort(
-    (a, b) => (b.upvotes_count ?? 0) - (a.upvotes_count ?? 0) || b.created_at.localeCompare(a.created_at)
+    (a, b) => bestScore(b) - bestScore(a) || b.created_at.localeCompare(a.created_at)
   )
 
   // Filtre "jamais jouées" — grilles que le joueur n'a pas terminées : aucune partie enregistrée
@@ -606,6 +613,7 @@ export default function HubPage() {
                   playInfo={playsMap.get(grid.id) ?? null}
                   index={i}
                   isOwnGrid={grid.creator_id === user?.id}
+                  alreadyBoosted={boostedGrids.has(grid.id)}
                 />
               ))}
             </div>
@@ -630,6 +638,7 @@ export default function HubPage() {
                     playInfo={playsMap.get(grid.id) ?? null}
                     index={i}
                     isOwnGrid={grid.creator_id === user?.id}
+                    alreadyBoosted={boostedGrids.has(grid.id)}
                   />
                 ))}
               </div>
@@ -651,6 +660,7 @@ export default function HubPage() {
                           playInfo={playsMap.get(grid.id) ?? null}
                           index={i}
                           isOwnGrid={grid.creator_id === user?.id}
+                          alreadyBoosted={boostedGrids.has(grid.id)}
                         />
                       ))}
                     </div>

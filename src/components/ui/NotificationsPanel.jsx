@@ -117,6 +117,14 @@ export default function NotificationsPanel({ onClose }) {
                     icon = '✅'
                     text = <>Quête accomplie&nbsp;! <strong>Récupère ta récompense</strong> dans tes quêtes.</>
                     link = '/hub'
+                  } else if (type === 'grid_boosted') {
+                    icon = '✨'
+                    text = <>Un joueur a mis ta grille <strong>en avant</strong>&nbsp;!</>
+                    link = n.payload?.grid_id ? `/dashboard/${n.payload.grid_id}` : '/hub'
+                  } else if (type === 'jetons_gift') {
+                    icon = '🎁'
+                    text = <><strong>{n.payload?.from_pseudo ?? 'Quelqu\'un'}</strong> t'a offert <strong>🪙{n.payload?.amount ?? 0}</strong>&nbsp;!</>
+                    link = '/hub'
                   } else {
                     text = <><strong>{n.payload?.player_pseudo ?? 'Quelqu\'un'}</strong> a interagi avec ta grille</>
                   }

@@ -162,6 +162,8 @@ export function useRaidArena(user) {
 
   // ── Combat ──
   const moveBoard = useCallback((next) => { setBoard(next); broadcast('board', { board: next }) }, [broadcast])
+  // Aperçu en direct PENDANT le glissement (diffusé aux autres, sans figer mon état local).
+  const previewBoard = useCallback((next) => broadcast('board', { board: next }), [broadcast])
 
   const validate = useCallback(async () => {
     setBusy(true)
@@ -194,6 +196,6 @@ export function useRaidArena(user) {
     session: pub,
     roster, me, view, role,
     board, chat, sharedFeedback,
-    actions: { claimRole, releaseRole, setReady, startGame, moveBoard, validate, shareFeedback, sendChat, signalTimeout, openTest },
+    actions: { claimRole, releaseRole, setReady, startGame, moveBoard, previewBoard, validate, shareFeedback, sendChat, signalTimeout, openTest },
   }
 }

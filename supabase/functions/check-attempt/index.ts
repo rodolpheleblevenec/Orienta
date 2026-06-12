@@ -151,7 +151,7 @@ serve(async (req) => {
 
   const { data: user } = await supabase
     .from('orienta_users')
-    .select('pseudo, level, streak_current, streak_best, last_played_at, xp_contributed, combo_count, combo_updated_at')
+    .select('pseudo, level, streak_current, streak_best, last_played_at, xp_contributed, combo_count, combo_updated_at, streak_freeze_tokens')
     .eq('id', play.player_id)
     .single()
 
@@ -195,12 +195,26 @@ serve(async (req) => {
   }
 
   // Streak + dernière activité + contribution (alignée sur l'XP réellement gagnée)
+  let streakFreezeUsed = false
   if (user) {
     const today = new Date().toDateString()
     const lastPlayed = user.last_played_at ? new Date(user.last_played_at).toDateString() : null
     const yesterday = new Date(Date.now() - 86400000).toDateString()
+    const dayBeforeYesterday = new Date(Date.now() - 2 * 86400000).toDateString()
     let newStreak = user.streak_current ?? 0
-    if (lastPlayed !== today) newStreak = (lastPlayed === yesterday) ? newStreak + 1 : 1
+    if (lastPlayed !== today) {
+      if (lastPlayed === yesterday) {
+        newStreak = newStreak + 1
+      } else if (lastPlayed === dayBeforeYesterday && newStreak > 0 && (user.streak_freeze_tokens ?? 0) > 0) {
+        // Un seul jour manqué : on tente de consommer un protège-série pour ponter
+        // le trou (le jour d'hier est « couvert », aujourd'hui prolonge la série).
+        const { data: used } = await supabase.rpc('consume_streak_freeze', { p_user_id: play.player_id })
+        if (used === true) { newStreak = newStreak + 1; streakFreezeUsed = true }
+        else newStreak = 1
+      } else {
+        newStreak = 1
+      }
+    }
     await supabase.from('orienta_users').update({
       streak_current: newStreak,
       streak_best: Math.max(user.streak_best ?? 0, newStreak),
@@ -279,6 +293,7 @@ serve(async (req) => {
       success,
       leveledUp,
       combo: { count: comboSteps, multiplier: comboMult, bonusXp: comboBonus },
+      streakFreezeUsed,
     },
   })
 })

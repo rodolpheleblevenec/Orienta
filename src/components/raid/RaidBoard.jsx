@@ -1,5 +1,5 @@
 import { DndContext, DragOverlay, closestCorners, useDroppable, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import WordCard from '../game/WordCard'
 
 const SLOT_LABELS = { 0: 'Haut', 1: 'Droite', 2: 'Bas', 3: 'Gauche' }
@@ -50,8 +50,9 @@ function Tray({ handles, interactive }) {
 
 // Plateau partagé du raid. `board` = { slot: {handle, rotation} } ; `cardOrder` =
 // handles opaques (c0..c3). Seul l'organe qui contrôle (la Main) a `interactive`.
-export default function RaidBoard({ board, cardOrder, feedbacks = {}, interactive = false, onChange, clues = null }) {
+export default function RaidBoard({ board, cardOrder, feedbacks = {}, interactive = false, onChange, onPreview, clues = null }) {
   const [activeId, setActiveId] = useState(null)
+  const lastOverRef = useRef(null)
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }),
@@ -68,29 +69,38 @@ export default function RaidBoard({ board, cardOrder, feedbacks = {}, interactiv
     onChange({ ...board, [pos]: { ...cell, rotation: (cell.rotation + 90) % 360 } })
   }
 
-  function handleDragEnd({ active, over }) {
-    setActiveId(null)
-    if (!over) return
-    const id = String(active.id)
-    const handle = id.replace('raid-tray-', '').replace('raid-placed-', '')
+  // Calcule le plateau résultant du déplacement de `handle` vers `overId`.
+  function computeNext(handle, overId) {
     const fromSlot = slotOfHandle(handle)
     const next = { ...board }
-
-    if (over.id === 'raid-tray') {
-      if (fromSlot != null) delete next[fromSlot]
-      onChange(next)
-      return
-    }
-    const toSlot = String(over.id).replace('raid-slot-', '')
-    if (fromSlot === toSlot) return
+    if (overId === 'raid-tray') { if (fromSlot != null) delete next[fromSlot]; return next }
+    const toSlot = String(overId).replace('raid-slot-', '')
+    if (fromSlot === toSlot) return null
     const occupant = next[toSlot]
     const moving = fromSlot != null ? next[fromSlot] : { handle, rotation: 0 }
     if (fromSlot != null) delete next[fromSlot]
     next[toSlot] = moving
-    // Swap : l'occupant retourne à l'ancien slot (sinon il file au tray).
-    if (occupant && fromSlot != null) next[fromSlot] = occupant
-    onChange(next)
+    if (occupant && fromSlot != null) next[fromSlot] = occupant // swap
+    return next
   }
+
+  // Aperçu en direct : diffuse le plateau au survol d'un nouveau slot (throttlé).
+  function handleDragOver({ active, over }) {
+    if (!over || !onPreview || lastOverRef.current === over.id) return
+    lastOverRef.current = over.id
+    const handle = String(active.id).replace('raid-tray-', '').replace('raid-placed-', '')
+    onPreview(computeNext(handle, over.id) || board)
+  }
+
+  function handleDragEnd({ active, over }) {
+    setActiveId(null); lastOverRef.current = null
+    if (!over) { onPreview?.(board); return }
+    const handle = String(active.id).replace('raid-tray-', '').replace('raid-placed-', '')
+    const next = computeNext(handle, over.id)
+    if (next) onChange(next); else onPreview?.(board)
+  }
+
+  function handleDragCancel() { setActiveId(null); lastOverRef.current = null; onPreview?.(board) }
 
   const grid = (
     <div className="clover-wrapper raid-board">
@@ -118,7 +128,7 @@ export default function RaidBoard({ board, cardOrder, feedbacks = {}, interactiv
   const activeHandle = activeId ? String(activeId).replace('raid-tray-', '').replace('raid-placed-', '') : null
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners}
-      onDragStart={({ active }) => setActiveId(active.id)} onDragEnd={handleDragEnd} onDragCancel={() => setActiveId(null)}>
+      onDragStart={({ active }) => setActiveId(active.id)} onDragOver={handleDragOver} onDragEnd={handleDragEnd} onDragCancel={handleDragCancel}>
       <div className="raid-board-wrap">
         {grid}
         <Tray handles={tray} interactive />

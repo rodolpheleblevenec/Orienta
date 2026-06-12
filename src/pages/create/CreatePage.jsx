@@ -98,7 +98,12 @@ function TrayDropZone({ empty, disabled, children }) {
 
 export default function CreatePage() {
   const navigate = useNavigate()
-  const { user, refreshUser, markTourDone } = useAuthStore()
+  const { user, refreshUser, markTourDone, shop, fetchShop, rerollCards } = useAuthStore()
+  const [rerollCost, setRerollCost] = useState(null)
+  const [rerolling, setRerolling] = useState(false)
+  // Déblocage boutique « toutes difficultés » : ouvre Moyen/Difficile sans paliers.
+  const ownsAllDifficulties = (shop?.items ?? []).some(i => i.code === 'unlock_all_difficulties' && i.owned)
+  const extraSlots = user?.extra_create_slots ?? 0
 
   // Mode « grant » : le gagnant d'un jour crée la grille du jour de J+3 (?grant=ID).
   const [searchParams] = useSearchParams()
@@ -206,12 +211,10 @@ export default function CreatePage() {
     return () => clearInterval(timerRef.current)
   }, [phase, difficulty, tourFinished])
 
-  useEffect(() => {
-    if (phase !== 'placement' || !difficulty) return
-    // Mécanique « pool de mots » : on tire des MOTS distincts dans le pool et on
-    // COMPOSE les cartes à la volée (plus de cartes figées → on ne retombe jamais
-    // sur les mêmes 4 mots ensemble). Les cartes ne sont persistées qu'à la
-    // publication (côté Edge Function), avec un id définitif.
+  // Tire des MOTS distincts dans le pool et COMPOSE les cartes à la volée (plus de
+  // cartes figées → on ne retombe jamais sur les mêmes 4 mots ensemble). Les cartes
+  // ne sont persistées qu'à la publication (Edge Function), avec un id définitif.
+  function drawCards() {
     supabase.from('orienta_words').select('text').eq('playable', true).limit(5000)
       .then(({ data }) => {
         if (!data) return
@@ -224,9 +227,32 @@ export default function CreatePage() {
             word_top: words[i], word_right: words[i + 1], word_bottom: words[i + 2], word_left: words[i + 3],
           })
         }
+        setPlacements({ 0: null, 1: null, 2: null, 3: null })
         setTrayCards(cards.map((card, i) => ({ card, rotation: 0, colorIndex: i })))
       })
+  }
+
+  useEffect(() => {
+    if (phase !== 'placement' || !difficulty) return
+    drawCards()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, difficulty])
+
+  // Coût du reroll (lu depuis le catalogue, autoritatif côté serveur) + sync boutique.
+  useEffect(() => {
+    if (user) fetchShop(user.id)
+    supabase.from('orienta_shop_items').select('cost_jetons').eq('code', 'reroll_cards').maybeSingle()
+      .then(({ data }) => { if (data) setRerollCost(data.cost_jetons) })
+  }, [user, fetchShop])
+
+  // Relance le tirage des cartes contre des jetons (débit serveur puis re-tirage).
+  async function handleReroll() {
+    if (rerolling) return
+    setRerolling(true)
+    const res = await rerollCards()
+    if (res?.ok) drawCards()
+    setRerolling(false)
+  }
 
   useEffect(() => {
     const allSlotsOccupied = Object.values(placements).every(v => v !== null)
@@ -452,11 +478,12 @@ export default function CreatePage() {
       {showDifficultyModal && !grantMode && (
         <div className="difficulty-modal-backdrop">
           <div className="difficulty-modal">
-            {alreadyCreatedToday ? (
+            {alreadyCreatedToday && extraSlots <= 0 ? (
               <>
                 <h2 className="difficulty-modal-title">Limite quotidienne atteinte</h2>
                 <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-                  Tu as déjà créé une grille aujourd'hui. Reviens demain pour en créer une nouvelle !
+                  Tu as déjà créé une grille aujourd'hui. Reviens demain — ou utilise une
+                  « Création en plus » depuis la boutique 🪙.
                 </p>
                 <button className="btn-primary" onClick={() => navigate('/hub')} style={{ width: '100%' }}>
                   Retour au Hub
@@ -465,13 +492,16 @@ export default function CreatePage() {
             ) : (
               <>
                 <h2 className="difficulty-modal-title">Quel niveau de difficulté ?</h2>
+                {alreadyCreatedToday && extraSlots > 0 && (
+                  <p className="difficulty-extra-slot-note">🪙 Tu utilises une « Création en plus » ({extraSlots} restante{extraSlots > 1 ? 's' : ''}).</p>
+                )}
                 <div className="difficulty-options">
                   {[
                     { id: 'facile',    name: 'Facile',    desc: 'Temps illimité · 4 cartes' },
                     { id: 'moyen',     name: 'Moyen',     desc: '90 secondes · 4 cartes', lockMsg: 'Crée une grille Facile pour débloquer' },
                     { id: 'difficile', name: 'Difficile', desc: '90 secondes · 5 cartes (1 leurre)', lockMsg: 'Crée une grille Moyen pour débloquer' },
                   ].map(d => {
-                    const isLocked = !unlockedDifficulties.includes(d.id)
+                    const isLocked = !ownsAllDifficulties && !unlockedDifficulties.includes(d.id)
                     return (
                       <button key={d.id} className={`difficulty-card ${isLocked ? 'difficulty-card--locked' : ''}`} onClick={() => !isLocked && handleSelectDifficulty(d.id)} disabled={isLocked} type="button">
                         <div className="difficulty-name">{d.name}</div>
@@ -678,6 +708,17 @@ export default function CreatePage() {
                     ))}
                     <span className="create-dot-label">{placedCount} / 4</span>
                   </div>
+                  {rerollCost != null && (
+                    <button
+                      type="button"
+                      className="create-reroll-btn"
+                      onClick={handleReroll}
+                      disabled={rerolling || (user?.jetons ?? 0) < rerollCost}
+                      title="Re-tire de nouveaux mots (remet les cartes à zéro)"
+                    >
+                      {rerolling ? '…' : `🔄 Relancer les cartes · 🪙${rerollCost}`}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="create-clues-check">

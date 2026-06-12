@@ -178,6 +178,7 @@ export default function RaidArenaPage() {
               feedbacks={boardFeedbacks}
               interactive={interactive}
               onChange={actions.moveBoard}
+              onPreview={actions.previewBoard}
               clues={null}
             />
             {amCaptain && (
