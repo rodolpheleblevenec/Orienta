@@ -22,11 +22,11 @@ const fmtList = (arr, map) => arr.map(k => map[k] || k).join(', ')
 // Bandeau « qui a quel organe » affiché en combat, au-dessus du chat, pour que
 // personne ne se trompe de rôle. Au survol d'un rôle (le sien ou celui d'un
 // coéquipier) : rappel des pouvoirs et capacités de ce rôle.
-export default function RoleStrip({ roster, meId }) {
+export default function RoleStrip({ roster, meId, vertical = false }) {
   const withRole = roster.filter(p => p.role)
   if (withRole.length === 0) return null
   return (
-    <div className="raid-rolestrip">
+    <div className={`raid-rolestrip${vertical ? ' raid-rolestrip--vertical' : ''}`}>
       <div className="raid-rolestrip-title">L’équipage</div>
       <div className="raid-rolestrip-list">
         {withRole.map(p => {

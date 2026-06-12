@@ -87,6 +87,15 @@ export default function RaidArenaPage() {
     return () => clearTimeout(t)
   }, [session?.status, role])
 
+  // Fin de combat → court écran de célébration (~2,6 s, le boss coule) puis bascule
+  // automatique vers la page résultat dédiée (récap équipage, temps, rang, record).
+  useEffect(() => {
+    if (session?.status !== 'won' && session?.status !== 'lost') return
+    const id = session.id
+    const t = setTimeout(() => navigate(`/raid/resultat/${id}`, { replace: true }), 2600)
+    return () => clearTimeout(t)
+  }, [session?.status, session?.id, navigate])
+
   // Signaux pour animer le boss 2D : perte de PV (recul + flash) / essai raté ou bouée perdue (lunge).
   const [hitSignal, setHitSignal] = useState(0)
   const [attackSignal, setAttackSignal] = useState(0)
@@ -153,24 +162,23 @@ export default function RaidArenaPage() {
 
   const boss = getBossByKey(session.boss_key)
 
-  // ── Victoire / défaite ─────────────────────────────────────────────
+  // ── Fin de combat : court écran de célébration, puis bascule auto (effet ci-dessus)
+  //    vers /raid/resultat/:id (récap équipage, temps, rang, XP, record). ──
   if (session.status === 'won' || session.status === 'lost') {
     const won = session.status === 'won'
     return (
       <>
         <Header />
         <main className="raid-page">
-          <div className={`raid-end ${won ? 'raid-end--won' : 'raid-end--lost'}`}>
-            <div className="raid-end-emoji">{won ? '🏆' : '🌑'}</div>
+          <div className={`raid-celebrate ${won ? 'raid-celebrate--won' : 'raid-celebrate--lost'}`}>
+            <div className="raid-celebrate-emoji">{won ? '🏆' : '🌑'}</div>
             <h1 className="raid-h1">{won ? `${boss.name} est vaincu !` : `${boss.name} a replongé…`}</h1>
             <p className="raid-sub">
-              {won ? 'Votre équipage a terrassé le boss. XP collectif accordé à toute la communauté.'
-                   : 'L’équipage est tombé. Reformez un groupe et retentez votre chance.'}
+              {won ? 'Victoire de l’équipage !' : 'L’équipage est tombé…'} Débrief en préparation…
             </p>
-            <div className="raid-end-actions">
-              <button className="btn-secondary" onClick={() => navigate('/hub')}>Retour au hub</button>
-              {canOpen &&<button className="btn-primary" onClick={openTestArena} disabled={opening}>Nouvelle arène de test</button>}
-            </div>
+            <button className="btn-primary" onClick={() => navigate(`/raid/resultat/${session.id}`, { replace: true })}>
+              Voir le résultat →
+            </button>
           </div>
         </main>
       </>
@@ -188,6 +196,8 @@ export default function RaidArenaPage() {
             <RosterBoard boss={boss} roster={roster} me={me} actions={actions} busy={busy} />
             <RaidChat chat={chat} onSend={actions.sendChat} me={me} />
           </div>
+          {/* Le record de la semaine à battre — visible pendant qu'on s'organise. */}
+          <HallOfFame compact level={session.boss_level ?? currentRaidLevel()} fetchHof={actions.fetchHof} />
         </main>
       </>
     )
@@ -249,6 +259,8 @@ export default function RaidArenaPage() {
           <Suspense fallback={<div className="raid-monster-loading">Invocation de {displayBoss.name}…</div>}>
             <RaidMonster2D boss={displayBoss.key} crew={crew} hp={session.current_hp} maxHp={session.max_hp} hitSignal={hitSignal} attackSignal={attackSignal} />
           </Suspense>
+          {/* Équipage en colonne verticale, superposé à droite (gagne de la hauteur). */}
+          <div className="raid-crew-overlay"><RoleStrip roster={roster} meId={user?.id} vertical /></div>
           <div className="raid-monster-overlay">
             <div className="raid-monster-topline">
               <div className="raid-monster-name">
@@ -288,11 +300,6 @@ export default function RaidArenaPage() {
               ? <HpBar hp={pcfg.assault_count * 100} max={pcfg.assault_count * 100} />
               : <HpBar hp={session.current_hp} max={session.max_hp} />}
           </div>
-        </div>
-
-        {/* Bandeau équipage */}
-        <div className="raid-crewbar">
-          <RoleStrip roster={roster} meId={user?.id} />
         </div>
 
         {/* Deux colonnes : grille + réserve | chat (large) */}

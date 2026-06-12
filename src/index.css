@@ -5303,6 +5303,49 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-end-actions { display: flex; gap: 12px; justify-content: center; margin-top: 22px; flex-wrap: wrap; }
 .raid-end--won { border-color: var(--teal); }
 
+/* ── Écran de célébration (transition fin de combat → page résultat) ── */
+.raid-celebrate { text-align: center; padding: 70px 20px; max-width: 520px; margin: 40px auto; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); animation: raid-celebrate-in .4s ease both; }
+.raid-celebrate--won { border-color: var(--teal); }
+.raid-celebrate-emoji { font-size: 72px; line-height: 1; }
+.raid-celebrate--won .raid-celebrate-emoji { animation: raid-celebrate-pop .6s cubic-bezier(.2,1.4,.4,1) both, raid-celebrate-float 2.2s ease-in-out .6s infinite; }
+.raid-celebrate--lost .raid-celebrate-emoji { animation: raid-celebrate-sink 2.4s ease-in both; }
+.raid-celebrate .btn-primary { margin-top: 22px; }
+@keyframes raid-celebrate-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes raid-celebrate-pop { 0% { transform: scale(.3); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes raid-celebrate-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes raid-celebrate-sink { 0% { transform: translateY(-12px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(16px); opacity: .55; } }
+
+/* ── Page résultat (victoire / défaite) ── */
+.raid-res { text-align: center; padding: 40px 22px 32px; max-width: 600px; margin: 32px auto; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); }
+.raid-res--won { border-color: var(--teal); }
+.raid-res-emoji { font-size: 64px; line-height: 1; }
+.raid-res--won .raid-res-emoji { animation: raid-celebrate-pop .6s cubic-bezier(.2,1.4,.4,1) both; }
+.raid-res-testbadge { display: inline-block; margin-top: 10px; font-size: 12px; color: var(--ink-2); background: rgba(0,0,0,.05); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
+.raid-res-stats { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 24px 0 8px; }
+.raid-res-stat { flex: 1 1 150px; max-width: 220px; background: rgba(0,0,0,.03); border: 1px solid var(--line); border-radius: 12px; padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; }
+.raid-res-stat--gold { border-color: rgba(255,193,7,.5); background: rgba(255,209,102,.12); }
+.raid-res-stat--record { border-color: rgba(255,193,7,.4); background: linear-gradient(180deg, rgba(255,209,102,.16), rgba(255,209,102,.04)); }
+.raid-res-statlabel { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); }
+.raid-res-statval { font-size: 22px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.raid-res-stat--gold .raid-res-statval { color: #d99a00; }
+.raid-res-stathint { font-size: 11px; color: var(--ink-2); }
+.raid-res-crew { margin-top: 20px; text-align: left; }
+.raid-res-crewtitle { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); margin: 0 0 10px; text-align: center; }
+.raid-res-crewlist { display: flex; flex-wrap: wrap; gap: 8px 14px; justify-content: center; }
+.raid-res-member { display: inline-flex; align-items: center; gap: 5px; font-size: 14px; background: rgba(0,0,0,.03); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px 5px 5px; }
+.raid-res-mav { width: 24px; height: 24px; border-radius: 50%; color: #fff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.raid-res-mrole { font-size: 13px; }
+.raid-res-mname { color: var(--ink); }
+.raid-res-actions { display: flex; gap: 12px; justify-content: center; margin-top: 26px; flex-wrap: wrap; }
+@media (max-width: 560px) { .raid-res-stat { flex-basis: 130px; } .raid-res-actions { flex-direction: column; } .raid-res-actions .btn-primary, .raid-res-actions .btn-secondary { width: 100%; } }
+
+/* ── Hall of Fame — variante compacte (sas de préparation) ── */
+.raid-hof--compact { margin: 16px auto 0; max-width: 760px; }
+.raid-hof--compact .raid-hof-emoji { font-size: 30px; }
+.raid-hof--compact .raid-hof-title { font-size: 15px; }
+.raid-hof-list--compact { gap: 6px; }
+.raid-hof-list--compact .raid-hof-row { padding: 7px 10px; }
+
 .raid-boss-head { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
 .raid-boss-emoji { font-size: 44px; line-height: 1; }
 .raid-boss-head--sm .raid-boss-emoji { font-size: 36px; }
@@ -5386,6 +5429,21 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-rolestrip { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); padding: 12px 14px; }
 .raid-rolestrip-title { font-weight: 700; color: var(--ink); margin-bottom: 8px; font-size: 14px; }
 .raid-rolestrip-list { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Équipage en overlay vertical sur la scène du boss (gagne de la hauteur). */
+.raid-crew-overlay { position: absolute; top: 12px; right: 12px; z-index: 2; pointer-events: auto; }
+.raid-rolestrip--vertical { background: rgba(8,16,30,.60); backdrop-filter: blur(5px); border-color: rgba(255,255,255,.16); box-shadow: 0 6px 18px rgba(0,0,0,.28); padding: 9px 10px; min-width: 148px; }
+.raid-rolestrip--vertical .raid-rolestrip-title { color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; opacity: .82; margin-bottom: 7px; }
+.raid-rolestrip--vertical .raid-rolestrip-list { flex-direction: column; flex-wrap: nowrap; gap: 6px; }
+.raid-rolestrip--vertical .raid-rolechip { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.16); padding: 5px 9px; }
+.raid-rolestrip--vertical .raid-rolechip--me { background: rgba(79,214,160,.26); border-color: var(--teal); }
+.raid-rolestrip--vertical .raid-rolechip-role { color: #fff; font-size: 12.5px; }
+.raid-rolestrip--vertical .raid-rolechip-who { color: rgba(255,255,255,.72); }
+/* Popover : s'ouvre vers la GAUCHE (dans la scène) pour ne pas être coupé par overflow:hidden. */
+.raid-rolestrip--vertical .raid-rolechip-pop { left: auto; right: calc(100% + 10px); bottom: auto; top: 50%; transform: translateY(-50%); }
+.raid-rolestrip--vertical .raid-rolechip:hover .raid-rolechip-pop,
+.raid-rolestrip--vertical .raid-rolechip:focus-within .raid-rolechip-pop { transform: translateY(-50%); }
+.raid-rolestrip--vertical .raid-rolechip-pop::after { display: none; }
 .raid-rolechip { display: flex; align-items: center; gap: 8px; background: var(--bg-tint); border: 1px solid var(--line-2); border-radius: var(--r-sm); padding: 6px 10px; }
 .raid-rolechip--me { background: var(--teal-soft); border-color: var(--teal); }
 .raid-rolechip-emoji { font-size: 18px; line-height: 1; }
