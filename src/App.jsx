@@ -15,6 +15,7 @@ import ClassementPage from './pages/classement/ClassementPage'
 import QuestsPage from './pages/quests/QuestsPage'
 import TutorielPage from './pages/tutoriel/TutorielPage'
 import RaidArenaPage from './pages/raid/RaidArenaPage'
+import RaidTeaserPage from './pages/raid/RaidTeaserPage'
 import './index.css'
 
 // Applique le thème d'interface équipé (boutique) sur <html data-theme="…">.
@@ -50,6 +51,8 @@ export default function App() {
         {/* Mode RAID — route ouverte (RequireAuth) pour permettre le test multi-session ;
             le lien n'est visible que pour l'admin (Header) tant que la feature est en test. */}
         <Route path="/raid"              element={<RequireAuth><RaidArenaPage /></RequireAuth>} />
+        {/* Page de pré-annonce (teaser) du mode RAID — non jouable, accessible à tous. */}
+        <Route path="/le-raid"           element={<RequireAuth><RaidTeaserPage /></RequireAuth>} />
         <Route path="*"                  element={<Navigate to="/hub" replace />} />
       </Routes>
     </BrowserRouter>

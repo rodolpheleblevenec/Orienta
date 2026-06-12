@@ -56,6 +56,14 @@ export function canSeeRaid(pseudo) {
   return pseudo === RAID_ADMIN_PSEUDO || RAID_TESTER_RE.test(pseudo.trim())
 }
 
+// ── Lancement public (teaser) ────────────────────────────────────────
+// Date d'ouverture du mode au grand public. SOURCE DE VÉRITÉ pour le
+// compte à rebours du teaser (bannière hub + page /le-raid).
+// Lundi 15 juin 2026, 8h00 (Europe/Paris, CEST = UTC+2).
+export const RAID_LAUNCH_AT = '2026-06-15T08:00:00+02:00'
+export const isRaidLaunched = (now = new Date()) =>
+  now.getTime() >= new Date(RAID_LAUNCH_AT).getTime()
+
 // ── Fenêtres d'ouverture publique du raid (heure locale) ─────────────
 // Deux créneaux quotidiens : le matin et le midi. SOURCE DE VÉRITÉ UNIQUE —
 // l'affichage joueur s'y réfère, et (itération 3) le cron d'ouverture publique

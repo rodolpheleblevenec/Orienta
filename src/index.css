@@ -4017,6 +4017,233 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 }
 .db-reply-trigger:hover { color: var(--teal-700); }
 
+/* ════════════════════════════════════════════════════════════════════
+   TEASER RAID — bannière hub + page /le-raid (pré-annonce, non jouable)
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Bannière hub ───────────────────────────────────────────────── */
+.raid-teaser-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  flex-wrap: wrap;
+  overflow: hidden;
+  margin-bottom: 22px;
+  padding: 22px 26px;
+  border-radius: var(--r);
+  text-decoration: none;
+  color: #eaf6ff;
+  background: linear-gradient(120deg, #06151f 0%, #0a2a3a 44%, #0e3b4f 100%);
+  border: 1px solid rgba(127, 230, 208, 0.22);
+  box-shadow: 0 20px 48px -24px rgba(8, 30, 45, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.raid-teaser-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 26px 60px -24px rgba(8, 30, 45, 0.82), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.raid-teaser-banner-glow {
+  position: absolute;
+  top: -60%; right: -8%;
+  width: 46%; height: 220%;
+  background: radial-gradient(closest-side, rgba(127, 230, 208, 0.34), rgba(127, 230, 208, 0) 70%);
+  filter: blur(6px);
+  animation: raid-teaser-pulse 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes raid-teaser-pulse {
+  0%, 100% { opacity: .5; transform: scale(1); }
+  50%      { opacity: .9; transform: scale(1.14); }
+}
+.raid-teaser-banner-main { position: relative; z-index: 1; min-width: 0; }
+.raid-teaser-banner-head {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 9px;
+}
+.raid-teaser-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--sans); font-weight: 700; font-size: 12px;
+  letter-spacing: .04em; text-transform: uppercase;
+  color: #aef3e2;
+  background: rgba(127, 230, 208, 0.12);
+  border: 1px solid rgba(127, 230, 208, 0.3);
+  border-radius: var(--r-pill);
+  padding: 5px 12px;
+}
+.raid-teaser-chip3d {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700; letter-spacing: .03em;
+  color: #ffe6a8;
+  background: rgba(232, 146, 14, 0.14);
+  border: 1px solid rgba(232, 146, 14, 0.34);
+  border-radius: var(--r-pill);
+  padding: 5px 12px;
+}
+.raid-teaser-banner-title {
+  font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1.04;
+  margin: 0 0 5px; color: #fff;
+  text-shadow: 0 2px 18px rgba(127, 230, 208, 0.35);
+}
+.raid-teaser-banner-sub {
+  margin: 0; font-size: 15px; color: rgba(234, 246, 255, 0.78); font-weight: 500;
+}
+.raid-teaser-banner-aside {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 9px;
+}
+.raid-teaser-count { display: flex; gap: 7px; }
+.raid-teaser-count-cell {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 46px; padding: 7px 6px 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(127, 230, 208, 0.2);
+  border-radius: var(--r-sm);
+}
+.raid-teaser-count-num {
+  font-family: var(--display); font-weight: 800; font-size: 24px; line-height: 1; color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.raid-teaser-count-unit {
+  font-size: 10px; font-weight: 700; letter-spacing: .08em;
+  color: rgba(174, 243, 226, 0.82); margin-top: 3px;
+}
+.raid-teaser-banner-cta {
+  font-weight: 700; font-size: 14px; color: #04212e;
+  background: linear-gradient(90deg, #7fe6d0, #4ad0c0);
+  border-radius: var(--r-pill); padding: 9px 18px;
+  box-shadow: 0 6px 18px -6px rgba(127, 230, 208, 0.6);
+}
+.raid-teaser-banner-when {
+  font-size: 11.5px; color: rgba(234, 246, 255, 0.6); font-weight: 600;
+}
+.raid-teaser-live { font-weight: 800; font-size: 16px; color: #aef3e2; }
+
+@media (max-width: 640px) {
+  .raid-teaser-banner { padding: 18px 18px; gap: 16px; }
+  .raid-teaser-banner-aside { align-items: stretch; width: 100%; }
+  .raid-teaser-count { justify-content: space-between; }
+  .raid-teaser-count-cell { flex: 1; }
+  .raid-teaser-banner-cta, .raid-teaser-banner-when { text-align: center; }
+  .raid-teaser-banner-title { font-size: 24px; }
+}
+
+/* ── Page /le-raid ──────────────────────────────────────────────── */
+.raid-teaser-page { min-height: 100dvh; background: #04121b; }
+.raid-teaser-wrap { max-width: 1080px; margin: 0 auto; padding: 22px 20px 64px; }
+
+.raid-teaser-hero {
+  position: relative;
+  border-radius: var(--r);
+  overflow: hidden;
+  min-height: 540px;
+  display: flex;
+  align-items: flex-end;
+  box-shadow: var(--shadow);
+}
+.raid-teaser-hero-3d { position: absolute; inset: 0; }
+.raid-teaser-hero-loading {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  color: rgba(174, 243, 226, 0.7); font-size: 14px; font-weight: 600;
+  background: linear-gradient(180deg, #0b3346, #020d15);
+}
+.raid-teaser-hero-veil {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 6%, rgba(4, 18, 27, 0) 38%, rgba(4, 18, 27, 0.55) 100%),
+    linear-gradient(to top, rgba(2, 10, 16, 0.96) 4%, rgba(2, 10, 16, 0.52) 38%, rgba(2, 10, 16, 0.08) 72%);
+}
+.raid-teaser-hero-content {
+  position: relative; z-index: 2;
+  padding: 40px 36px 38px; max-width: 660px;
+}
+.raid-teaser-hero-title {
+  font-family: var(--display); font-weight: 800; font-size: 52px; line-height: 1;
+  margin: 14px 0 12px; color: #fff;
+  text-shadow: 0 4px 30px rgba(127, 230, 208, 0.4);
+}
+.raid-teaser-hero-tag {
+  font-size: 17px; line-height: 1.5; color: rgba(234, 246, 255, 0.85);
+  margin: 0 0 22px; max-width: 520px;
+}
+.raid-teaser-bigcount { display: flex; gap: 12px; margin-bottom: 16px; }
+.raid-teaser-bigcell {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 80px; padding: 14px 10px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(127, 230, 208, 0.22);
+  border-radius: var(--r-sm);
+  backdrop-filter: blur(4px);
+}
+.raid-teaser-bignum {
+  font-family: var(--display); font-weight: 800; font-size: 44px; line-height: 1; color: #fff;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 18px rgba(127, 230, 208, 0.45);
+}
+.raid-teaser-bigunit {
+  font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: rgba(174, 243, 226, 0.82); margin-top: 6px;
+}
+.raid-teaser-when {
+  font-size: 15px; font-weight: 600; color: #aef3e2; margin: 0 0 18px;
+}
+.raid-teaser-open {
+  font-family: var(--display); font-weight: 800; font-size: 34px; color: #aef3e2; margin-bottom: 14px;
+}
+.raid-teaser-locked {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-weight: 700; font-size: 14px; color: rgba(234, 246, 255, 0.72);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(234, 246, 255, 0.28);
+  border-radius: var(--r-pill); padding: 10px 18px;
+}
+.raid-teaser-cta {
+  display: inline-block; font-weight: 800; font-size: 15px; color: #04212e; text-decoration: none;
+  background: linear-gradient(90deg, #7fe6d0, #4ad0c0);
+  border-radius: var(--r-pill); padding: 12px 24px;
+  box-shadow: 0 8px 22px -8px rgba(127, 230, 208, 0.7);
+}
+
+.raid-teaser-pillars {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 22px;
+}
+.raid-teaser-pillar {
+  background: linear-gradient(160deg, rgba(14, 59, 79, 0.55), rgba(6, 21, 31, 0.55));
+  border: 1px solid rgba(127, 230, 208, 0.16);
+  border-radius: var(--r-sm); padding: 20px 18px;
+}
+.raid-teaser-pillar-emoji { font-size: 30px; line-height: 1; }
+.raid-teaser-pillar-title {
+  font-family: var(--display); font-weight: 800; font-size: 17px; color: #fff; margin: 10px 0 6px;
+}
+.raid-teaser-pillar-text {
+  font-size: 13.5px; line-height: 1.5; color: rgba(234, 246, 255, 0.72); margin: 0;
+}
+
+.raid-teaser-tease { margin-top: 26px; text-align: center; padding: 0 12px; }
+.raid-teaser-tease p {
+  font-size: 16px; line-height: 1.6; color: rgba(234, 246, 255, 0.8);
+  max-width: 620px; margin: 0 auto 18px; font-style: italic;
+}
+.raid-teaser-back {
+  display: inline-block; font-weight: 700; font-size: 14px; color: #aef3e2; text-decoration: none;
+  border: 1px solid rgba(127, 230, 208, 0.3); border-radius: var(--r-pill); padding: 10px 20px;
+  transition: background .15s;
+}
+.raid-teaser-back:hover { background: rgba(127, 230, 208, 0.1); }
+
+@media (max-width: 760px) {
+  .raid-teaser-pillars { grid-template-columns: repeat(2, 1fr); }
+  .raid-teaser-hero-title { font-size: 38px; }
+  .raid-teaser-hero-content { padding: 28px 22px 26px; }
+  .raid-teaser-bigcell { min-width: 0; flex: 1; }
+  .raid-teaser-bigcount { gap: 8px; }
+  .raid-teaser-bignum { font-size: 32px; }
+}
+@media (max-width: 460px) {
+  .raid-teaser-pillars { grid-template-columns: 1fr; }
+}
+
 .db-reply-editor { display: flex; flex-direction: column; gap: 8px; margin-top: 2px; }
 .db-reply-input {
   width: 100%; resize: vertical; min-height: 52px;

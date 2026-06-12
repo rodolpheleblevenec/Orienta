@@ -11,15 +11,20 @@ function Conductor({ refs }) {
 }
 
 // Fond en dégradé (cyan en haut → turquoise en bas).
-function GradientBackground() {
+// teaser : palette abyssale sombre (mode « silhouette » de la page de pré-annonce).
+function GradientBackground({ teaser }) {
   const tex = useMemo(() => {
     const c = document.createElement('canvas'); c.width = 4; c.height = 256
     const ctx = c.getContext('2d')
     const g = ctx.createLinearGradient(0, 0, 0, 256)
-    g.addColorStop(0, '#54c6e0'); g.addColorStop(0.5, '#2f9ec0'); g.addColorStop(1, '#0e6a82')
+    if (teaser) {
+      g.addColorStop(0, '#0b3346'); g.addColorStop(0.5, '#06222f'); g.addColorStop(1, '#020d15')
+    } else {
+      g.addColorStop(0, '#54c6e0'); g.addColorStop(0.5, '#2f9ec0'); g.addColorStop(1, '#0e6a82')
+    }
     ctx.fillStyle = g; ctx.fillRect(0, 0, 4, 256)
     return new THREE.CanvasTexture(c)
-  }, [])
+  }, [teaser])
   useEffect(() => () => tex.dispose(), [tex])
   return <primitive object={tex} attach="background" />
 }
@@ -228,18 +233,18 @@ const CORALS = [[-4.3, -2, '#ff7eb6'], [4.4, -2.4, '#ff9e5e'], [-2.6, -3.2, '#b0
 const WEEDS = [[-3.4, -1, 0], [3.6, -1.4, 1.4], [-1.6, -2.6, 2.6], [2.2, -2.4, 3.8], [-4.6, 0.2, 5], [4.8, -0.4, 1]]
 const FISH = [[1.2, -1, 0.9, '#ffb703', 0], [0.2, -2.5, 0.6, '#ff5d8f', 6], [-0.6, -3, 1.3, '#48cae4', 11], [2.0, -1.6, 0.7, '#ffd166', 3]]
 
-function Scene({ crew, refs, lowHp }) {
+function Scene({ crew, refs, lowHp, teaser }) {
   const n = Math.max(1, crew.length)
   const xs = crew.map((_, i) => (n === 1 ? 0 : -2.5 + (5 * i) / (n - 1)))
   const TENT = 8
   return (
     <>
-      <GradientBackground />
-      <ambientLight intensity={0.75} />
-      <directionalLight position={[2, 9, 4]} intensity={1.5} color="#fff3d0" />
-      <pointLight position={[-3, 1, 5]} intensity={30} color="#7fe6d0" />
-      <pointLight position={[3, 0, 4]} intensity={18} color="#ffd9a0" />
-      <fog attach="fog" args={['#2f9ec0', 11, 24]} />
+      <GradientBackground teaser={teaser} />
+      <ambientLight intensity={teaser ? 0.34 : 0.75} />
+      <directionalLight position={[2, 9, 4]} intensity={teaser ? 0.55 : 1.5} color="#fff3d0" />
+      <pointLight position={[-3, 1, 5]} intensity={teaser ? 16 : 30} color="#7fe6d0" />
+      <pointLight position={[3, 0, 4]} intensity={teaser ? 9 : 18} color="#ffd9a0" />
+      <fog attach="fog" args={teaser ? ['#04141f', 7, 20] : ['#2f9ec0', 11, 24]} />
       <Conductor refs={refs.all} />
       <Floor />
       <SunRays />
@@ -249,7 +254,7 @@ function Scene({ crew, refs, lowHp }) {
       <Bubbles />
       <Bell recoilRef={refs.mRecoil} lowHp={lowHp} />
       {Array.from({ length: TENT }).map((_, i) => (
-        <Tentacle key={i} baseAngle={(i / TENT) * Math.PI * 2} baseRadius={0.85} targetX={xs[i % n]} phase={i * 1.3} strikeRef={refs.mAttack} />
+        <Tentacle key={i} baseAngle={(i / TENT) * Math.PI * 2} baseRadius={0.85} targetX={xs[i % n] ?? 0} phase={i * 1.3} strikeRef={refs.mAttack} />
       ))}
       {crew.map((c, i) => (
         <Matelot key={c.id ?? i} x={xs[i]} hue={c.hue} role={c.role} weapon={WEAPONS[i % WEAPONS.length]} phase={i * 1.6} attackRef={refs.sAttack} hitRef={refs.sHit} />
@@ -258,7 +263,9 @@ function Scene({ crew, refs, lowHp }) {
   )
 }
 
-export default function RaidMonster3D({ crew = [], hp = 1, maxHp = 1, hitSignal = 0, attackSignal = 0 }) {
+// teaser : rendu abyssal/silhouette pour la page de pré-annonce (fond sombre,
+// lumières atténuées, équipage absent → le boss luit dans le noir, sans tout dévoiler).
+export default function RaidMonster3D({ crew = [], hp = 1, maxHp = 1, hitSignal = 0, attackSignal = 0, teaser = false }) {
   const mRecoil = useRef(0), mAttack = useRef(0), sAttack = useRef(0), sHit = useRef(0)
   const refs = useMemo(() => ({ mRecoil, mAttack, sAttack, sHit, all: [mRecoil, mAttack, sAttack, sHit] }), [])
   const lowHp = maxHp > 0 && hp / maxHp <= 0.34
@@ -266,7 +273,7 @@ export default function RaidMonster3D({ crew = [], hp = 1, maxHp = 1, hitSignal 
   useEffect(() => { if (attackSignal > 0) { mAttack.current = 1; sHit.current = 1 } }, [attackSignal])
   return (
     <Canvas dpr={[1, 1.5]} camera={{ position: [0, 0.4, 8.2], fov: 44 }} style={{ width: '100%', height: '100%' }} gl={{ antialias: true }}>
-      <Scene crew={crew} refs={refs} lowHp={lowHp} />
+      <Scene crew={crew} refs={refs} lowHp={lowHp} teaser={teaser} />
     </Canvas>
   )
 }
