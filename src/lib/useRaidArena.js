@@ -2,26 +2,28 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from './supabase'
 
 // Hook du mode RAID — temps réel via Supabase Realtime :
-//   • PRESENCE  → le lobby (qui est là, son organe, son « prêt ») : instantané, zéro serveur.
-//   • BROADCAST → les cartes qui bougent + le chat + le partage des couleurs : instantané.
+//   • PRESENCE  → SEULEMENT « qui est connecté » (id + pseudo, statique). Presence
+//     ne propage pas fiablement les MISES À JOUR (re-track) → on ne s'en sert pas
+//     pour l'état mutable.
+//   • BROADCAST → tout l'état mutable, instantané (~16 ms) : rôle + prêt (lobby),
+//     cartes, chat, partage des couleurs, et sync de la session.
 //   • Edge Function `raid` UNIQUEMENT pour le rare/autoritaire : find / open-test /
 //     start / view (vue scoped) / validate / timeout.
-// Le déplacement des cartes ne touche jamais le serveur en cours de partie.
 export function useRaidArena(user) {
   const [sessionId, setSessionId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [noArena, setNoArena] = useState(false)
-  const [pub, setPub] = useState(null)           // session publique (statut + jeu)
-  const [presenceRoster, setPresenceRoster] = useState([])  // lobby (Presence)
+  const [pub, setPub] = useState(null)
+  const [presenceUsers, setPresenceUsers] = useState([])   // [{user_id, pseudo}] (Presence = connectés)
+  const [lobbyState, setLobbyState] = useState({})          // { user_id: {role, ready} } (Broadcast)
   const [serverRoster, setServerRoster] = useState([])      // combat (persisté au start)
   const [serverMe, setServerMe] = useState(null)
-  const [view, setView] = useState({})           // vue scoped (clues/words/feedback)
-  const [board, setBoard] = useState({})          // { slot: {handle, rotation} } (Broadcast)
+  const [view, setView] = useState({})
+  const [board, setBoard] = useState({})
   const [chat, setChat] = useState([])
   const [sharedFeedback, setSharedFeedback] = useState(null)
-  const [busy, setBusy] = useState(false)         // start/validate en cours
+  const [busy, setBusy] = useState(false)
 
-  // Présence locale (mon organe / mon prêt) — mirroré dans le canal.
   const [myRole, setMyRole] = useState(null)
   const [myReady, setMyReady] = useState(false)
 
@@ -29,9 +31,20 @@ export function useRaidArena(user) {
   const subscribedRef = useRef(false)
   const pubRef = useRef(null)
   const fetchViewRef = useRef(() => {})
+  const myRoleRef = useRef(null); myRoleRef.current = myRole
+  const myReadyRef = useRef(false); myReadyRef.current = myReady
 
   const status = pub?.status ?? null
   const inLobby = status === 'waiting' || status == null
+
+  // Roster du lobby = connectés (Presence) enrichis de leur rôle/prêt (Broadcast).
+  // Pour MOI, on prend l'état local (instantané) plutôt que d'attendre l'écho.
+  const presenceRoster = presenceUsers.map(u => {
+    if (u.user_id === user?.id) return { user_id: u.user_id, pseudo: u.pseudo, role: myRole, is_ready: myReady }
+    const st = lobbyState[u.user_id] || {}
+    return { user_id: u.user_id, pseudo: u.pseudo, role: st.role ?? null, is_ready: !!st.ready }
+  })
+
   const roster = inLobby ? presenceRoster : serverRoster
   const role = inLobby ? myRole : (serverMe?.role ?? null)
   const me = inLobby ? { user_id: user?.id, pseudo: user?.pseudo, role: myRole, is_ready: myReady } : serverMe
@@ -44,7 +57,6 @@ export function useRaidArena(user) {
     return data
   }, [user?.id, user?.pseudo, sessionId])
 
-  // Applique une réponse autoritaire (start/validate/timeout/view) en local.
   const applyResult = useCallback((res) => {
     if (!res?.session) return
     const prev = pubRef.current
@@ -57,14 +69,13 @@ export function useRaidArena(user) {
     if (changed) { setBoard({}); setSharedFeedback(null) }
   }, [])
 
-  // Récupère ma vue scoped (indices/mots) — appelée à chaque nouvel assaut.
   const fetchView = useCallback(async () => {
     const res = await call('view')
     if (res?.session) applyResult(res)
   }, [call, applyResult])
   fetchViewRef.current = fetchView
 
-  // ── Démarrage : trouver l'arène ouverte. ──
+  // ── Trouver l'arène ouverte. ──
   useEffect(() => {
     if (!user?.id) return
     let alive = true
@@ -80,7 +91,7 @@ export function useRaidArena(user) {
     return () => { alive = false }
   }, [user?.id])
 
-  // ── Canal Realtime (Presence + Broadcast). ──
+  // ── Canal Realtime. Presence = connectés ; Broadcast = tout l'état mutable. ──
   useEffect(() => {
     if (!sessionId || !user?.id) return
     subscribedRef.current = false
@@ -88,14 +99,31 @@ export function useRaidArena(user) {
       config: { presence: { key: user.id }, broadcast: { self: false } },
     })
 
-    channel.on('presence', { event: 'sync' }, () => {
+    // Presence : uniquement qui est connecté (id + pseudo, statique).
+    const syncUsers = () => {
       const state = channel.presenceState()
-      const list = Object.values(state).map(metas => metas[0]).filter(Boolean)
-        .map(m => ({ user_id: m.id, pseudo: m.pseudo, role: m.role ?? null, is_ready: !!m.ready }))
+      const seen = new Set(); const list = []
+      for (const metas of Object.values(state)) {
+        const m = metas[0]; if (!m || seen.has(m.id)) continue
+        seen.add(m.id); list.push({ user_id: m.id, pseudo: m.pseudo })
+      }
       list.sort((a, b) => String(a.user_id).localeCompare(String(b.user_id)))
-      setPresenceRoster(list)
+      setPresenceUsers(list)
+    }
+    channel.on('presence', { event: 'sync' }, syncUsers)
+    // Un nouveau venu → je ré-annonce mon rôle/prêt pour qu'il le reçoive (rattrapage).
+    channel.on('presence', { event: 'join' }, () => {
+      syncUsers()
+      channel.send({ type: 'broadcast', event: 'lobby', payload: { user_id: user.id, pseudo: user.pseudo, role: myRoleRef.current, ready: myReadyRef.current } })
     })
+    channel.on('presence', { event: 'leave' }, syncUsers)
 
+    // Broadcast : rôle/prêt des autres.
+    channel.on('broadcast', { event: 'lobby' }, ({ payload }) => {
+      if (!payload?.user_id) return
+      setLobbyState(prev => ({ ...prev, [payload.user_id]: { role: payload.role ?? null, ready: !!payload.ready } }))
+    })
+    // Broadcast : sync de session (après start/validate/timeout).
     channel.on('broadcast', { event: 'session' }, ({ payload }) => {
       const prev = pubRef.current
       pubRef.current = payload
@@ -113,42 +141,44 @@ export function useRaidArena(user) {
     channel.subscribe((s) => {
       if (s !== 'SUBSCRIBED') return
       subscribedRef.current = true
-      channel.track({ id: user.id, pseudo: user.pseudo, role: null, ready: false })
+      channel.track({ id: user.id, pseudo: user.pseudo })
+      // J'annonce mon état lobby courant (au cas où je rejoins une arène déjà peuplée).
+      channel.send({ type: 'broadcast', event: 'lobby', payload: { user_id: user.id, pseudo: user.pseudo, role: myRoleRef.current, ready: myReadyRef.current } })
     })
     channelRef.current = channel
     return () => { subscribedRef.current = false; supabase.removeChannel(channel); channelRef.current = null }
   }, [sessionId, user?.id, user?.pseudo])
 
-  // Re-track la présence quand mon organe / prêt change.
-  useEffect(() => {
-    if (subscribedRef.current && channelRef.current) {
-      channelRef.current.track({ id: user?.id, pseudo: user?.pseudo, role: myRole, ready: myReady })
-    }
-  }, [myRole, myReady, user?.id, user?.pseudo])
-
-  // Résolution de conflit d'organe : si quelqu'un de "plus petit" tient le même → je lâche.
+  // Résolution de conflit d'organe : si un user_id « plus petit » tient le même → je lâche.
   useEffect(() => {
     if (!inLobby || !myRole) return
     const conflict = presenceRoster.find(p => p.role === myRole && p.user_id !== user?.id && String(p.user_id) < String(user?.id))
-    if (conflict) setMyRole(null)
-  }, [presenceRoster, myRole, inLobby, user?.id])
+    if (conflict) {
+      setMyRole(null)
+      channelRef.current?.send({ type: 'broadcast', event: 'lobby', payload: { user_id: user?.id, pseudo: user?.pseudo, role: null, ready: myReadyRef.current } })
+    }
+  }, [presenceRoster, myRole, inLobby, user?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Quand le combat démarre (statut → active), récupère ma vue scoped.
+  // Récupère la vue scoped quand le combat démarre.
   useEffect(() => {
     if (status === 'active' && !view.clues && !view.words && serverMe == null) fetchView()
   }, [status]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const broadcast = useCallback((event, payload) => channelRef.current?.send({ type: 'broadcast', event, payload }), [])
+  const broadcastLobby = useCallback((r, rdy) => {
+    channelRef.current?.send({ type: 'broadcast', event: 'lobby', payload: { user_id: user?.id, pseudo: user?.pseudo, role: r, ready: rdy } })
+  }, [user?.id, user?.pseudo])
 
-  // ── Actions lobby (Presence — instantané) ──
+  // ── Actions lobby (état local instantané + diffusion Broadcast) ──
   const claimRole = useCallback((r) => {
     const taken = presenceRoster.some(p => p.role === r && p.user_id !== user?.id)
-    if (!taken) setMyRole(r)
-  }, [presenceRoster, user?.id])
-  const releaseRole = useCallback(() => setMyRole(null), [])
-  const setReady = useCallback((v) => setMyReady(!!v), [])
+    if (taken) return
+    setMyRole(r); broadcastLobby(r, myReadyRef.current)
+  }, [presenceRoster, user?.id, broadcastLobby])
+  const releaseRole = useCallback(() => { setMyRole(null); broadcastLobby(null, myReadyRef.current) }, [broadcastLobby])
+  const setReady = useCallback((v) => { setMyReady(!!v); broadcastLobby(myRoleRef.current, !!v) }, [broadcastLobby])
 
-  // ── Lancement (Edge `start`) — n'importe quel joueur prêt peut déclencher. ──
+  // ── Lancement ──
   const startGame = useCallback(async () => {
     setBusy(true)
     const ros = presenceRoster.filter(p => p.role).map(p => ({ user_id: p.user_id, pseudo: p.pseudo, role: p.role }))
@@ -162,7 +192,6 @@ export function useRaidArena(user) {
 
   // ── Combat ──
   const moveBoard = useCallback((next) => { setBoard(next); broadcast('board', { board: next }) }, [broadcast])
-  // Aperçu en direct PENDANT le glissement (diffusé aux autres, sans figer mon état local).
   const previewBoard = useCallback((next) => broadcast('board', { board: next }), [broadcast])
 
   const validate = useCallback(async () => {
