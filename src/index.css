@@ -5262,7 +5262,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
    ════════════════════════════════════════════════════════════════════ */
 .nlink--raid { color: var(--coral, #f2603f); font-weight: 700; }
 
-.raid-page { max-width: 1180px; margin: 0 auto; padding: 24px 20px 80px; }
+.raid-page { max-width: min(1800px, 95vw); margin: 0 auto; padding: 24px 28px 80px; }
 .raid-h1 { font-family: var(--display); font-size: 26px; font-weight: 700; color: var(--ink); margin: 0; }
 .raid-h2 { font-family: var(--display); font-size: 18px; font-weight: 700; color: var(--ink); margin: 0; }
 .raid-sub { color: var(--ink-2); font-size: 14px; margin: 6px 0 0; }
@@ -5416,12 +5416,14 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-hud .raid-rolestrip { flex: 1; }
 
 /* ── Deux colonnes : grille + réserve | chat (large) ── */
-.raid-combat-cols { display: grid; grid-template-columns: minmax(420px, 520px) 1fr; gap: 20px; align-items: stretch; }
+.raid-combat-cols { display: grid; grid-template-columns: minmax(440px, 760px) 1fr; gap: 24px; align-items: stretch; }
 .raid-col-board { display: flex; flex-direction: column; align-items: center; gap: 14px; }
 /* La colonne chat s'étire à la hauteur de la colonne plateau+réserve ; le chat
    la remplit en absolu pour ne jamais imposer sa propre hauteur (sinon un long
    historique allongerait la colonne au lieu de défiler). */
-.raid-col-chat { position: relative; min-height: 0; }
+/* Hauteur plancher : la colonne chat ne doit jamais s'effondrer (sinon le chat,
+   en position:absolute, devient invisible). Elle s'étire au-delà avec le plateau. */
+.raid-col-chat { position: relative; min-height: 540px; }
 .raid-myrole-sm { width: 100%; background: var(--teal-soft); color: var(--teal-700); border-radius: var(--r-sm); padding: 8px 12px; font-size: 13px; }
 
 /* ── Chat moderne (bulles + avatars) ── */
@@ -5491,7 +5493,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-sonar-result--spent { color: var(--ink-3); font-weight: 600; }
 
 /* ════ Salle d'attente (lobby) ════ */
-.raid-page--waiting { max-width: 1120px; }
+.raid-page--waiting { max-width: min(1340px, 95vw); }
 .raid-lobby { display: grid; grid-template-columns: 1fr 360px; min-height: 540px; margin-top: 8px;
   background: var(--card); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow); }
 .raid-lobby-main { display: flex; flex-direction: column; min-width: 0; }
