@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import RankAvatar from './RankAvatar'
 
 function getMedal(idx) {
   if (idx === 0) return { bg: 'linear-gradient(135deg,#f3b53b,#df8f10)', color: '#fff' }
@@ -20,7 +21,7 @@ export default function FullLeaderboardModal({ user, onClose }) {
 
   useEffect(() => {
     supabase.from('orienta_users')
-      .select('pseudo, xp')
+      .select('pseudo, xp, selected_skin, equipped_frame, equipped_color, streak_current, jetons, level')
       .eq('is_system', false)
       .order('xp', { ascending: false })
       .then(({ data }) => {
@@ -67,10 +68,18 @@ export default function FullLeaderboardModal({ user, onClose }) {
                     >
                       {i + 1}
                     </span>
-                    <span className="daily-lb-name">
-                      {player.pseudo ?? '?'}
-                      {isMe && <span className="daily-lb-you">toi</span>}
-                    </span>
+                    <RankAvatar player={player} />
+                    <div className="clsmt-meta">
+                      <span className="clsmt-name" style={player.equipped_color ? { color: player.equipped_color } : undefined}>
+                        {player.pseudo ?? '?'}
+                        {isMe && <span className="daily-lb-you">toi</span>}
+                      </span>
+                      <div className="clsmt-chips">
+                        <span className="clsmt-chip clsmt-chip--streak">🔥 {player.streak_current ?? 0}</span>
+                        <span className="clsmt-chip clsmt-chip--jetons">🪙 {player.jetons ?? 0}</span>
+                        <span className="clsmt-chip clsmt-chip--level">Niv. {player.level ?? 1}</span>
+                      </div>
+                    </div>
                     <span className="daily-lb-score">{(player.xp ?? 0).toLocaleString()}<span> XP</span></span>
                   </li>
                 )

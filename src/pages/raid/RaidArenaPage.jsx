@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../../components/ui/Header'
 import { useAuthStore } from '../../stores/authStore'
@@ -9,6 +9,10 @@ import RosterBoard from '../../components/raid/RosterBoard'
 import RaidChat from '../../components/raid/RaidChat'
 import RoleStrip from '../../components/raid/RoleStrip'
 import RaidBoard from '../../components/raid/RaidBoard'
+
+// Scène 3D lazy-loadée (n'alourdit pas le bundle hors /raid).
+const RaidMonster3D = lazy(() => import('../../components/raid/RaidMonster3D'))
+const hueOf = (s) => { let h = 0; for (let i = 0; i < (s || '').length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return h }
 
 const SLOT_LABELS = { 0: 'Haut', 1: 'Droite', 2: 'Bas', 3: 'Gauche' }
 
@@ -52,6 +56,24 @@ export default function RaidArenaPage() {
   const [sonarResult, setSonarResult] = useState(null)
   // Le sonar se recharge à chaque assaut → on efface le résultat affiché.
   useEffect(() => { setSonarResult(null) }, [session?.assault_index, session?.status])
+
+  // Signaux pour animer la méduse 3D : perte de PV (recul + flash) / essai raté ou bouée perdue (lunge).
+  const [hitSignal, setHitSignal] = useState(0)
+  const [attackSignal, setAttackSignal] = useState(0)
+  const prevHpRef = useRef(null)
+  const prevAtkRef = useRef(null)
+  const prevLivesRef = useRef(null)
+  useEffect(() => {
+    const hp = session?.current_hp
+    if (hp != null) { if (prevHpRef.current != null && hp < prevHpRef.current) setHitSignal(s => s + 1); prevHpRef.current = hp }
+  }, [session?.current_hp])
+  useEffect(() => {
+    const a = session?.attempts_remaining, l = session?.lives
+    const fail = (a != null && prevAtkRef.current != null && a < prevAtkRef.current) || (l != null && prevLivesRef.current != null && l < prevLivesRef.current)
+    if (fail) setAttackSignal(s => s + 1)
+    if (a != null) prevAtkRef.current = a
+    if (l != null) prevLivesRef.current = l
+  }, [session?.attempts_remaining, session?.lives])
 
   async function openTestArena() {
     setOpening(true)
@@ -145,6 +167,7 @@ export default function RaidArenaPage() {
   const boardFeedbacks = sharedFeedback || (canSeeFeedback(role) ? view.feedback : null) || {}
   const boardFull = Object.keys(board).length === 4
   const myOrgan = role ? ORGANS[role] : null
+  const crew = roster.map(p => ({ id: p.user_id, hue: hueOf(p.pseudo) }))
 
   async function onValidate() {
     const res = await actions.validate()
@@ -161,44 +184,43 @@ export default function RaidArenaPage() {
     <>
       <Header />
       <main className="raid-page raid-page--combat">
-        {/* En-tête : boss mis en avant + HUD (assaut/essais/timer) + équipage */}
-        <div className="raid-combat-header">
-          <div className="raid-boss-card">
-            <span className="raid-boss-card-emoji">{boss.emoji}</span>
-            <div className="raid-boss-card-body">
-              <h1 className="raid-boss-card-name">{boss.name}</h1>
-              <HpBar hp={session.current_hp} max={session.max_hp} />
+        {/* Bloc 3D plein écran : la méduse tente d'attraper l'équipage */}
+        <div className="raid-monster">
+          <Suspense fallback={<div className="raid-monster-loading">Invocation de {boss.name}…</div>}>
+            <RaidMonster3D crew={crew} hp={session.current_hp} maxHp={session.max_hp} hitSignal={hitSignal} attackSignal={attackSignal} />
+          </Suspense>
+          <div className="raid-monster-overlay">
+            <div className="raid-monster-name"><span className="raid-monster-emoji">{boss.emoji}</span> {boss.name}</div>
+            <HpBar hp={session.current_hp} max={session.max_hp} />
+          </div>
+        </div>
+
+        {/* Télémétrie (assaut · essais · bouées · temps) + équipage */}
+        <div className="raid-telemetry">
+          <div className="raid-stats">
+            <div className="raid-stat">
+              <span className="raid-stat-k">Assaut</span>
+              <span className="raid-stat-v">{Math.min(session.assault_index + 1, session.assault_count)}/{session.assault_count}</span>
+            </div>
+            <div className="raid-stat">
+              <span className="raid-stat-k">Essais</span>
+              <span className="raid-stat-v">{session.attempts_remaining}</span>
+            </div>
+            <div className="raid-stat">
+              <span className="raid-stat-k">Bouées</span>
+              <span className="raid-stat-v">{'🛟'.repeat(Math.max(0, session.lives)) || '—'}</span>
+            </div>
+            <div className="raid-stat">
+              <span className="raid-stat-k">Temps</span>
+              <span className="raid-stat-v"><Timer deadline={session.assault_deadline} onExpire={actions.signalTimeout} /></span>
             </div>
           </div>
-          <div className="raid-hud">
-            <div className="raid-stats">
-              <div className="raid-stat">
-                <span className="raid-stat-k">Assaut</span>
-                <span className="raid-stat-v">{Math.min(session.assault_index + 1, session.assault_count)}/{session.assault_count}</span>
-              </div>
-              <div className="raid-stat">
-                <span className="raid-stat-k">Essais</span>
-                <span className="raid-stat-v">{session.attempts_remaining}</span>
-              </div>
-              <div className="raid-stat">
-                <span className="raid-stat-k">Bouées</span>
-                <span className="raid-stat-v">{'🛟'.repeat(Math.max(0, session.lives)) || '—'}</span>
-              </div>
-              <div className="raid-stat">
-                <span className="raid-stat-k">Temps</span>
-                <span className="raid-stat-v"><Timer deadline={session.assault_deadline} onExpire={actions.signalTimeout} /></span>
-              </div>
-            </div>
-            <RoleStrip roster={roster} meId={user?.id} />
-          </div>
+          <RoleStrip roster={roster} meId={user?.id} />
         </div>
 
         {/* Deux colonnes : grille + réserve | chat (large) */}
         <div className="raid-combat-cols">
           <div className="raid-col-board">
-            {myOrgan && (
-              <div className="raid-myrole-sm">Tu es <b>{myOrgan.emoji} {myOrgan.label}</b> — {myOrgan.blurb}</div>
-            )}
             <RaidBoard
               board={board}
               cardOrder={session.card_order || []}

@@ -6,6 +6,7 @@ import { getCreature } from '../../lib/creatures'
 import { motion } from 'framer-motion'
 import Header from '../../components/ui/Header'
 import FullLeaderboardModal from '../../components/ui/FullLeaderboardModal'
+import RankAvatar from '../../components/ui/RankAvatar'
 
 function getMedal(idx) {
   return ['🥇', '🥈', '🥉'][idx] ?? `${idx + 1}.`
@@ -25,7 +26,7 @@ export default function ClassementPage() {
       setLoading(true)
       const [{ data: topPlayers }, { data: currentUser }, { data: colProgress }] = await Promise.all([
         supabase.from('orienta_users')
-          .select('pseudo, xp')
+          .select('pseudo, xp, selected_skin, equipped_frame, equipped_color, streak_current, jetons, level')
           .eq('is_system', false)
           .order('xp', { ascending: false })
           .limit(10),
@@ -168,7 +169,15 @@ export default function ClassementPage() {
                         transition={{ delay: idx * 0.04 }}
                       >
                         <span className="clsmt-rank">{getMedal(idx)}</span>
-                        <span className="clsmt-name">{player.pseudo}</span>
+                        <RankAvatar player={player} />
+                        <div className="clsmt-meta">
+                          <span className="clsmt-name" style={player.equipped_color ? { color: player.equipped_color } : undefined}>{player.pseudo}</span>
+                          <div className="clsmt-chips">
+                            <span className="clsmt-chip clsmt-chip--streak">🔥 {player.streak_current ?? 0}</span>
+                            <span className="clsmt-chip clsmt-chip--jetons">🪙 {player.jetons ?? 0}</span>
+                            <span className="clsmt-chip clsmt-chip--level">Niv. {player.level ?? 1}</span>
+                          </div>
+                        </div>
                         <span className="clsmt-xp">{(player.xp ?? 0).toLocaleString()} XP</span>
                       </motion.div>
                     )
@@ -178,7 +187,15 @@ export default function ClassementPage() {
                       <div className="clsmt-sep">···</div>
                       <div className="clsmt-row clsmt-row--me">
                         <span className="clsmt-rank">#{userRank.rank}</span>
-                        <span className="clsmt-name">{userRank.pseudo}</span>
+                        <RankAvatar player={user} />
+                        <div className="clsmt-meta">
+                          <span className="clsmt-name" style={user?.equipped_color ? { color: user.equipped_color } : undefined}>{userRank.pseudo}</span>
+                          <div className="clsmt-chips">
+                            <span className="clsmt-chip clsmt-chip--streak">🔥 {user?.streak_current ?? 0}</span>
+                            <span className="clsmt-chip clsmt-chip--jetons">🪙 {user?.jetons ?? 0}</span>
+                            <span className="clsmt-chip clsmt-chip--level">Niv. {user?.level ?? 1}</span>
+                          </div>
+                        </div>
                         <span className="clsmt-xp">{(userRank.xp ?? 0).toLocaleString()} XP</span>
                       </div>
                     </>

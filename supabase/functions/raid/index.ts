@@ -247,7 +247,8 @@ serve(async (req) => {
     if (!me?.role || !canValidate(me.role)) return json({ error: 'forbidden' }, 403)
 
     if (session.assault_deadline && Date.now() > new Date(session.assault_deadline).getTime()) {
-      return json(await failAssault(supabase, session, playerId, 'timeout'))
+      await supabase.from('orienta_raid_sessions').update({ status: 'lost', ended_at: nowIso() }).eq('id', sessionId)
+      return json(await buildView(supabase, sessionId, playerId))
     }
 
     // Plateau reçu : { slot: {handle, rotation} }. Validé contre card_order + ROTATIONS.
@@ -289,10 +290,10 @@ serve(async (req) => {
       }
       const { card_order, card_map } = await buildAssault(supabase, (secrets?.grid_ids ?? [])[next])
       await supabase.from('orienta_raid_session_secrets').update({ card_map, last_feedback: null, updated_at: nowIso() }).eq('session_id', sessionId)
+      // Timer GLOBAL : on ne réinitialise pas le chrono entre assauts.
       await supabase.from('orienta_raid_sessions').update({
         assault_index: next, card_order, attempts_remaining: MAX_ATTEMPTS, sonar_used: false,
         current_hp: session.max_hp - next * HP_PER_ASSAULT,
-        assault_deadline: new Date(Date.now() + ASSAULT_SECONDS * 1000).toISOString(),
       }).eq('id', sessionId)
       return json({ ...(await buildView(supabase, sessionId, playerId)), feedback: fbBySlot, success: true, assaultCleared: true })
     }
@@ -310,7 +311,9 @@ serve(async (req) => {
     if (!session.assault_deadline || Date.now() <= new Date(session.assault_deadline).getTime()) {
       return json(await buildView(supabase, sessionId, playerId))
     }
-    return json(await failAssault(supabase, session, playerId, 'timeout'))
+    // Chrono global écoulé → défaite totale.
+    await supabase.from('orienta_raid_sessions').update({ status: 'lost', ended_at: nowIso() }).eq('id', sessionId)
+    return json(await buildView(supabase, sessionId, playerId))
   }
 
   // ── sonar : le Capitaine sonde UNE carte/assaut → vrai si parfaitement placée. ──
@@ -347,9 +350,9 @@ async function failAssault(supabase: any, session: any, playerId: string, _reaso
   if (lives <= 0) {
     await supabase.from('orienta_raid_sessions').update({ status: 'lost', lives: 0, ended_at: nowIso() }).eq('id', session.id)
   } else {
+    // Timer GLOBAL : le chrono continue (on ne le réinitialise pas après un assaut raté).
     await supabase.from('orienta_raid_sessions').update({
       lives, attempts_remaining: MAX_ATTEMPTS, sonar_used: false,
-      assault_deadline: new Date(Date.now() + ASSAULT_SECONDS * 1000).toISOString(),
     }).eq('id', session.id)
     await supabase.from('orienta_raid_session_secrets').update({ last_feedback: null, updated_at: nowIso() }).eq('session_id', session.id)
   }

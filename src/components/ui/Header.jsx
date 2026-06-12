@@ -64,6 +64,12 @@ export default function Header() {
             <NavLink to="/raid" className={({ isActive }) => `nlink nlink--raid${isActive ? ' nlink--active' : ''}`} onClick={() => setNavOpen(false)}>⚔️ RAID</NavLink>
           )}
 
+          {/* Notifications — déplacées dans le burger sur mobile (header allégé). */}
+          <button className="nlink nav-notif-mobile" type="button" onClick={() => { setNavOpen(false); setShowNotifs(true) }}>
+            🔔 Notifications
+            {notifCount > 0 && <span className="nav-notif-count">{notifCount > 9 ? '9+' : notifCount}</span>}
+          </button>
+
           {/* Joueurs en ligne — visible uniquement dans le burger (mobile). */}
           {onlinePlayers.length > 0 && (
             <div className="nav-online">
@@ -146,6 +152,7 @@ export default function Header() {
             <line x1="3" y1="12" x2="21" y2="12"/>
             <line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
+          {notifCount > 0 && <span className="burger-badge" aria-hidden="true" />}
         </button>
       </div>
 
