@@ -184,18 +184,6 @@ export const useAuthStore = create((set, get) => ({
     return { ok: true, jetons: data.jetons }
   },
 
-  // Coup de projecteur : met une grille de la communauté en avant (1/joueur/grille).
-  boostGrid: async (gridId) => {
-    const { user } = get()
-    if (!user || !gridId) return { error: 'no user' }
-    const { data, error } = await supabase.functions.invoke('shop', {
-      body: { action: 'boost', user_id: user.id, grid_id: gridId },
-    })
-    if (error || !data || data.error || data.ok === false) return { error: data?.error ?? 'boost_failed' }
-    if (typeof data.jetons === 'number') set({ user: { ...get().user, jetons: data.jetons } })
-    return { ok: true, jetons: data.jetons, boost_count: data.boost_count, already_boosted: data.already_boosted === true }
-  },
-
   // Offrir des jetons à un autre joueur (par pseudo).
   giftJetons: async (recipientPseudo, amount) => {
     const { user } = get()

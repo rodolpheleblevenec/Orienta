@@ -16,8 +16,11 @@ ALTER TABLE orienta_users ADD COLUMN IF NOT EXISTS status_text    text;
 ALTER TABLE orienta_users ADD COLUMN IF NOT EXISTS rename_tokens  int NOT NULL DEFAULT 0;
 
 -- ── Articles retirés (conservés en base, simplement désactivés → invisibles) ──
+--   • unlock_all_difficulties : inutile
+--   • title_explorer          : remplacé par le statut perso
+--   • boost_grid              : on retire la mécanique « payer pour mettre en avant »
 UPDATE orienta_shop_items SET active = false
-  WHERE code IN ('unlock_all_difficulties', 'title_explorer');
+  WHERE code IN ('unlock_all_difficulties', 'title_explorer', 'boost_grid');
 
 -- ── Nouveaux articles (PRIX = placeholders à calibrer) ───────────────
 INSERT INTO orienta_shop_items (code, family, kind, cost_jetons, payload, title, description, sort_order) VALUES

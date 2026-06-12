@@ -10,8 +10,37 @@ function avatarColor(id) {
   return CARD_COLORS[h % CARD_COLORS.length].text
 }
 
+// Ligne « joueur en ligne » : avatar du perso (skin) + cadre + pseudo coloré +
+// statut. Réutilisée par le panneau desktop ET la liste du burger mobile.
+export function OnlinePlayerItem({ player, isMe }) {
+  const skin = player.selected_skin ?? 1
+  const emoji = skin > 1 ? getMarineItem(skin).name.split(' ')[0] : null
+  return (
+    <li className="hub-online-item">
+      <AvatarFrame frame={player.equipped_frame}>
+        <span
+          className={`hub-online-ava${emoji ? ' hub-online-ava--emoji' : ''}`}
+          style={emoji ? undefined : { background: avatarColor(player.id) }}
+        >
+          {emoji ?? (player.pseudo?.[0]?.toUpperCase() ?? '?')}
+        </span>
+      </AvatarFrame>
+      <span className="hub-online-meta">
+        <span
+          className="hub-online-name"
+          style={player.equipped_color ? { color: player.equipped_color } : undefined}
+        >
+          {player.pseudo ?? 'Joueur'}
+        </span>
+        {player.status_text && <span className="hub-online-status">{player.status_text}</span>}
+      </span>
+      {isMe && <span className="hub-online-me">toi</span>}
+    </li>
+  )
+}
+
 // Panneau latéral « joueurs en ligne » — desktop uniquement (masqué en CSS sous
-// 1280px). N'est monté par le hub que lorsqu'au moins un autre joueur est connecté.
+// 1280px ; sur mobile, la liste passe dans le burger du header).
 //
 // C'est la VITRINE sociale : les cosmétiques achetés (avatar du perso, cadre,
 // couleur de pseudo, statut perso) ne s'affichent QUE ici — vus par tout le monde.
@@ -28,33 +57,9 @@ export default function OnlinePlayersPanel({ players, currentUserId }) {
         </div>
 
         <ul className="hub-online-list">
-          {players.map(p => {
-            const skin = p.selected_skin ?? 1
-            // Avatar = emoji du perso (skin) si > 1, sinon initiale du pseudo.
-            const emoji = skin > 1 ? getMarineItem(skin).name.split(' ')[0] : null
-            return (
-              <li key={p.id} className="hub-online-item">
-                <AvatarFrame frame={p.equipped_frame}>
-                  <span
-                    className={`hub-online-ava${emoji ? ' hub-online-ava--emoji' : ''}`}
-                    style={emoji ? undefined : { background: avatarColor(p.id) }}
-                  >
-                    {emoji ?? (p.pseudo?.[0]?.toUpperCase() ?? '?')}
-                  </span>
-                </AvatarFrame>
-                <span className="hub-online-meta">
-                  <span
-                    className="hub-online-name"
-                    style={p.equipped_color ? { color: p.equipped_color } : undefined}
-                  >
-                    {p.pseudo ?? 'Joueur'}
-                  </span>
-                  {p.status_text && <span className="hub-online-status">{p.status_text}</span>}
-                </span>
-                {p.id === currentUserId && <span className="hub-online-me">toi</span>}
-              </li>
-            )
-          })}
+          {players.map(p => (
+            <OnlinePlayerItem key={p.id} player={p} isMe={p.id === currentUserId} />
+          ))}
         </ul>
 
         <p className="hub-online-foot">Bientôt : jouez ensemble en temps réel.</p>

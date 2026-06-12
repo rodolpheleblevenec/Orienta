@@ -8,13 +8,16 @@ import QuestsModal from './QuestsModal'
 import WheelModal from './WheelModal'
 import NotificationsPanel from './NotificationsPanel'
 import AdminPasswordModal from './AdminPasswordModal'
+import { OnlinePlayerItem } from './OnlinePlayersPanel'
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
+import { useOnlinePlayers } from '../../lib/useOnlinePlayers'
 import { canSeeRaid } from '../../lib/raid'
 
 const ADMIN_PSEUDO = 'Rodolphe LE BLEVENEC'
 
 export default function Header() {
   const { user, notifCount, logout } = useAuthStore()
+  const onlinePlayers = useOnlinePlayers(user)
   const navigate = useNavigate()
   const [showStreakModal, setShowStreakModal] = useState(false)
   const [showQuestsModal, setShowQuestsModal] = useState(false)
@@ -49,7 +52,7 @@ export default function Header() {
       <div className="topbar-in">
         <Link to="/hub" className="brand">
           <img src="/favicon.svg" alt="" className="brand-mark" />
-          Orienta
+          <span className="brand-name">Orienta</span>
         </Link>
 
         <nav className={`top-nav${navOpen ? ' top-nav--open' : ''}`}>
@@ -60,6 +63,23 @@ export default function Header() {
           {canSeeRaid(user?.pseudo) && (
             <NavLink to="/raid" className={({ isActive }) => `nlink nlink--raid${isActive ? ' nlink--active' : ''}`} onClick={() => setNavOpen(false)}>⚔️ RAID</NavLink>
           )}
+
+          {/* Joueurs en ligne — visible uniquement dans le burger (mobile). */}
+          {onlinePlayers.length > 0 && (
+            <div className="nav-online">
+              <div className="nav-online-head">
+                <span className="hub-ldot" />
+                En ligne
+                <span className="nav-online-count">{onlinePlayers.length}</span>
+              </div>
+              <ul className="nav-online-list">
+                {onlinePlayers.map(p => (
+                  <OnlinePlayerItem key={p.id} player={p} isMe={p.id === user?.id} />
+                ))}
+              </ul>
+            </div>
+          )}
+
           <button className="nlink nlink-logout-mobile" type="button" onClick={() => { setNavOpen(false); logout() }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" style={{marginRight: '6px', flexShrink: 0}}>
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -97,7 +117,7 @@ export default function Header() {
         </div>
 
         {isAdmin && (
-          <button className="icon-btn" type="button" title="Administration" onClick={() => setShowAdminModal(true)}>
+          <button className="icon-btn header-admin-btn" type="button" title="Administration" onClick={() => setShowAdminModal(true)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="3"/>
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>

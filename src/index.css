@@ -863,10 +863,31 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .burger-btn { display: none; }
 .nlink-logout-mobile { display: none; }
 
+/* Liste « joueurs en ligne » dans le burger — affichée uniquement sur mobile. */
+.nav-online { display: none; }
+.nav-online-head {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px 6px;
+  font-family: var(--display); font-weight: 700; font-size: 13px; color: var(--ink);
+}
+.nav-online-count {
+  margin-left: auto; font-family: var(--display); font-weight: 700; font-size: 12px;
+  color: var(--teal-700); background: var(--teal-soft);
+  min-width: 22px; height: 22px; padding: 0 7px; border-radius: var(--r-pill);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.nav-online-list { list-style: none; margin: 0; padding: 0 8px 2px; max-height: 46vh; overflow-y: auto; }
+
 /* Navigation en burger dès que la barre se charge (pastille jetons + série + notifs). */
 @media (max-width: 768px) {
   .topbar-in { padding: 11px 16px; gap: 8px; }
   .top-nav { display: none; }
+  /* Header mobile épuré : logo seul + pièces + rond profil + burger. */
+  .brand-name { display: none; }
+  .streak-pill { display: none; }
+  .header-admin-btn { display: none; }
+  .top-nav--open .nav-online {
+    display: block; margin-top: 4px; border-top: 1px solid var(--line); padding-top: 4px;
+  }
   .top-nav--open {
     display: flex; flex-direction: column;
     position: absolute; top: 62px; left: 16px; right: 16px;
@@ -1135,17 +1156,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .difficulty-extra-slot-note {
   text-align: center; font-size: 13px; font-weight: 600; color: var(--amber); margin: -6px 0 14px;
 }
-
-/* ── Coup de projecteur (carte communauté — boutique Phase 3) ── */
-.pc-boost {
-  width: 100%; padding: 9px; border: none; border-top: 1px solid var(--line);
-  background: var(--card); cursor: pointer; font-family: var(--display);
-  font-weight: 700; font-size: 12.5px; color: var(--ink-2);
-  border-radius: 0 0 var(--r) var(--r); transition: background .15s, color .15s;
-}
-.pc-boost:hover:not(:disabled) { background: #fff8e8; color: var(--amber); }
-.pc-boost--done { color: var(--amber); cursor: default; }
-.pc-boost:disabled { cursor: default; }
 
 /* ── Offrir des jetons (boutique Phase 3) ── */
 .gift-block {

@@ -123,15 +123,6 @@ serve(async (req) => {
     return json(data ?? { ok: false })
   }
 
-  // Coup de projecteur : met une grille communautaire en avant (1/joueur/grille).
-  if (action === 'boost') {
-    const gridId = body.grid_id
-    if (!gridId) return json({ error: 'grid_id required' }, 400)
-    const { data, error } = await supabase.rpc('boost_grid', { p_user_id: userId, p_grid_id: gridId })
-    if (error) return json({ error: 'could not boost' }, 500)
-    return json(data ?? { ok: false })
-  }
-
   // Offrir des jetons : résolution du destinataire par pseudo côté serveur.
   if (action === 'gift') {
     const amount = Math.floor(Number(body.amount))
