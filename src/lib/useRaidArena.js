@@ -33,6 +33,7 @@ export function useRaidArena(user) {
   const fetchViewRef = useRef(() => {})
   const myRoleRef = useRef(null); myRoleRef.current = myRole
   const myReadyRef = useRef(false); myReadyRef.current = myReady
+  const roleRef = useRef(null)
 
   const status = pub?.status ?? null
   const inLobby = status === 'waiting' || status == null
@@ -47,6 +48,7 @@ export function useRaidArena(user) {
 
   const roster = inLobby ? presenceRoster : serverRoster
   const role = inLobby ? myRole : (serverMe?.role ?? null)
+  roleRef.current = role
   const me = inLobby ? { user_id: user?.id, pseudo: user?.pseudo, role: myRole, is_ready: myReady } : serverMe
 
   const call = useCallback(async (action, extra = {}) => {
@@ -208,7 +210,7 @@ export function useRaidArena(user) {
   const sendChat = useCallback((text) => {
     const t = String(text || '').trim().slice(0, 240)
     if (!t) return
-    const msg = { pseudo: user?.pseudo, text: t, ts: Date.now() }
+    const msg = { pseudo: user?.pseudo, text: t, ts: Date.now(), role: roleRef.current }
     setChat(c => [...c.slice(-80), msg])
     broadcast('chat', msg)
   }, [broadcast, user?.pseudo])

@@ -1,7 +1,10 @@
+import { useState, useEffect } from 'react'
 import { ORGANS, getOrgansForTier, MIN_PLAYERS } from '../../lib/raid'
 
+const COUNTDOWN = 5
+
 // Salle d'attente : tableau des organes du palier (= effectif). Chacun réclame
-// le sien ; tout le monde doit être prêt pour lancer.
+// le sien ; quand tout le monde est prêt, un décompte lance automatiquement.
 export default function RosterBoard({ roster, me, actions, busy }) {
   const count = roster.length
   const organs = getOrgansForTier(count)
@@ -13,6 +16,26 @@ export default function RosterBoard({ roster, me, actions, busy }) {
   const allReady = roster.length > 0 && roster.every(p => p.is_ready)
   const enoughPlayers = count >= MIN_PLAYERS
   const canLaunch = enoughPlayers && allClaimed && allReady
+
+  // Décompte automatique : démarre quand tout le monde est prêt, s'annule sinon.
+  const [countdown, setCountdown] = useState(null)
+  useEffect(() => {
+    if (!canLaunch) { setCountdown(null); return }
+    setCountdown(COUNTDOWN)
+    const iv = setInterval(() => {
+      setCountdown(c => {
+        if (c <= 1) {
+          clearInterval(iv)
+          // Un seul client déclenche (le plus petit user_id) ; le serveur est idempotent.
+          const lowest = [...roster].sort((a, b) => String(a.user_id).localeCompare(String(b.user_id)))[0]
+          if (lowest && me?.user_id === lowest.user_id) actions.startGame()
+          return 0
+        }
+        return c - 1
+      })
+    }, 1000)
+    return () => clearInterval(iv)
+  }, [canLaunch]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="raid-roster">
@@ -60,16 +83,20 @@ export default function RosterBoard({ roster, me, actions, busy }) {
         >
           {!myRole ? 'Choisis un organe d’abord' : me?.is_ready ? '✓ Prêt — annuler' : 'Je suis prêt'}
         </button>
-        {canLaunch ? (
-          <button type="button" className="btn-primary raid-launch-btn" disabled={busy} onClick={() => actions.startGame()}>
-            {busy ? 'Lancement…' : '⚔️ Lancer le raid'}
-          </button>
-        ) : (
+        {!canLaunch && (
           <p className="raid-launch-hint">
             En attente : {!enoughPlayers ? `${MIN_PLAYERS - count} joueur(s) de plus` : !allClaimed ? 'organes à couvrir' : 'que tout le monde soit prêt'}
           </p>
         )}
       </div>
+
+      {countdown !== null && (
+        <div className="raid-countdown" role="status">
+          <span className="raid-countdown-label">{busy ? 'Lancement…' : 'Le raid commence dans'}</span>
+          <span className="raid-countdown-num">{countdown}</span>
+          <span className="raid-countdown-hint">Retire ton « Prêt » pour annuler</span>
+        </div>
+      )}
     </div>
   )
 }

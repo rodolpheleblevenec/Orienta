@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { ORGANS } from '../../lib/raid'
 
 // Chat d'équipage (broadcast). Le moteur de la collaboration : l'info étant
 // cachée par organe, c'est ici qu'on se coordonne.
@@ -19,12 +20,18 @@ export default function RaidChat({ chat, onSend, me }) {
       <div className="raid-chat-head">💬 Coordination</div>
       <div className="raid-chat-log">
         {chat.length === 0 && <p className="raid-chat-empty">Parlez-vous : qui voit quoi, qui pose quoi…</p>}
-        {chat.map((m, i) => (
-          <div key={i} className={`raid-chat-msg${m.pseudo === me?.pseudo ? ' raid-chat-msg--me' : ''}`}>
-            <span className="raid-chat-author">{m.pseudo || 'joueur'}</span>
-            <span className="raid-chat-text">{m.text}</span>
-          </div>
-        ))}
+        {chat.map((m, i) => {
+          const org = m.role ? ORGANS[m.role] : null
+          return (
+            <div key={i} className={`raid-chat-msg${m.pseudo === me?.pseudo ? ' raid-chat-msg--me' : ''}`}>
+              <span className="raid-chat-author">
+                {m.pseudo || 'joueur'}
+                {org && <span className="raid-chat-role">{org.emoji} {org.label}</span>}
+              </span>
+              <span className="raid-chat-text">{m.text}</span>
+            </div>
+          )
+        })}
         <div ref={endRef} />
       </div>
       <form className="raid-chat-form" onSubmit={submit}>
