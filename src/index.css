@@ -5472,6 +5472,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .rms-chip--time .raid-timer--low { color: #ffb4a8; }
 .rms-chip--lives { font-size: 15px; }
 .rms-chip--week { background: rgba(255,255,255,.22); }
+.rms-chip--preview { background: rgba(255,193,7,.45); text-transform: uppercase; font-size: 11px; letter-spacing: .04em; }
 .raid-monster .raid-hp { background: rgba(255,255,255,.16); max-width: 100%; margin-top: 0; }
 .raid-monster .raid-hp-txt { color: #fff; }
 

@@ -4,7 +4,7 @@ import Header from '../../components/ui/Header'
 import { useAuthStore } from '../../stores/authStore'
 import { useRaidArena } from '../../lib/useRaidArena'
 import { getAdminSecret } from '../../lib/adminSecret'
-import { ORGANS, getBossByKey, BOSSES, canPlace, canRotate, canValidate, canSeeFeedback, canSeeClues, canSeeWords, canSeeRaid, isRaidAdmin, raidWindowsText, isRaidLaunched, nextRaidWindowStart, currentRaidLevel } from '../../lib/raid'
+import { ORGANS, getBossByKey, BOSSES, canPlace, canRotate, canValidate, canSeeFeedback, canSeeClues, canSeeWords, canSeeRaid, isRaidAdmin, raidWindowsText, isRaidLaunched, nextRaidWindowStart, currentRaidLevel, difficultyForLevel } from '../../lib/raid'
 import RosterBoard from '../../components/raid/RosterBoard'
 import RaidChat from '../../components/raid/RaidChat'
 import RoleStrip from '../../components/raid/RoleStrip'
@@ -224,6 +224,10 @@ export default function RaidArenaPage() {
   const bossIdx = bossPreview != null ? bossPreview : Math.max(0, BOSSES.findIndex(b => b.key === boss.key))
   const displayBoss = BOSSES[bossIdx] || boss
   const cycleBoss = (d) => setBossPreview((bossIdx + d + BOSSES.length) % BOSSES.length)
+  // Prévisualisation admin : on affiche la VRAIE difficulté du boss survolé (semaine = index+1).
+  const previewing = bossPreview != null
+  const pcfg = previewing ? difficultyForLevel(bossIdx + 1) : null
+  const fmtMS = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 
   async function onValidate() {
     const res = await actions.validate()
@@ -258,14 +262,31 @@ export default function RaidArenaPage() {
                 )}
               </div>
               <div className="raid-monster-stats">
-                <span className="rms-chip rms-chip--week">Sem.&nbsp;<b>{session.boss_level ?? currentRaidLevel()}</b></span>
-                <span className="rms-chip rms-chip--time"><Timer deadline={session.assault_deadline} onExpire={actions.signalTimeout} /></span>
-                <span className="rms-chip">Assaut <b>{Math.min(session.assault_index + 1, session.assault_count)}/{session.assault_count}</b></span>
-                <span className="rms-chip">Essais <b>{session.attempts_remaining}</b></span>
-                <span className="rms-chip rms-chip--lives">{'🛟'.repeat(Math.max(0, session.lives)) || '—'}</span>
+                {previewing ? (
+                  <>
+                    <span className="rms-chip rms-chip--preview">aperçu</span>
+                    <span className="rms-chip rms-chip--week">Sem.&nbsp;<b>{bossIdx + 1}</b></span>
+                    <span className="rms-chip">Assauts&nbsp;<b>{pcfg.assault_count}</b></span>
+                    <span className="rms-chip">PV&nbsp;<b>{pcfg.assault_count * 100}</b></span>
+                    <span className="rms-chip rms-chip--lives">{'🛟'.repeat(pcfg.lives)}</span>
+                    <span className="rms-chip">👥&nbsp;min&nbsp;<b>{pcfg.min_players}</b></span>
+                    <span className="rms-chip">⏱&nbsp;<b>{fmtMS(pcfg.timer_seconds)}</b></span>
+                    <span className="rms-chip">Grilles&nbsp;<b>{Math.round(pcfg.grid_band[0] * 100)}–{Math.round(pcfg.grid_band[1] * 100)}%</b></span>
+                  </>
+                ) : (
+                  <>
+                    <span className="rms-chip rms-chip--week">Sem.&nbsp;<b>{session.boss_level ?? currentRaidLevel()}</b></span>
+                    <span className="rms-chip rms-chip--time"><Timer deadline={session.assault_deadline} onExpire={actions.signalTimeout} /></span>
+                    <span className="rms-chip">Assaut <b>{Math.min(session.assault_index + 1, session.assault_count)}/{session.assault_count}</b></span>
+                    <span className="rms-chip">Essais <b>{session.attempts_remaining}</b></span>
+                    <span className="rms-chip rms-chip--lives">{'🛟'.repeat(Math.max(0, session.lives)) || '—'}</span>
+                  </>
+                )}
               </div>
             </div>
-            <HpBar hp={session.current_hp} max={session.max_hp} />
+            {previewing
+              ? <HpBar hp={pcfg.assault_count * 100} max={pcfg.assault_count * 100} />
+              : <HpBar hp={session.current_hp} max={session.max_hp} />}
           </div>
         </div>
 

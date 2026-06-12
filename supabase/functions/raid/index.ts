@@ -62,9 +62,9 @@ type LevelCfg = { assault_count: number; min_players: number; lives: number; tim
 const LEVEL_LADDER: LevelCfg[] = [
   { assault_count: 3, min_players: 3, lives: 3, timer_seconds: 300, difficulties: ['facile', 'moyen'], grid_band: [0.70, 0.90] },
   { assault_count: 3, min_players: 3, lives: 2, timer_seconds: 270, difficulties: ['facile', 'moyen'], grid_band: [0.60, 0.85] },
-  { assault_count: 4, min_players: 4, lives: 2, timer_seconds: 300, difficulties: ['moyen'], grid_band: [0.55, 0.80] },
-  { assault_count: 4, min_players: 4, lives: 2, timer_seconds: 270, difficulties: ['moyen', 'difficile'], grid_band: [0.45, 0.75] },
-  { assault_count: 4, min_players: 5, lives: 1, timer_seconds: 300, difficulties: ['moyen', 'difficile'], grid_band: [0.35, 0.70] },
+  { assault_count: 4, min_players: 4, lives: 2, timer_seconds: 330, difficulties: ['moyen'], grid_band: [0.55, 0.80] },
+  { assault_count: 5, min_players: 4, lives: 2, timer_seconds: 390, difficulties: ['moyen', 'difficile'], grid_band: [0.45, 0.75] },
+  { assault_count: 6, min_players: 5, lives: 1, timer_seconds: 420, difficulties: ['moyen', 'difficile'], grid_band: [0.35, 0.70] },
 ]
 const difficultyForLevel = (level: number): LevelCfg =>
   LEVEL_LADDER[Math.min(Math.max(1, level), LEVEL_LADDER.length) - 1]
