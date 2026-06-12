@@ -6,7 +6,6 @@ import Header from '../../components/ui/Header'
 import CollectiveGauge from '../../components/ui/CollectiveGauge'
 import GridCard from '../../components/ui/GridCard'
 import CreatedGridCard from '../../components/ui/CreatedGridCard'
-import QuestPanel from '../../components/ui/QuestPanel'
 import WinnerWelcomeModal from '../../components/ui/WinnerWelcomeModal'
 import NewWojoModal from '../../components/ui/NewWojoModal'
 import OnlinePlayersPanel from '../../components/ui/OnlinePlayersPanel'
@@ -34,7 +33,7 @@ function statusLabel(playInfo) {
 }
 
 export default function HubPage() {
-  const { user, markTourDone, fetchQuests } = useAuthStore()
+  const { user, markTourDone } = useAuthStore()
   const navigate = useNavigate()
   const today = new Date().toISOString().split('T')[0]
   const hasForfeited = localStorage.getItem(`orienta_create_forfeit_${user?.id}`) === today
@@ -56,11 +55,6 @@ export default function HubPage() {
   // Panneau affiché (desktop only) uniquement s'il y a au moins un AUTRE joueur.
   const onlinePlayers = useOnlinePlayers(user)
   const showOnlinePanel = onlinePlayers.some(p => p.id !== user?.id)
-
-  // Rafraîchit les quêtes à l'ouverture du hub (progression à jour après une partie).
-  useEffect(() => {
-    if (user) fetchQuests(user.id)
-  }, [user, fetchQuests])
 
   useEffect(() => {
     if (!user) return
@@ -260,9 +254,6 @@ export default function HubPage() {
             <span className="hub-grant-banner-cta">Créer ma grille →</span>
           </Link>
         )}
-
-        {/* ===== QUÊTES — objectifs du jour / de la semaine (récompense en jetons) ===== */}
-        <QuestPanel />
 
         {/* ===== PARTIE 01 — LA GRILLE DU JOUR ===== */}
         <section className="hub-part">

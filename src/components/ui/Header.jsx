@@ -4,6 +4,7 @@ import { useAuthStore } from '../../stores/authStore'
 import { supabase } from '../../lib/supabase'
 import { setAdminSecret } from '../../lib/adminSecret'
 import StreakModal from './StreakModal'
+import QuestsModal from './QuestsModal'
 import NotificationsPanel from './NotificationsPanel'
 import AdminPasswordModal from './AdminPasswordModal'
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
@@ -15,10 +16,11 @@ export default function Header() {
   const { user, notifCount, logout } = useAuthStore()
   const navigate = useNavigate()
   const [showStreakModal, setShowStreakModal] = useState(false)
+  const [showQuestsModal, setShowQuestsModal] = useState(false)
   const [showNotifs, setShowNotifs] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [showAdminModal, setShowAdminModal] = useState(false)
-  useBodyScrollLock(showStreakModal || showNotifs)
+  useBodyScrollLock(showStreakModal || showNotifs || showQuestsModal)
 
   // Contrôle du mot de passe admin AU CLIC sur la roue crantée : la modal appelle
   // verifyAdminSecret, qui valide le secret côté serveur. L'interface ne s'ouvre
@@ -67,10 +69,10 @@ export default function Header() {
 
         <span className="nav-spacer" />
 
-        <Link to="/hub" className="jetons-pill" title="Tes jetons — gagnés en accomplissant des quêtes">
+        <button className="jetons-pill" onClick={() => setShowQuestsModal(true)} type="button" title="Tes quêtes & jetons">
           <span className="jetons-coin" aria-hidden="true">🪙</span>
           <span className="jetons-txt">{jetons}</span>
-        </Link>
+        </button>
 
         <button className="streak-pill" onClick={() => setShowStreakModal(true)} type="button" title="Votre streak">
           <svg viewBox="0 0 24 24" fill="currentColor">
@@ -125,6 +127,7 @@ export default function Header() {
 
     </header>
     {showStreakModal && <StreakModal onClose={() => setShowStreakModal(false)} />}
+    {showQuestsModal && <QuestsModal onClose={() => setShowQuestsModal(false)} />}
     {showAdminModal && <AdminPasswordModal onClose={() => setShowAdminModal(false)} onSubmit={verifyAdminSecret} />}
     </>
   )

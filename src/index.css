@@ -978,8 +978,13 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 }
 .hub-dateline-sep { width: 4px; height: 4px; border-radius: 50%; background: var(--ink-3); opacity: 0.6; }
 
-/* ── Panneau Quêtes (hub) ── */
-.quest-panel-sub { font-size: 12.5px; font-weight: 600; color: var(--amber); white-space: nowrap; }
+/* ── Quêtes (modale ouverte depuis la pastille jetons) ── */
+.quests-modal { max-width: 480px; }
+.quests-modal-balance {
+  font-size: 13.5px; color: var(--ink-2); margin-bottom: 6px;
+}
+.quests-modal-balance strong { color: var(--amber); font-family: var(--display); }
+.quests-modal-empty { font-size: 13px; color: var(--ink-3); text-align: center; padding: 18px 0; }
 .quest-group-title {
   margin: 14px 0 8px; font-family: var(--display); font-weight: 700; font-size: 13px;
   color: var(--ink-2); letter-spacing: 0.02em;
