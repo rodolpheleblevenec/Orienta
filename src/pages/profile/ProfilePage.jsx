@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../stores/authStore'
 import { getLevelProgress, getLevelProgressCollective } from '../../lib/levels'
 import { MARINE_ITEMS, getMarineItem } from '../../lib/marineItems'
-import { CHANGELOG } from '../../lib/changelog'
+import { visibleChangelog } from '../../lib/changelog'
 import Header from '../../components/ui/Header'
 
 // '2026-06-12' → '12 juin 2026' (pour l'onglet Nouveauté).
@@ -315,7 +315,7 @@ export default function ProfilePage() {
               <span style={{ fontSize: '12px', color: 'var(--ink-3)' }}>Les dernières features</span>
             </div>
             <ol className="changelog-list">
-              {CHANGELOG.map((entry, i) => (
+              {visibleChangelog().map((entry, i) => (
                 <li key={entry.date + i} className="changelog-entry">
                   <span className="changelog-dot" aria-hidden="true" />
                   <div className="changelog-body">

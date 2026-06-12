@@ -4,7 +4,7 @@ import Header from '../../components/ui/Header'
 import { useAuthStore } from '../../stores/authStore'
 import { useRaidArena } from '../../lib/useRaidArena'
 import { getAdminSecret } from '../../lib/adminSecret'
-import { ORGANS, getBossByKey, canPlace, canRotate, canValidate, canSeeFeedback, canSeeClues, canSeeWords, canSeeRaid, isRaidAdmin } from '../../lib/raid'
+import { ORGANS, getBossByKey, canPlace, canRotate, canValidate, canSeeFeedback, canSeeClues, canSeeWords, canSeeRaid, isRaidAdmin, raidWindowsText } from '../../lib/raid'
 import RosterBoard from '../../components/raid/RosterBoard'
 import RaidChat from '../../components/raid/RaidChat'
 import RoleStrip from '../../components/raid/RoleStrip'
@@ -104,7 +104,7 @@ export default function RaidArenaPage() {
           <div className="raid-empty">
             <div className="raid-empty-emoji">🌊</div>
             <h1 className="raid-h1">Aucune arène ouverte</h1>
-            <p className="raid-sub">Les raids s’ouvriront chaque jour entre 12:00 et 15:00. Reviens à l’heure du déjeuner !</p>
+            <p className="raid-sub">Les raids s’ouvrent chaque jour sur deux créneaux : {raidWindowsText()}. Reviens à l’une de ces heures !</p>
             {canOpen &&(
               <button className="btn-primary" onClick={openTestArena} disabled={opening}>
                 {opening ? 'Ouverture…' : '🔧 Ouvrir une arène de test'}

@@ -8,7 +8,21 @@
 //   - items : 1 à 6 puces décrivant ce qui change pour le joueur
 //
 // Historique reconstitué depuis le lancement (27 mai 2026) à partir du journal du projet.
+//
+// PROGRAMMATION : une entrée dont la `date` est dans le futur reste MASQUÉE jusqu'à
+// ce jour-là (filtrage côté Profil). Pratique pour pré-annoncer une feature qui sort
+// plus tard (ex. le mode RAID, public à partir du 15 juin 2026).
 export const CHANGELOG = [
+  {
+    date: '2026-06-15',
+    emoji: '⚔️',
+    title: 'Mode RAID coopératif',
+    items: [
+      'Affrontez le Boss d\'Équipage à plusieurs, en temps réel.',
+      'Chacun son rôle et ses propres informations : communiquez pour coordonner vos coups.',
+      'Une toute nouvelle façon de jouer ensemble, en équipe.',
+    ],
+  },
   {
     date: '2026-06-12',
     emoji: '🪙',
@@ -24,12 +38,11 @@ export const CHANGELOG = [
   },
   {
     date: '2026-06-12',
-    emoji: '⚔️',
-    title: 'Quêtes quotidiennes, combo & mode RAID',
+    emoji: '🎯',
+    title: 'Quêtes quotidiennes, combo & nouveaux niveaux',
     items: [
       'Quêtes du jour et de la semaine qui rapportent des jetons.',
       'Combo de session : enchaîne les réussites pour multiplier ton XP.',
-      'Mode RAID coopératif : affrontez le Boss d\'Équipage en temps réel.',
       'Niveaux étendus et nouveaux compagnons à débloquer.',
       'Possibilité de donner un titre à tes grilles.',
     ],
@@ -101,3 +114,10 @@ export const CHANGELOG = [
     ],
   },
 ]
+
+// Entrées effectivement affichées : on masque celles dont la date est dans le futur
+// (annonces pré-programmées), plus récent en premier.
+export function visibleChangelog() {
+  const today = new Date().toLocaleDateString('en-CA') // 'AAAA-MM-JJ' local
+  return CHANGELOG.filter(e => e.date <= today)
+}

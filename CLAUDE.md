@@ -22,3 +22,7 @@ Précisions :
 - N'ajoute **pas** d'entrée pour des correctifs internes invisibles côté joueur
   (refactors, fixes techniques, sécurité non visible).
 - L'entrée la plus récente est toujours en **première** position du tableau.
+- **Programmation** : une entrée dont la `date` est **dans le futur** est automatiquement
+  **masquée** jusqu'à ce jour (filtre `visibleChangelog()`). Sert à pré-annoncer une
+  feature qui ne devient publique que plus tard — donne alors la date de sortie publique
+  (et non la date de mise en ligne du code).

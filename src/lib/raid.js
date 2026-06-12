@@ -56,6 +56,33 @@ export function canSeeRaid(pseudo) {
   return pseudo === RAID_ADMIN_PSEUDO || RAID_TESTER_RE.test(pseudo.trim())
 }
 
+// ── Fenêtres d'ouverture publique du raid (heure locale) ─────────────
+// Deux créneaux quotidiens : le matin et le midi. SOURCE DE VÉRITÉ UNIQUE —
+// l'affichage joueur s'y réfère, et (itération 3) le cron d'ouverture publique
+// devra ouvrir/fermer les arènes sur ces mêmes plages. En phase test admin,
+// « Ouvrir une arène de test » continue de bypasser ces fenêtres.
+export const RAID_WINDOWS = [
+  { label: 'matin', start: '08:30', end: '10:30' },
+  { label: 'midi',  start: '12:00', end: '14:00' },
+]
+
+// Formate « 08:30 » → « 8h30 », « 12:00 » → « 12h ».
+const fmtHM = (hm) => {
+  const [h, m] = hm.split(':')
+  return m === '00' ? `${Number(h)}h` : `${Number(h)}h${m}`
+}
+// Phrase prête à afficher : « 8h30–10h30 et 12h–14h ».
+export const raidWindowsText = () =>
+  RAID_WINDOWS.map(w => `${fmtHM(w.start)}–${fmtHM(w.end)}`).join(' et ')
+
+// Vrai si l'instant donné (Date) tombe dans l'un des créneaux (heure locale).
+// Base pour l'enforcement futur (cron de spawn) ; non bloquant côté client.
+export function isWithinRaidWindow(date = new Date()) {
+  const mins = date.getHours() * 60 + date.getMinutes()
+  const toMin = (hm) => { const [h, m] = hm.split(':'); return Number(h) * 60 + Number(m) }
+  return RAID_WINDOWS.some(w => mins >= toMin(w.start) && mins < toMin(w.end))
+}
+
 // Renvoie la liste des organes (clés) pour un effectif donné (borné 3..8).
 export function getOrgansForTier(playerCount) {
   const t = Math.max(MIN_PLAYERS, Math.min(MAX_TIER, playerCount || MIN_PLAYERS))
