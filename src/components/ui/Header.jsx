@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { setAdminSecret } from '../../lib/adminSecret'
 import StreakModal from './StreakModal'
 import QuestsModal from './QuestsModal'
+import WheelModal from './WheelModal'
 import NotificationsPanel from './NotificationsPanel'
 import AdminPasswordModal from './AdminPasswordModal'
 import AvatarFrame from './AvatarFrame'
@@ -18,10 +19,11 @@ export default function Header() {
   const navigate = useNavigate()
   const [showStreakModal, setShowStreakModal] = useState(false)
   const [showQuestsModal, setShowQuestsModal] = useState(false)
+  const [showWheelModal, setShowWheelModal] = useState(false)
   const [showNotifs, setShowNotifs] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [showAdminModal, setShowAdminModal] = useState(false)
-  useBodyScrollLock(showStreakModal || showNotifs || showQuestsModal)
+  useBodyScrollLock(showStreakModal || showNotifs || showQuestsModal || showWheelModal)
 
   // Contrôle du mot de passe admin AU CLIC sur la roue crantée : la modal appelle
   // verifyAdminSecret, qui valide le secret côté serveur. L'interface ne s'ouvre
@@ -132,7 +134,13 @@ export default function Header() {
 
     </header>
     {showStreakModal && <StreakModal onClose={() => setShowStreakModal(false)} />}
-    {showQuestsModal && <QuestsModal onClose={() => setShowQuestsModal(false)} />}
+    {showQuestsModal && (
+      <QuestsModal
+        onClose={() => setShowQuestsModal(false)}
+        onOpenWheel={() => { setShowQuestsModal(false); setShowWheelModal(true) }}
+      />
+    )}
+    {showWheelModal && <WheelModal onClose={() => setShowWheelModal(false)} />}
     {showAdminModal && <AdminPasswordModal onClose={() => setShowAdminModal(false)} onSubmit={verifyAdminSecret} />}
     </>
   )

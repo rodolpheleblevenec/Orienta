@@ -72,7 +72,7 @@ function ShopRow({ item, jetons, ownedCount, onBuy, onEquip, busy }) {
 
 // Modale jetons : onglet Quêtes (gagner) + onglet Boutique (dépenser).
 // Ouverte depuis la pastille jetons du header. Rafraîchit tout à l'ouverture.
-export default function QuestsModal({ onClose }) {
+export default function QuestsModal({ onClose, onOpenWheel }) {
   useBodyScrollLock()
   const { user, quests, fetchQuests, claimQuest, shop, fetchShop, buyItem, equipItem, giftJetons } = useAuthStore()
   const [tab, setTab] = useState('quests')
@@ -175,6 +175,16 @@ export default function QuestsModal({ onClose }) {
           )
         ) : (
           <>
+            {onOpenWheel && (
+              <button type="button" className="wheel-entry-btn" onClick={onOpenWheel}>
+                <span className="wheel-entry-emoji">🎡</span>
+                <span className="wheel-entry-body">
+                  <strong>Roue de la fortune</strong>
+                  <small>Tente ta chance : rien, ou des gains de ouf !</small>
+                </span>
+                <span className="wheel-entry-arrow">→</span>
+              </button>
+            )}
             {grouped.length === 0 ? (
               <p className="quests-modal-empty">Chargement de la boutique…</p>
             ) : (

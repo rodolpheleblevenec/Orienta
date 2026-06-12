@@ -147,5 +147,23 @@ serve(async (req) => {
     return json(data ?? { ok: false })
   }
 
+  // Configuration de la roue : segments (pour le rendu) + coût d'un tour.
+  if (action === 'wheel') {
+    const [{ data: segments }, { data: item }] = await Promise.all([
+      supabase.from('orienta_wheel_segments')
+        .select('idx, label, reward_type, reward_value, color')
+        .eq('active', true).order('idx', { ascending: true }),
+      supabase.from('orienta_shop_items').select('cost_jetons').eq('code', 'wheel_spin').maybeSingle(),
+    ])
+    return json({ segments: segments ?? [], cost: item?.cost_jetons ?? null })
+  }
+
+  // Un tour de roue : débit + tirage serveur + lot, renvoie le segment gagné.
+  if (action === 'spin') {
+    const { data, error } = await supabase.rpc('spin_wheel', { p_user_id: userId })
+    if (error) return json({ error: 'could not spin' }, 500)
+    return json(data ?? { ok: false })
+  }
+
   return json({ error: 'unknown action' }, 400)
 })

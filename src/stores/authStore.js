@@ -9,6 +9,7 @@ export const useAuthStore = create((set, get) => ({
   notifCount: 0,
   quests: { daily: [], weekly: [] },
   shop: { items: [], counters: {}, equipped: {}, actionCosts: {} },
+  wheel: { segments: [], cost: null },
 
   init: async () => {
     const savedId = localStorage.getItem(STORAGE_KEY)
@@ -59,7 +60,7 @@ export const useAuthStore = create((set, get) => ({
 
   logout: () => {
     localStorage.removeItem(STORAGE_KEY)
-    set({ user: null, notifCount: 0, quests: { daily: [], weekly: [] }, shop: { items: [], counters: {}, equipped: {}, actionCosts: {} } })
+    set({ user: null, notifCount: 0, quests: { daily: [], weekly: [] }, shop: { items: [], counters: {}, equipped: {}, actionCosts: {} }, wheel: { segments: [], cost: null } })
   },
 
   refreshUser: async () => {
@@ -205,6 +206,28 @@ export const useAuthStore = create((set, get) => ({
     if (error || !data || data.error || data.ok === false) return { error: data?.error ?? 'gift_failed' }
     if (typeof data.jetons === 'number') set({ user: { ...get().user, jetons: data.jetons } })
     return { ok: true, jetons: data.jetons, amount: data.amount }
+  },
+
+  // Roue de la fortune : config (segments + coût) puis tirage.
+  fetchWheel: async () => {
+    const { user } = get()
+    if (!user) return
+    const { data, error } = await supabase.functions.invoke('shop', {
+      body: { action: 'wheel', user_id: user.id },
+    })
+    if (!error && data && !data.error) set({ wheel: { segments: data.segments ?? [], cost: data.cost ?? null } })
+  },
+
+  spinWheel: async () => {
+    const { user } = get()
+    if (!user) return { error: 'no user' }
+    const { data, error } = await supabase.functions.invoke('shop', {
+      body: { action: 'spin', user_id: user.id },
+    })
+    if (error || !data || data.error || data.ok === false) return { error: data?.error ?? 'spin_failed' }
+    if (typeof data.jetons === 'number') set({ user: { ...get().user, jetons: data.jetons } })
+    await get().refreshUser()   // compteurs (protège-série / création) si gagnés
+    return { ok: true, jetons: data.jetons, segment: data.segment }
   },
 
   markTourDone: async (flag) => {

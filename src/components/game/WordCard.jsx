@@ -3,7 +3,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useRef, useEffect } from 'react'
 import { getCardColor } from '../../lib/cardColors'
 
-export default function WordCard({ card, rotation = 0, feedback = 'neutral', onRotate, draggable = true, id, disableTransition = false, colorIndex = 0, neutral = false, label = '' }) {
+export default function WordCard({ card, rotation = 0, feedback = 'neutral', onRotate, draggable = true, id, disableTransition = false, colorIndex = 0, neutral = false, label = '', blur = false, showNotch = false }) {
   const isInitialRender = useRef(true)
   useEffect(() => {
     isInitialRender.current = false
@@ -65,10 +65,14 @@ export default function WordCard({ card, rotation = 0, feedback = 'neutral', onR
           </>
         ) : (
           <>
-            <span className="word-card-top"    style={wordStyle('top')}   >{card.word_top}</span>
-            <span className="word-card-right"  style={wordStyle('right')} >{card.word_right}</span>
-            <span className="word-card-bottom" style={wordStyle('bottom')}>{card.word_bottom}</span>
-            <span className="word-card-left"   style={wordStyle('left')}  >{card.word_left}</span>
+            {/* Encoche d'orientation (raid) : fixée à la carte, tourne avec elle */}
+            {showNotch && <span className="word-card-notch" style={{ borderBottomColor: border }} />}
+            {/* Numéro d'identité au centre (raid), maintenu droit */}
+            {label && <span className="word-card-num" style={{ color: text, transform: `rotate(${-rotation}deg)` }}>{label}</span>}
+            <span className={`word-card-top${blur ? ' word-card-word--blur' : ''}`}    style={wordStyle('top')}   >{card.word_top}</span>
+            <span className={`word-card-right${blur ? ' word-card-word--blur' : ''}`}  style={wordStyle('right')} >{card.word_right}</span>
+            <span className={`word-card-bottom${blur ? ' word-card-word--blur' : ''}`} style={wordStyle('bottom')}>{card.word_bottom}</span>
+            <span className={`word-card-left${blur ? ' word-card-word--blur' : ''}`}   style={wordStyle('left')}  >{card.word_left}</span>
           </>
         )}
       </div>

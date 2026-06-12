@@ -1146,6 +1146,38 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 /* Section protège-série dans la modale streak */
 .streak-section--freeze { background: #eef4ff; border: 1px solid #cfe0f7; }
 
+/* ── Roue de la fortune ── */
+.wheel-modal { max-width: 380px; text-align: center; }
+.wheel-wrap { display: flex; justify-content: center; margin: 6px 0 10px; }
+.wheel-svg { width: 100%; max-width: 290px; height: auto; }
+.wheel-rotor { transition: transform 4s cubic-bezier(0.16, 1, 0.3, 1); }
+.wheel-label {
+  font-size: 11px; font-weight: 800; fill: #fff; font-family: var(--display);
+  paint-order: stroke; stroke: rgba(0,0,0,0.25); stroke-width: 0.6px;
+}
+.wheel-hint { font-size: 13px; color: var(--ink-2); margin: 4px 0 12px; min-height: 20px; }
+.wheel-result {
+  font-family: var(--display); font-weight: 800; font-size: 19px; color: var(--teal);
+  margin: 6px 0 12px; min-height: 24px;
+}
+.wheel-result--none { color: var(--ink-3); font-size: 15px; }
+.wheel-spin-btn { width: 100%; }
+.wheel-spin-btn:disabled { opacity: .5; cursor: default; }
+
+/* Entrée « roue » dans la boutique */
+.wheel-entry-btn {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  background: linear-gradient(100deg, #fff7e6, #fdebc8); border: 1px solid #f0d089;
+  border-radius: var(--r-sm); padding: 12px 14px; cursor: pointer; margin-bottom: 12px;
+  transition: transform .15s;
+}
+.wheel-entry-btn:hover { transform: translateY(-1px); }
+.wheel-entry-emoji { font-size: 26px; flex-shrink: 0; }
+.wheel-entry-body { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.wheel-entry-body strong { font-family: var(--display); font-size: 14.5px; color: var(--ink); }
+.wheel-entry-body small { font-size: 12px; color: var(--ink-2); }
+.wheel-entry-arrow { font-weight: 700; color: #b7791f; flex-shrink: 0; }
+
 /* Eyebrow */
 .hub-eyebrow {
   display: inline-flex; align-items: center; gap: 8px;
