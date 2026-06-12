@@ -65,7 +65,7 @@ export default function Header() {
           <NavLink to="/tutoriel"   className={({ isActive }) => `nlink${isActive ? ' nlink--active' : ''}`}>Tutoriel</NavLink>
           {/* Lien RAID : public dès le lancement (lundi 8h) ; avant, admin + testeurs seulement. */}
           {(isRaidLaunched() || canSeeRaid(user?.pseudo)) && (
-            <NavLink to="/raid" className={({ isActive }) => `nlink nlink--raid${isActive ? ' nlink--active' : ''}`}>⚔️ RAID</NavLink>
+            <NavLink to="/raid" className={({ isActive }) => `nlink nlink--raid${isActive ? ' nlink--active' : ''}`}>⚔️ Raid</NavLink>
           )}
         </nav>
 
@@ -177,8 +177,8 @@ export default function Header() {
         <NavLink to="/hub"        className={({ isActive }) => `nav-drawer-link-item${isActive ? ' nav-drawer-link-item--active' : ''}`} onClick={() => setNavOpen(false)}>Hub</NavLink>
         <NavLink to="/classement" className={({ isActive }) => `nav-drawer-link-item${isActive ? ' nav-drawer-link-item--active' : ''}`} onClick={() => setNavOpen(false)}>Classement</NavLink>
         <NavLink to="/tutoriel"   className={({ isActive }) => `nav-drawer-link-item${isActive ? ' nav-drawer-link-item--active' : ''}`} onClick={() => setNavOpen(false)}>Tutoriel</NavLink>
-        {canSeeRaid(user?.pseudo) && (
-          <NavLink to="/raid" className={({ isActive }) => `nav-drawer-link-item nav-drawer-link-item--raid${isActive ? ' nav-drawer-link-item--active' : ''}`} onClick={() => setNavOpen(false)}>⚔️ RAID</NavLink>
+        {(isRaidLaunched() || canSeeRaid(user?.pseudo)) && (
+          <NavLink to="/raid" className={({ isActive }) => `nav-drawer-link-item nav-drawer-link-item--raid${isActive ? ' nav-drawer-link-item--active' : ''}`} onClick={() => setNavOpen(false)}>⚔️ Raid</NavLink>
         )}
       </nav>
 

@@ -10,6 +10,7 @@ import RaidChat from '../../components/raid/RaidChat'
 import RoleStrip from '../../components/raid/RoleStrip'
 import RaidBoard from '../../components/raid/RaidBoard'
 import HallOfFame from '../../components/raid/HallOfFame'
+import RaidIntroBanner from '../../components/raid/RaidIntroBanner'
 
 // Scène 3D lazy-loadée (n'alourdit pas le bundle hors /raid).
 const RaidMonster3D = lazy(() => import('../../components/raid/RaidMonster3D'))
@@ -182,6 +183,7 @@ export default function RaidArenaPage() {
       <>
         <Header />
         <main className="raid-page raid-page--waiting">
+          <RaidIntroBanner />
           <div className="raid-lobby">
             <RosterBoard boss={boss} roster={roster} me={me} actions={actions} busy={busy} />
             <RaidChat chat={chat} onSend={actions.sendChat} me={me} />

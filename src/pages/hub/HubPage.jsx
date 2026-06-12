@@ -11,7 +11,6 @@ import NewWojoModal from '../../components/ui/NewWojoModal'
 import OnlinePlayersPanel from '../../components/ui/OnlinePlayersPanel'
 import RaidTeaserBanner from '../../components/raid/RaidTeaserBanner'
 import { useOnlinePlayers } from '../../lib/useOnlinePlayers'
-import { isRaidLaunched } from '../../lib/raid'
 
 function formatDayLabel(dateStr) {
   const today = new Date().toISOString().split('T')[0]
@@ -247,8 +246,9 @@ export default function HubPage() {
       <div className={`hub-shell${showOnlinePanel ? ' hub-shell--with-panel' : ''}`}>
       <main className="hub-main">
 
-        {/* Teaser du mode RAID — affiché jusqu'à l'ouverture publique (15 juin 8h) */}
-        {!isRaidLaunched() && <RaidTeaserBanner />}
+        {/* Bannière du mode RAID — se transforme au lancement (15 juin 8h) : teaser →
+            « en ligne, joue ». À terme, la retirer (RAID accessible depuis la nav). */}
+        <RaidTeaserBanner />
 
         {/* Bannière « tu as gagné » — droit de créer la grille du jour (persistante jusqu'au claim) */}
         {pendingGrant && (
