@@ -863,7 +863,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .burger-btn { display: none; }
 .nlink-logout-mobile { display: none; }
 
-@media (max-width: 560px) {
+/* Navigation en burger dès que la barre se charge (pastille jetons + série + notifs). */
+@media (max-width: 768px) {
   .topbar-in { padding: 11px 16px; gap: 8px; }
   .top-nav { display: none; }
   .top-nav--open {
@@ -884,7 +885,11 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   .burger-btn   { display: flex; }
   .me-name      { display: none; }
   .topbar-divider { display: none; }
-  .streak-txt   { display: none; }
+}
+/* Très petits écrans : on garde la flamme/jetons mais on allège le superflu. */
+@media (max-width: 480px) {
+  .streak-txt { display: none; }
+  .jetons-pill, .streak-pill { padding: 7px 10px; }
 }
 
 /* ── Hub v2 ──────────────────────────────────────── */
@@ -1128,6 +1133,18 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .gift-msg { margin: 8px 0 0; font-size: 12.5px; font-weight: 600; }
 .gift-msg--ok { color: var(--teal); }
 .gift-msg--err { color: var(--coral); }
+
+/* Cadre d'avatar « carré » (avatars arrondis des cartes communauté) */
+.avatar-frame--square { border-radius: 14px; }
+.avatar-frame--square::after { inset: -2px; border-radius: 16px; }
+
+/* Badge protège-série sur la pastille de série (header) */
+.streak-freeze-badge {
+  margin-left: 4px; font-size: 10.5px; font-weight: 700; line-height: 1;
+  background: #e7f0ff; color: #2b5fae; border-radius: 999px; padding: 2px 5px;
+}
+/* Section protège-série dans la modale streak */
+.streak-section--freeze { background: #eef4ff; border: 1px solid #cfe0f7; }
 
 /* Eyebrow */
 .hub-eyebrow {

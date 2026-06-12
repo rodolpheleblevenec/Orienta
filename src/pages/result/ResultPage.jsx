@@ -163,7 +163,7 @@ export default function ResultPage() {
     Promise.all([
       supabase
         .from('orienta_plays')
-        .select('score, orienta_users(pseudo)')
+        .select('score, orienta_users(pseudo, equipped_color)')
         .eq('grid_id', gridId)
         .eq('success', true)
         .order('score', { ascending: false })
@@ -184,7 +184,7 @@ export default function ResultPage() {
         .single(),
       supabase
         .from('orienta_plays')
-        .select('id, comment, creator_reply, success, completed_at, orienta_users(pseudo)')
+        .select('id, comment, creator_reply, success, completed_at, orienta_users(pseudo, equipped_color)')
         .eq('grid_id', gridId)
         .not('comment', 'is', null)
         .order('completed_at', { ascending: false }),
@@ -533,7 +533,7 @@ export default function ResultPage() {
                       initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.1 + i * 0.06 }}>
                       <span className="leaderboard-rank">#{i + 1}</span>
-                      <span className="leaderboard-name">{row.orienta_users?.pseudo ?? '?'}</span>
+                      <span className="leaderboard-name" style={row.orienta_users?.equipped_color ? { color: row.orienta_users.equipped_color } : undefined}>{row.orienta_users?.pseudo ?? '?'}</span>
                       <span className="leaderboard-score">{row.score} pts</span>
                     </motion.li>
                   )
@@ -621,7 +621,7 @@ export default function ResultPage() {
                       initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.05 }}>
                       <div className="comment-head">
-                        <span className="comment-pseudo">{c.orienta_users?.pseudo ?? '?'}</span>
+                        <span className="comment-pseudo" style={c.orienta_users?.equipped_color ? { color: c.orienta_users.equipped_color } : undefined}>{c.orienta_users?.pseudo ?? '?'}</span>
                         {c.success != null && (
                           <span className={`comment-badge comment-badge--${c.success ? 'win' : 'fail'}`}>
                             {c.success ? '✅ Réussi' : '💔 Raté'}

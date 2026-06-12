@@ -38,6 +38,7 @@ export default function Header() {
 
   const streak = user?.streak_current ?? 0
   const jetons = user?.jetons ?? 0
+  const freezes = user?.streak_freeze_tokens ?? 0
   const isAdmin = user?.pseudo === ADMIN_PSEUDO
   const initial = user?.pseudo?.[0]?.toUpperCase() ?? '?'
 
@@ -75,11 +76,12 @@ export default function Header() {
           <span className="jetons-txt">{jetons}</span>
         </button>
 
-        <button className="streak-pill" onClick={() => setShowStreakModal(true)} type="button" title="Votre streak">
+        <button className="streak-pill" onClick={() => setShowStreakModal(true)} type="button" title={freezes > 0 ? `Streak ${streak} · ${freezes} protège-série en stock` : 'Votre streak'}>
           <svg viewBox="0 0 24 24" fill="currentColor">
             <path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67z"/>
           </svg>
           <span className="streak-txt">{streak}</span>
+          {freezes > 0 && <span className="streak-freeze-badge">🛡️{freezes}</span>}
         </button>
 
         <div className="notif-anchor">

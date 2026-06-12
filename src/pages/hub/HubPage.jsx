@@ -69,7 +69,7 @@ export default function HubPage() {
       const [{ data: activeGrids }, { data: plays }, { data: todayGrid }, { data: dailyGridData }, { data: grantData }, { data: boostsData }] = await Promise.all([
         supabase
           .from('orienta_grids')
-          .select('*, orienta_users(pseudo, selected_skin), orienta_plays(success, player_id, completed_at)')
+          .select('*, orienta_users(pseudo, selected_skin, equipped_frame, equipped_color), orienta_plays(success, player_id, completed_at)')
           .eq('status', 'published')
           .is('daily_date', null)
           .is('daily_status', null)   // exclut les grilles de réserve (piste quotidienne, sans date)

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '../../stores/authStore'
 import { getMarineItem } from '../../lib/marineItems'
+import AvatarFrame from './AvatarFrame'
 
 const DIFFICULTY_LABEL = { facile: 'Facile', moyen: 'Moyen', difficile: 'Difficile' }
 const DIFFICULTY_VALUE_CLASS = { facile: 'pc-v--teal', moyen: 'pc-v--amber', difficile: 'pc-v--coral' }
@@ -88,11 +89,15 @@ export default function GridCard({ grid, playInfo, index, isDaily = false, isOwn
     >
       <Link to={linkTo} className="pcard-link">
         <div className="pc-top">
-          <div className="pc-ava" style={{ background: avaColor }}>
-            {isDaily ? '★' : creatorAvatar}
-          </div>
+          <AvatarFrame frame={isDaily ? null : grid.orienta_users?.equipped_frame} square>
+            <div className="pc-ava" style={{ background: avaColor }}>
+              {isDaily ? '★' : creatorAvatar}
+            </div>
+          </AvatarFrame>
           <div className="pc-name">
-            {isDaily ? 'Grille du jour' : creatorPseudo}
+            {isDaily
+              ? 'Grille du jour'
+              : <span style={grid.orienta_users?.equipped_color ? { color: grid.orienta_users.equipped_color } : undefined}>{creatorPseudo}</span>}
             <small>{isOwnGrid ? 'Ma grille' : isDaily ? 'Challenge' : 'Joueur'}</small>
           </div>
           {!isDaily && (grid.upvotes_count ?? 0) > 0 && (
