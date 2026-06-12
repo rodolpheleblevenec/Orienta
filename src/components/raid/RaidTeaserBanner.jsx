@@ -23,7 +23,6 @@ export default function RaidTeaserBanner() {
       <div className="raid-teaser-banner-main">
         <div className="raid-teaser-banner-head">
           <span className="raid-teaser-badge">⚔️ Nouveau mode · Bientôt</span>
-          <span className="raid-teaser-chip3d">✦ Animé en 3D</span>
         </div>
         <h2 className="raid-teaser-banner-title">Le RAID arrive</h2>
         <p className="raid-teaser-banner-sub">

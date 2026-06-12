@@ -1,0 +1,66 @@
+name: Ouverture des arènes RAID (créneaux publics)
+
+# Pré-ouvre l'unique arène publique au début de chaque créneau, pour qu'un lobby
+# soit prêt dès l'ouverture (le spawn « à la demande » reste le filet : le 1er
+# joueur présent ouvre aussi l'arène). L'action `ensure-public` est idempotente
+# (index unique 035 « une seule arène publique ») et bornée serveur (lancée +
+# dans un créneau Europe/Paris) — un appel hors créneau ne fait rien.
+on:
+  schedule:
+    # Créneaux Paris : 08h30 et 12h00. GitHub planifie en UTC → on couvre les DEUX
+    # décalages (été CEST = UTC+2, hiver CET = UTC+1). Le serveur ignore les appels
+    # hors créneau, donc le « mauvais » horaire de l'autre saison est inoffensif.
+    - cron: '30 6 * * *'   # 08h30 Paris (été)
+    - cron: '30 7 * * *'   # 08h30 Paris (hiver)
+    - cron: '0 10 * * *'   # 12h00 Paris (été)
+    - cron: '0 11 * * *'   # 12h00 Paris (hiver)
+  workflow_dispatch:        # déclenchement manuel (test)
+
+jobs:
+  open-arena:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Appeler la Edge Function raid (ensure-public)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          FUNCTION_SECRET: ${{ secrets.FUNCTION_SECRET }}
+        run: |
+          set -euo pipefail
+
+          # Garde-fou : URL obligatoire (sinon URL malformée → curl exit 3, panne muette).
+          if [ -z "${SUPABASE_URL}" ]; then
+            echo "❌ Le secret SUPABASE_URL est vide ou absent."
+            echo "   → Settings → Secrets and variables → Actions → SUPABASE_URL = https://<ref>.supabase.co"
+            exit 1
+          fi
+
+          CURL_EXIT=0
+          HTTP_STATUS=$(curl -sS -o /tmp/raid.json -w "%{http_code}" \
+            -X POST \
+            "${SUPABASE_URL}/functions/v1/raid" \
+            -H "Authorization: Bearer ${FUNCTION_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d '{"action":"ensure-public"}') || CURL_EXIT=$?
+
+          echo "curl exit: ${CURL_EXIT} — HTTP status: ${HTTP_STATUS}"
+          echo "Réponse :"; cat /tmp/raid.json 2>/dev/null || true; echo
+
+          # Transport KO (URL/DNS/réseau).
+          if [ "${CURL_EXIT}" -ne 0 ]; then
+            echo "❌ curl a échoué (code ${CURL_EXIT}) — fonction injoignable. Vérifie SUPABASE_URL."
+            exit 1
+          fi
+          # Erreur HTTP (401 = FUNCTION_SECRET non concordant ou fonction en verify_jwt ;
+          # 404 = non déployée ; 409 = pas de grille publiée).
+          if [ "${HTTP_STATUS}" -ge 400 ]; then
+            echo "❌ La Edge Function a renvoyé HTTP ${HTTP_STATUS}."
+            echo "   (raid doit être déployée avec --no-verify-jwt pour accepter l'appel cron.)"
+            exit 1
+          fi
+
+          # HTTP 2xx : succès. Hors créneau (mauvais décalage DST) → { session:null } = OK voulu.
+          if grep -q '"session":null' /tmp/raid.json; then
+            echo "ℹ️ Pas d'arène ouverte (hors créneau Paris pour cet horaire) — comportement attendu."
+          else
+            echo "✅ Arène publique prête."
+          fi

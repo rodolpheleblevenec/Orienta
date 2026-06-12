@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from './supabase'
+import { isRaidLaunched } from './raid'
 
 // Hook du mode RAID — temps réel via Supabase Realtime :
 //   • PRESENCE  → SEULEMENT « qui est connecté » (id + pseudo, statique). Presence
@@ -13,6 +14,7 @@ export function useRaidArena(user) {
   const [sessionId, setSessionId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [noArena, setNoArena] = useState(false)
+  const [windowInfo, setWindowInfo] = useState(null)   // { open, launched } (créneau public)
   const [pub, setPub] = useState(null)
   const [presenceUsers, setPresenceUsers] = useState([])   // [{user_id, pseudo}] (Presence = connectés)
   const [lobbyState, setLobbyState] = useState({})          // { user_id: {role, ready} } (Broadcast)
@@ -77,21 +79,33 @@ export function useRaidArena(user) {
   }, [call, applyResult])
   fetchViewRef.current = fetchView
 
-  // ── Trouver l'arène ouverte. ──
+  // ── Trouver l'arène ouverte (ou en ouvrir une pendant un créneau public). ──
   useEffect(() => {
     if (!user?.id) return
     let alive = true
+    const adopt = (s) => { pubRef.current = s; setPub(s); setSessionId(s.id); setLoading(false) }
     ;(async () => {
       const { data, error } = await supabase.functions.invoke('raid', { body: { action: 'find', player_id: user.id } })
       if (!alive) return
-      if (error || !data?.session) { setNoArena(true); setLoading(false); return }
-      pubRef.current = data.session
-      setPub(data.session)
-      setSessionId(data.session.id)
-      setLoading(false)
+      if (!error && data?.session) { adopt(data.session); return }
+      setWindowInfo(data?.window || null)
+      // Lancé + dans un créneau + aucune arène → ouvrir/rejoindre une arène publique.
+      if (isRaidLaunched() && data?.window?.open) {
+        const res = await supabase.functions.invoke('raid', { body: { action: 'ensure-public', player_id: user.id } })
+        if (!alive) return
+        if (res.data?.session) { adopt(res.data.session); return }
+        if (res.data?.window) setWindowInfo(res.data.window)
+      }
+      setNoArena(true); setLoading(false)
     })()
     return () => { alive = false }
   }, [user?.id])
+
+  // Hall of Fame d'un niveau (semaine) — lecture seule.
+  const fetchHof = useCallback(async (level) => {
+    const { data } = await supabase.functions.invoke('raid', { body: { action: 'hof', ...(level != null ? { level } : {}) } })
+    return data || null
+  }, [])
 
   // ── Canal Realtime. Presence = connectés ; Broadcast = tout l'état mutable. ──
   useEffect(() => {
@@ -233,8 +247,9 @@ export function useRaidArena(user) {
   return {
     loading, noArena, sessionId, busy,
     session: pub,
+    window: windowInfo,
     roster, me, view, role,
     board, chat, sharedFeedback,
-    actions: { claimRole, releaseRole, setReady, startGame, moveBoard, previewBoard, validate, sonar, shareFeedback, sendChat, signalTimeout, openTest },
+    actions: { claimRole, releaseRole, setReady, startGame, moveBoard, previewBoard, validate, sonar, shareFeedback, sendChat, signalTimeout, openTest, fetchHof },
   }
 }

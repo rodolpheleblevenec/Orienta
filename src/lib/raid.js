@@ -41,6 +41,8 @@ const LADDER = {
 }
 export const MIN_PLAYERS = 3
 export const MAX_TIER = 8
+// Périls (organes 6-8) reportés → effectif fonctionnel borné à 5.
+export const MAX_FUNCTIONAL_TIER = 5
 
 // ── Accès à la feature (visibilité, phase de test en prod) ───────────
 // Le lien RAID n'est visible que pour l'admin ET des comptes testeurs dédiés,
@@ -63,6 +65,15 @@ export function canSeeRaid(pseudo) {
 export const RAID_LAUNCH_AT = '2026-06-15T08:00:00+02:00'
 export const isRaidLaunched = (now = new Date()) =>
   now.getTime() >= new Date(RAID_LAUNCH_AT).getTime()
+
+// Niveau (semaine) du boss : 1 toute la semaine 1, 2 la semaine 2, … Ancré sur
+// l'instant absolu RAID_LAUNCH_AT → insensible au changement d'heure (DST).
+export const RAID_LAUNCH_MS = new Date(RAID_LAUNCH_AT).getTime()
+export const WEEK_MS = 7 * 24 * 3600 * 1000
+export function currentRaidLevel(now = new Date()) {
+  const t = now instanceof Date ? now.getTime() : Number(now)
+  return Math.max(1, Math.floor((t - RAID_LAUNCH_MS) / WEEK_MS) + 1)
+}
 
 // ── Fenêtres d'ouverture publique du raid (heure locale) ─────────────
 // Deux créneaux quotidiens : le matin et le midi. SOURCE DE VÉRITÉ UNIQUE —
@@ -91,9 +102,9 @@ export function isWithinRaidWindow(date = new Date()) {
   return RAID_WINDOWS.some(w => mins >= toMin(w.start) && mins < toMin(w.end))
 }
 
-// Renvoie la liste des organes (clés) pour un effectif donné (borné 3..8).
+// Renvoie la liste des organes (clés) pour un effectif donné (borné 3..5).
 export function getOrgansForTier(playerCount) {
-  const t = Math.max(MIN_PLAYERS, Math.min(MAX_TIER, playerCount || MIN_PLAYERS))
+  const t = Math.max(MIN_PLAYERS, Math.min(MAX_FUNCTIONAL_TIER, playerCount || MIN_PLAYERS))
   return LADDER[t]
 }
 
@@ -122,4 +133,37 @@ export function getBossOfDay(bossIndexCleared = 0) {
 
 export function getBossByKey(key) {
   return BOSSES.find(b => b.key === key) ?? BOSSES[0]
+}
+
+// ── Escalade hebdomadaire (mirror serveur supabase/functions/raid) ───
+// Leviers sans nouvelle mécanique client. grid_band = [min,max] taux de réussite.
+export const LEVEL_LADDER = [
+  { assault_count: 3, min_players: 3, lives: 3, timer_seconds: 300, difficulties: ['facile', 'moyen'], grid_band: [0.70, 0.90] },
+  { assault_count: 3, min_players: 3, lives: 2, timer_seconds: 270, difficulties: ['facile', 'moyen'], grid_band: [0.60, 0.85] },
+  { assault_count: 4, min_players: 4, lives: 2, timer_seconds: 300, difficulties: ['moyen'], grid_band: [0.55, 0.80] },
+  { assault_count: 4, min_players: 4, lives: 2, timer_seconds: 270, difficulties: ['moyen', 'difficile'], grid_band: [0.45, 0.75] },
+  { assault_count: 4, min_players: 5, lives: 1, timer_seconds: 300, difficulties: ['moyen', 'difficile'], grid_band: [0.35, 0.70] },
+]
+export function difficultyForLevel(level) {
+  const i = Math.min(Math.max(1, level || 1), LEVEL_LADDER.length) - 1
+  return LEVEL_LADDER[i]
+}
+// Boss d'un niveau : skin (cycle sur BOSSES) + difficulté du palier.
+export function bossForLevel(level) {
+  const skin = BOSSES[(Math.max(1, level || 1) - 1) % BOSSES.length]
+  return { ...skin, level, ...difficultyForLevel(level) }
+}
+
+// Prochain début de créneau (heure locale ~ Paris) — pour le compte à rebours.
+export function nextRaidWindowStart(now = new Date()) {
+  const candidates = []
+  for (let d = 0; d <= 1; d++) {
+    for (const w of RAID_WINDOWS) {
+      const [h, m] = w.start.split(':').map(Number)
+      const dt = new Date(now)
+      dt.setDate(dt.getDate() + d); dt.setHours(h, m, 0, 0)
+      candidates.push(dt)
+    }
+  }
+  return candidates.find(dt => dt.getTime() > now.getTime()) || candidates[0]
 }

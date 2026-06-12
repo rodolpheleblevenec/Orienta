@@ -10,7 +10,7 @@ import { OnlinePlayerItem } from './OnlinePlayersPanel'
 import RankAvatar from './RankAvatar'
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 import { useOnlinePlayers } from '../../lib/useOnlinePlayers'
-import { canSeeRaid } from '../../lib/raid'
+import { canSeeRaid, isRaidLaunched } from '../../lib/raid'
 
 const ADMIN_PSEUDO = 'Rodolphe LE BLEVENEC'
 
@@ -63,8 +63,8 @@ export default function Header() {
           <NavLink to="/hub"        className={({ isActive }) => `nlink${isActive ? ' nlink--active' : ''}`}>Hub</NavLink>
           <NavLink to="/classement" className={({ isActive }) => `nlink${isActive ? ' nlink--active' : ''}`}>Classement</NavLink>
           <NavLink to="/tutoriel"   className={({ isActive }) => `nlink${isActive ? ' nlink--active' : ''}`}>Tutoriel</NavLink>
-          {/* Lien RAID visible pour l'admin ET les comptes testeurs (Testeur 1–4) tant que la feature est en test en prod. */}
-          {canSeeRaid(user?.pseudo) && (
+          {/* Lien RAID : public dès le lancement (lundi 8h) ; avant, admin + testeurs seulement. */}
+          {(isRaidLaunched() || canSeeRaid(user?.pseudo)) && (
             <NavLink to="/raid" className={({ isActive }) => `nlink nlink--raid${isActive ? ' nlink--active' : ''}`}>⚔️ RAID</NavLink>
           )}
         </nav>

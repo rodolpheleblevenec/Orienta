@@ -883,12 +883,13 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 
 /* ── Header mobile épuré + tiroir de navigation ───────────────────── */
 @media (max-width: 768px) {
-  /* Barre mobile : logo + nom · pastille jetons · burger. Le profil, la
-     série, l'admin, les notifs et la déconnexion vivent dans le tiroir. */
+  /* Barre mobile : logo + nom · burger. Le profil, les jetons, la série,
+     l'admin, les notifs et la déconnexion vivent dans le tiroir. */
   .topbar-in { padding: 11px 16px; gap: 8px; }
   .top-nav { display: none; }
   .brand { font-size: 19px; gap: 8px; }
   .brand-mark { width: 30px; height: 30px; }
+  .jetons-pill { display: none; }
   .streak-pill { display: none; }
   .header-admin-btn { display: none; }
   .header-notif-btn { display: none; }
@@ -5236,6 +5237,30 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-empty, .raid-end { text-align: center; padding: 60px 20px; max-width: 520px; margin: 40px auto; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); }
 .raid-empty-emoji, .raid-end-emoji { font-size: 56px; }
 .raid-empty .btn-primary { margin-top: 18px; }
+
+/* ── Hall of Fame (classement des équipages ayant vaincu le boss de la semaine) ── */
+.raid-hof { max-width: 640px; margin: 24px auto 40px; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); padding: 20px; text-align: left; }
+.raid-hof--loading { color: var(--ink-2); text-align: center; }
+.raid-hof-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.raid-hof-emoji { font-size: 40px; line-height: 1; }
+.raid-hof-title { font-size: 18px; margin: 0; }
+.raid-hof-sub { font-size: 13px; color: var(--ink-2); margin: 2px 0 0; }
+.raid-hof-first { background: linear-gradient(90deg, rgba(255,209,102,.22), rgba(255,209,102,.05)); border: 1px solid rgba(255,193,7,.4); border-radius: 10px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; }
+.raid-hof-empty { text-align: center; color: var(--ink-2); padding: 24px 10px; font-size: 14px; }
+.raid-hof-empty-emoji { display: block; font-size: 36px; margin-bottom: 8px; }
+.raid-hof-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.raid-hof-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: rgba(0,0,0,.03); border: 1px solid var(--line); border-radius: 10px; }
+.raid-hof-row--gold { border-color: rgba(255,193,7,.5); background: rgba(255,209,102,.1); }
+.raid-hof-rank { font-weight: 800; font-size: 16px; width: 24px; text-align: center; color: var(--ink-2); flex-shrink: 0; }
+.raid-hof-row--gold .raid-hof-rank { color: #d99a00; }
+.raid-hof-time { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--teal); min-width: 48px; flex-shrink: 0; }
+.raid-hof-team { display: flex; flex-wrap: wrap; gap: 6px 10px; flex: 1; min-width: 0; }
+.raid-hof-member { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
+.raid-hof-mav { width: 20px; height: 20px; border-radius: 50%; color: #fff; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.raid-hof-mrole { font-size: 12px; }
+.raid-hof-mname { color: var(--ink); }
+.raid-hof-tier { font-size: 12px; color: var(--ink-2); flex-shrink: 0; white-space: nowrap; }
+@media (max-width: 560px) { .raid-hof-time { min-width: 40px; } .raid-hof-mname { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
 .raid-end-actions { display: flex; gap: 12px; justify-content: center; margin-top: 22px; flex-wrap: wrap; }
 .raid-end--won { border-color: var(--teal); }
 
@@ -5294,7 +5319,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-hp-txt { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--ink); }
 
 /* ── Plateau neutre + tray ── */
-.raid-board-wrap { --slot-size: 128px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.raid-board-wrap { --slot-size: 150px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
 .raid-tray { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; min-height: 60px; padding: 12px; border: 1.5px dashed var(--line); border-radius: var(--r); width: 100%; }
 .raid-tray--over { border-color: var(--teal); background: var(--teal-soft); }
 .raid-tray-empty { color: var(--ink-3); font-size: 13px; align-self: center; }
@@ -5357,12 +5382,16 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-hud .raid-rolestrip { flex: 1; }
 
 /* ── Deux colonnes : grille + réserve | chat (large) ── */
-.raid-combat-cols { display: grid; grid-template-columns: minmax(420px, 520px) 1fr; gap: 20px; align-items: start; }
+.raid-combat-cols { display: grid; grid-template-columns: minmax(420px, 520px) 1fr; gap: 20px; align-items: stretch; }
 .raid-col-board { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+/* La colonne chat s'étire à la hauteur de la colonne plateau+réserve ; le chat
+   la remplit en absolu pour ne jamais imposer sa propre hauteur (sinon un long
+   historique allongerait la colonne au lieu de défiler). */
+.raid-col-chat { position: relative; min-height: 0; }
 .raid-myrole-sm { width: 100%; background: var(--teal-soft); color: var(--teal-700); border-radius: var(--r-sm); padding: 8px 12px; font-size: 13px; }
 
 /* ── Chat moderne (bulles + avatars) ── */
-.rchat { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); height: 620px; max-height: calc(100vh - 200px); overflow: hidden; }
+.rchat { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); min-height: 0; overflow: hidden; }
 .rchat-head { padding: 14px 16px; font-weight: 700; color: var(--ink); border-bottom: 1px solid var(--line-2); flex-shrink: 0; }
 .rchat-log { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
 .rchat-empty { color: var(--ink-3); font-size: 13px; text-align: center; margin: auto; }
@@ -5402,6 +5431,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .rms-chip--time .raid-timer { color: #fff; font-weight: 800; }
 .rms-chip--time .raid-timer--low { color: #ffb4a8; }
 .rms-chip--lives { font-size: 15px; }
+.rms-chip--week { background: rgba(255,255,255,.22); }
 .raid-monster .raid-hp { background: rgba(255,255,255,.16); max-width: 100%; margin-top: 0; }
 .raid-monster .raid-hp-txt { color: #fff; }
 
@@ -5410,7 +5440,11 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-crewbar .raid-rolestrip { width: 100%; }
 
 /* Réserve : 4 cartes sur une seule ligne, sous la grille */
-.raid-board-wrap .raid-tray { flex-wrap: nowrap; --slot-size: 100px; overflow-x: auto; justify-content: flex-start; }
+.raid-board-wrap .raid-tray { flex-wrap: nowrap; --slot-size: 118px; overflow-x: auto; justify-content: flex-start; }
+
+/* Cartes du combat plus grandes : on récupère l'espace des colonnes d'indices
+   (les indices restent lisibles ; la grille occupe mieux la colonne). */
+.raid-combat-cols .clover-wrapper { grid-template-columns: 88px 1fr 88px; grid-template-rows: 64px auto 64px; }
 
 /* Sonar du Capitaine */
 .raid-sonar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -5469,6 +5503,32 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-countdown-hint { font-size: 13px; color: rgba(255,255,255,.7); }
 .raid-countdown-cancel { margin-top: 10px; background: rgba(255,255,255,.16); color: #fff; border: 1px solid rgba(255,255,255,.45); border-radius: var(--r-pill); padding: 9px 24px; font-weight: 700; font-size: 14px; cursor: pointer; transition: background .15s; }
 .raid-countdown-cancel:hover { background: rgba(255,255,255,.28); }
+/* Consigne anti-triche pendant le décompte */
+.raid-countdown-warn { margin-top: 16px; max-width: 360px; text-align: center; font-size: 14px; font-weight: 600; line-height: 1.4; color: #fff; background: rgba(242,96,63,.20); border: 1px solid rgba(242,96,63,.55); border-radius: var(--r-sm); padding: 11px 16px; }
+
+/* Navigation admin entre les boss (prévisualisation de l'UI) — dans l'overlay 3D */
+.raid-boss-nav { display: inline-flex; align-items: center; gap: 6px; margin-left: 10px; vertical-align: middle; pointer-events: auto; }
+.raid-boss-navbtn { width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 1px solid rgba(255,255,255,.4); background: rgba(255,255,255,.16); color: #fff; font-size: 17px; line-height: 1; font-weight: 800; cursor: pointer; display: grid; place-items: center; }
+.raid-boss-navbtn:hover { background: rgba(255,255,255,.3); }
+.raid-boss-navidx { font-size: 12px; font-weight: 700; color: rgba(255,255,255,.85); min-width: 28px; text-align: center; }
+
+/* Popover au survol d'un rôle (pouvoirs & capacités) */
+.raid-rolechip { position: relative; cursor: help; }
+.raid-rolechip-pop {
+  position: absolute; left: 50%; top: calc(100% + 10px); transform: translateX(-50%) translateY(-4px);
+  width: 250px; z-index: 40; text-align: left;
+  background: #11202b; color: #eaf6ff; border: 1px solid rgba(127,230,208,.25);
+  border-radius: var(--r-sm); box-shadow: 0 16px 40px -16px rgba(8,16,30,.7);
+  padding: 12px 14px;
+  opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .15s ease, transform .15s ease;
+}
+.raid-rolechip:hover .raid-rolechip-pop,
+.raid-rolechip:focus-within .raid-rolechip-pop { opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+.raid-rolechip-pop::after { content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); border: 6px solid transparent; border-bottom-color: #11202b; }
+.raid-rolechip-pop-title { font-family: var(--display); font-weight: 800; font-size: 14px; margin-bottom: 5px; }
+.raid-rolechip-pop-blurb { font-size: 12.5px; line-height: 1.45; color: rgba(234,246,255,.82); margin: 0 0 8px; }
+.raid-rolechip-pop-cap { font-size: 12px; line-height: 1.4; margin: 2px 0; color: rgba(234,246,255,.92); }
+.raid-rolechip-pop-cap b { color: #aef3e2; font-weight: 700; }
 
 @media (max-width: 920px) {
   .raid-waiting-grid { grid-template-columns: 1fr; }
@@ -5476,5 +5536,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   .raid-lobby .rchat { border-left: none; border-top: 1px solid var(--line); min-height: 360px; }
   .raid-combat-header { grid-template-columns: 1fr; }
   .raid-combat-cols { grid-template-columns: 1fr; }
-  .rchat { height: 460px; }
+  .raid-col-chat { position: static; }
+  .rchat { position: static; inset: auto; height: 460px; }
 }

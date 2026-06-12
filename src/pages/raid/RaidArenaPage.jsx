@@ -4,11 +4,12 @@ import Header from '../../components/ui/Header'
 import { useAuthStore } from '../../stores/authStore'
 import { useRaidArena } from '../../lib/useRaidArena'
 import { getAdminSecret } from '../../lib/adminSecret'
-import { ORGANS, getBossByKey, canPlace, canRotate, canValidate, canSeeFeedback, canSeeClues, canSeeWords, canSeeRaid, isRaidAdmin, raidWindowsText } from '../../lib/raid'
+import { ORGANS, getBossByKey, BOSSES, canPlace, canRotate, canValidate, canSeeFeedback, canSeeClues, canSeeWords, canSeeRaid, isRaidAdmin, raidWindowsText, isRaidLaunched, nextRaidWindowStart, currentRaidLevel } from '../../lib/raid'
 import RosterBoard from '../../components/raid/RosterBoard'
 import RaidChat from '../../components/raid/RaidChat'
 import RoleStrip from '../../components/raid/RoleStrip'
 import RaidBoard from '../../components/raid/RaidBoard'
+import HallOfFame from '../../components/raid/HallOfFame'
 
 // Scène 3D lazy-loadée (n'alourdit pas le bundle hors /raid).
 const RaidMonster3D = lazy(() => import('../../components/raid/RaidMonster3D'))
@@ -46,16 +47,44 @@ function Timer({ deadline, onExpire }) {
   return <span className={`raid-timer${left <= 30 ? ' raid-timer--low' : ''}`}>⏱ {mm}:{ss}</span>
 }
 
+// Compte à rebours jusqu'au prochain créneau d'ouverture (entre deux créneaux).
+function NextWindow() {
+  const [left, setLeft] = useState('')
+  useEffect(() => {
+    const tick = () => {
+      const ms = nextRaidWindowStart().getTime() - Date.now()
+      if (ms <= 0) { setLeft('quelques instants'); return }
+      const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000), s = Math.floor((ms % 60000) / 1000)
+      setLeft(h > 0 ? `${h} h ${String(m).padStart(2, '0')} min` : m > 0 ? `${m} min ${String(s).padStart(2, '0')} s` : `${s} s`)
+    }
+    tick(); const iv = setInterval(tick, 1000); return () => clearInterval(iv)
+  }, [])
+  return <>{left}</>
+}
+
 export default function RaidArenaPage() {
   const { user } = useAuthStore()
   const navigate = useNavigate()
   const arena = useRaidArena(user)
   const { loading, noArena, session, roster, me, view, board, chat, sharedFeedback, role, actions, busy } = arena
   const canOpen = canSeeRaid(user?.pseudo)
+  const isAdmin = isRaidAdmin(user?.pseudo)
   const [opening, setOpening] = useState(false)
   const [sonarResult, setSonarResult] = useState(null)
+  // Prévisualisation admin de l'UI des différents boss (affichage local uniquement).
+  const [bossPreview, setBossPreview] = useState(null)
   // Le sonar se recharge à chaque assaut → on efface le résultat affiché.
   useEffect(() => { setSonarResult(null) }, [session?.assault_index, session?.status])
+
+  // Spectateur : un combat est déjà en cours et je n'en fais pas partie (arènes
+  // sérialisées). Délai de ~2,5 s pour ne pas afficher cet écran à un participant
+  // dont la vue n'est pas encore chargée.
+  const [spectator, setSpectator] = useState(false)
+  useEffect(() => {
+    if (session?.status !== 'active' || role) { setSpectator(false); return }
+    const t = setTimeout(() => setSpectator(true), 2500)
+    return () => clearTimeout(t)
+  }, [session?.status, role])
 
   // Signaux pour animer la méduse 3D : perte de PV (recul + flash) / essai raté ou bouée perdue (lunge).
   const [hitSignal, setHitSignal] = useState(0)
@@ -95,22 +124,27 @@ export default function RaidArenaPage() {
     return (<><Header /><main className="raid-page"><div className="raid-loading">Connexion à l’arène…</div></main></>)
   }
 
-  // Aucune arène ouverte
+  // Aucune arène ouverte (hors créneau). Une fois lancé : Hall of Fame + compte à rebours.
   if (noArena || !session) {
+    const launched = isRaidLaunched()
     return (
       <>
         <Header />
-        <main className="raid-page">
+        <main className="raid-page raid-page--nowindow">
           <div className="raid-empty">
             <div className="raid-empty-emoji">🌊</div>
-            <h1 className="raid-h1">Aucune arène ouverte</h1>
-            <p className="raid-sub">Les raids s’ouvrent chaque jour sur deux créneaux : {raidWindowsText()}. Reviens à l’une de ces heures !</p>
-            {canOpen &&(
+            <h1 className="raid-h1">{launched ? 'Aucun raid en cours' : 'Aucune arène ouverte'}</h1>
+            <p className="raid-sub">
+              Les raids s’ouvrent chaque jour sur deux créneaux : {raidWindowsText()}.{' '}
+              {launched ? <>Prochain créneau dans <b><NextWindow /></b>.</> : 'Reviens à l’une de ces heures !'}
+            </p>
+            {canOpen && (
               <button className="btn-primary" onClick={openTestArena} disabled={opening}>
                 {opening ? 'Ouverture…' : '🔧 Ouvrir une arène de test'}
               </button>
             )}
           </div>
+          {launched && <HallOfFame level={currentRaidLevel()} fetchHof={actions.fetchHof} />}
         </main>
       </>
     )
@@ -157,6 +191,23 @@ export default function RaidArenaPage() {
     )
   }
 
+  // ── Spectateur : un équipage affronte déjà le boss (arène sérialisée) ──
+  if (!role && spectator) {
+    return (
+      <>
+        <Header />
+        <main className="raid-page">
+          <div className="raid-empty">
+            <div className="raid-empty-emoji">{boss.emoji}</div>
+            <h1 className="raid-h1">Un équipage affronte {boss.name}</h1>
+            <p className="raid-sub">Une seule arène à la fois. Reviens dans quelques minutes pour la prochaine — ou recharge pour la rejoindre dès qu’elle s’ouvre.</p>
+            <button className="btn-primary" onClick={() => window.location.reload()}>Rejoindre la prochaine arène</button>
+          </div>
+        </main>
+      </>
+    )
+  }
+
   // ── Combat ─────────────────────────────────────────────────────────
   const interactive = !!role && (canPlace(role) || canRotate(role))
   const amCaptain = !!role && canValidate(role)
@@ -166,6 +217,11 @@ export default function RaidArenaPage() {
   const boardFull = Object.keys(board).length === 4
   const myOrgan = role ? ORGANS[role] : null
   const crew = roster.map(p => ({ id: p.user_id, hue: hueOf(p.pseudo), role: p.role, pseudo: p.pseudo }))
+
+  // Boss affiché : le vrai, sauf prévisualisation admin (flèches) pour évaluer chaque UI.
+  const bossIdx = bossPreview != null ? bossPreview : Math.max(0, BOSSES.findIndex(b => b.key === boss.key))
+  const displayBoss = BOSSES[bossIdx] || boss
+  const cycleBoss = (d) => setBossPreview((bossIdx + d + BOSSES.length) % BOSSES.length)
 
   async function onValidate() {
     const res = await actions.validate()
@@ -184,13 +240,23 @@ export default function RaidArenaPage() {
       <main className="raid-page raid-page--combat">
         {/* Bloc 3D plein écran : la méduse tente d'attraper l'équipage */}
         <div className="raid-monster">
-          <Suspense fallback={<div className="raid-monster-loading">Invocation de {boss.name}…</div>}>
+          <Suspense fallback={<div className="raid-monster-loading">Invocation de {displayBoss.name}…</div>}>
             <RaidMonster3D crew={crew} hp={session.current_hp} maxHp={session.max_hp} hitSignal={hitSignal} attackSignal={attackSignal} />
           </Suspense>
           <div className="raid-monster-overlay">
             <div className="raid-monster-topline">
-              <div className="raid-monster-name"><span className="raid-monster-emoji">{boss.emoji}</span> {boss.name}</div>
+              <div className="raid-monster-name">
+                <span className="raid-monster-emoji">{displayBoss.emoji}</span> {displayBoss.name}
+                {isAdmin && (
+                  <span className="raid-boss-nav">
+                    <button type="button" className="raid-boss-navbtn" onClick={() => cycleBoss(-1)} aria-label="Boss précédent">‹</button>
+                    <span className="raid-boss-navidx">{bossIdx + 1}/{BOSSES.length}</span>
+                    <button type="button" className="raid-boss-navbtn" onClick={() => cycleBoss(1)} aria-label="Boss suivant">›</button>
+                  </span>
+                )}
+              </div>
               <div className="raid-monster-stats">
+                <span className="rms-chip rms-chip--week">Sem.&nbsp;<b>{session.boss_level ?? currentRaidLevel()}</b></span>
                 <span className="rms-chip rms-chip--time"><Timer deadline={session.assault_deadline} onExpire={actions.signalTimeout} /></span>
                 <span className="rms-chip">Assaut <b>{Math.min(session.assault_index + 1, session.assault_count)}/{session.assault_count}</b></span>
                 <span className="rms-chip">Essais <b>{session.attempts_remaining}</b></span>
