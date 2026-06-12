@@ -496,6 +496,10 @@ export default function PlayPage() {
       const r = result.result ?? {}
       await refreshUser()
       if (r.leveledUp) useAuthStore.getState().fetchNotifCount()
+      // Rafraîchit les quêtes (progression mise à jour côté serveur) + le compteur
+      // de notifs (une quête accomplie a pu être notifiée).
+      useAuthStore.getState().fetchQuests()
+      useAuthStore.getState().fetchNotifCount()
       setGameOver(true)
       navigate(`/result/${gridId}`, {
         state: {
@@ -509,6 +513,7 @@ export default function PlayPage() {
           attemptCount: r.attemptCount ?? attemptNumber,
           streakCurrent: user.streak_current,
           justPlayed: true,
+          combo: r.combo ?? null,
         },
       })
     } else {
@@ -563,6 +568,9 @@ export default function PlayPage() {
           >
             ↺ <span>Reset</span>
           </button>
+          {grid?.title && (
+            <div className="grid-title-banner" title={grid.title}>{grid.title}</div>
+          )}
           {isReplay && !replayResult && (
             <div className="replay-banner" role="status">
               <svg className="replay-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

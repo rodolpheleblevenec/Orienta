@@ -113,6 +113,10 @@ export default function NotificationsPanel({ onClose }) {
                     icon = '⌛'
                     text = <>Personne n'a créé la grille du <strong>{fmtDate(n.payload?.target_date)}</strong> à temps — comblée par la réserve.</>
                     link = '/admin/daily'
+                  } else if (type === 'quest_completed') {
+                    icon = '✅'
+                    text = <>Quête accomplie&nbsp;! <strong>Récupère ta récompense</strong> dans tes quêtes.</>
+                    link = '/hub'
                   } else {
                     text = <><strong>{n.payload?.player_pseudo ?? 'Quelqu\'un'}</strong> a interagi avec ta grille</>
                   }

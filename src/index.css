@@ -295,6 +295,60 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .winner-modal-actions .btn-primary,
 .winner-modal-actions .btn-secondary { width: 100%; }
 
+/* ── Modale « Découvrez vos nouveaux compagnons » (nouveaux paliers) ── */
+.wojo-modal-backdrop {
+  position: fixed; inset: 0; z-index: 1200;
+  background: rgba(28,33,40,0.5);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+}
+.wojo-modal {
+  position: relative;
+  background: var(--card); border-radius: 20px;
+  box-shadow: var(--shadow), 0 0 0 1px var(--line);
+  width: 460px; max-width: 100%; max-height: 88dvh;
+  padding: 28px 24px 22px; text-align: center;
+  display: flex; flex-direction: column;
+}
+.wojo-modal-close {
+  position: absolute; top: 12px; right: 12px;
+  background: none; border: none; font-size: 17px; color: var(--ink-3); cursor: pointer;
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--r-sm); transition: background 0.15s, color 0.15s;
+}
+.wojo-modal-close:hover { background: var(--bg-tint); color: var(--ink); }
+.wojo-modal-spark { font-size: 40px; line-height: 1; margin-bottom: 8px; }
+.wojo-modal-title { margin: 0 0 8px; font-family: var(--display); font-size: 21px; font-weight: 800; color: var(--ink); letter-spacing: -0.02em; }
+.wojo-modal-sub { margin: 0 0 18px; font-size: 13.5px; line-height: 1.5; color: var(--ink-3); }
+
+.wojo-modal-scroll { flex: 1; overflow-y: auto; min-height: 0; margin: 0 -4px; padding: 0 4px; }
+.wojo-modal-section { margin-bottom: 16px; text-align: left; }
+.wojo-modal-section:last-child { margin-bottom: 0; }
+.wojo-modal-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.wojo-modal-section-title { font-family: var(--display); font-size: 13.5px; font-weight: 700; color: var(--ink); }
+.wojo-modal-count {
+  font-size: 11px; font-weight: 700; color: var(--teal);
+  background: var(--teal-soft); border-radius: var(--r-pill); padding: 2px 9px;
+}
+.wojo-modal-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.wojo-modal-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: var(--bg-tint); border: 1px solid var(--line);
+  border-radius: var(--r-sm); padding: 10px 4px 7px;
+}
+.wojo-modal-emoji { font-size: 30px; line-height: 1; }
+.wojo-modal-name { font-size: 10.5px; font-weight: 600; color: var(--ink-2); text-align: center; line-height: 1.15; }
+.wojo-modal-lvl { font-size: 9.5px; font-weight: 700; color: var(--ink-3); }
+
+.wojo-modal-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+.wojo-modal-actions .btn-primary,
+.wojo-modal-actions .btn-secondary { width: 100%; }
+
+@media (max-width: 480px) {
+  .wojo-modal-grid { grid-template-columns: repeat(4, 1fr); }
+  .wojo-modal-emoji { font-size: 26px; }
+}
+
 /* ── Admin : réserve de grilles + programme ── */
 .admin-reserve-page { display: flex; flex-direction: column; gap: 24px; }
 /* Chaque section est un panneau blanc contenu, nettement séparé des autres. */
@@ -767,6 +821,18 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .streak-pill:hover { opacity: .85; }
 .streak-pill svg { width: 15px; height: 15px; flex-shrink: 0; }
 
+/* Pastille de jetons (header) — monnaie gagnée via les quêtes */
+.jetons-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--display); font-weight: 700; font-size: 14px;
+  color: var(--amber); background: #fdf1d8;
+  padding: 7px 12px; border-radius: var(--r-pill);
+  border: none; cursor: pointer; text-decoration: none;
+  transition: opacity .15s; flex-shrink: 0;
+}
+.jetons-pill:hover { opacity: .85; }
+.jetons-coin { font-size: 14px; line-height: 1; }
+
 .icon-btn {
   width: 38px; height: 38px; border-radius: 11px; border: none;
   background: transparent; color: var(--ink-2);
@@ -911,6 +977,44 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   letter-spacing: 0.06em; text-transform: uppercase; font-size: 12px;
 }
 .hub-dateline-sep { width: 4px; height: 4px; border-radius: 50%; background: var(--ink-3); opacity: 0.6; }
+
+/* ── Panneau Quêtes (hub) ── */
+.quest-panel-sub { font-size: 12.5px; font-weight: 600; color: var(--amber); white-space: nowrap; }
+.quest-group-title {
+  margin: 14px 0 8px; font-family: var(--display); font-weight: 700; font-size: 13px;
+  color: var(--ink-2); letter-spacing: 0.02em;
+}
+.quest-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.quest-row {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 12px 14px; box-shadow: var(--shadow-xs);
+}
+.quest-row--done { border-color: #f0d089; background: #fffdf6; }
+.quest-row-main { flex: 1; min-width: 0; }
+.quest-row-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.quest-row-title { font-family: var(--display); font-weight: 700; font-size: 14.5px; color: var(--ink); }
+.quest-reward { font-size: 13px; font-weight: 700; color: var(--amber); white-space: nowrap; flex-shrink: 0; }
+.quest-row-desc { margin: 2px 0 8px; font-size: 12.5px; color: var(--ink-2); }
+.quest-bar { height: 7px; border-radius: 999px; background: var(--bg-tint); overflow: hidden; }
+.quest-bar-fill { height: 100%; border-radius: 999px; background: var(--teal); transition: width .4s ease; }
+.quest-row--done .quest-bar-fill { background: var(--amber); }
+.quest-progress-txt { display: inline-block; margin-top: 5px; font-size: 11.5px; font-weight: 600; color: var(--ink-3); }
+.quest-row-action { flex-shrink: 0; display: flex; align-items: center; }
+.quest-claim-btn {
+  font-family: var(--display); font-weight: 700; font-size: 13px; color: #fff;
+  background: var(--amber); border: none; border-radius: var(--r-pill);
+  padding: 9px 14px; cursor: pointer; white-space: nowrap; transition: opacity .15s;
+}
+.quest-claim-btn:hover { opacity: .88; }
+.quest-claim-btn:disabled { opacity: .5; cursor: default; }
+.quest-claimed { font-size: 13px; font-weight: 700; color: var(--teal); white-space: nowrap; }
+.quest-pending { font-size: 13px; font-weight: 700; color: var(--ink-3); }
+@media (max-width: 680px) {
+  .quest-row { flex-wrap: wrap; }
+  .quest-row-action { width: 100%; }
+  .quest-claim-btn { width: 100%; }
+}
 
 /* Eyebrow */
 .hub-eyebrow {
@@ -2769,6 +2873,17 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .create-expired-actions { display: flex; gap: 10px; margin-top: 6px; }
 .create-confirm  { margin-top: 20px; min-width: 220px; }
 
+/* Champ « titre de la grille » dans la modale de fin de création */
+.grid-title-field  { width: 100%; display: flex; flex-direction: column; gap: 6px; text-align: left; margin-top: 4px; }
+.grid-title-label  { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.grid-title-input  {
+  width: 100%; box-sizing: border-box;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--bg-surface); color: var(--ink);
+  font-family: var(--sans); font-size: 14px;
+}
+.grid-title-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--teal-soft); }
+
 /* ── Tour Overlay ─────────────────────────────────── */
 @keyframes tour-card-in {
   from { opacity: 0; }
@@ -3206,6 +3321,17 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .replay-banner-icon { width: 15px; height: 15px; color: var(--teal); flex-shrink: 0; }
 @media (max-width: 480px) {
   .replay-banner { font-size: 12px; padding: 6px 12px; margin-bottom: 8px; }
+}
+/* Titre de grille donné par le créateur — même emplacement que le bandeau de rejeu */
+.grid-title-banner {
+  align-self: center; margin-bottom: 12px;
+  max-width: calc(100vw - 32px);
+  font-family: var(--display); font-size: 16px; font-weight: 800; color: var(--ink);
+  letter-spacing: -0.01em; line-height: 1.2; text-align: center;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .grid-title-banner { font-size: 14px; margin-bottom: 8px; }
 }
 .replay-end-overlay {
   position: fixed; inset: 0; z-index: 200;
@@ -4443,4 +4569,99 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 
 @media (max-width: 640px) {
   .stats-funnel-row { grid-template-columns: 110px 1fr 36px; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   Mode RAID (Boss d'Équipage)
+   ════════════════════════════════════════════════════════════════════ */
+.nlink--raid { color: var(--coral, #f2603f); font-weight: 700; }
+
+.raid-page { max-width: 1180px; margin: 0 auto; padding: 24px 20px 80px; }
+.raid-h1 { font-family: var(--display); font-size: 26px; font-weight: 700; color: var(--ink); margin: 0; }
+.raid-h2 { font-family: var(--display); font-size: 18px; font-weight: 700; color: var(--ink); margin: 0; }
+.raid-sub { color: var(--ink-2); font-size: 14px; margin: 6px 0 0; }
+.raid-loading { text-align: center; color: var(--ink-2); padding: 80px 0; }
+
+.raid-empty, .raid-end { text-align: center; padding: 60px 20px; max-width: 520px; margin: 40px auto; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); }
+.raid-empty-emoji, .raid-end-emoji { font-size: 56px; }
+.raid-empty .btn-primary { margin-top: 18px; }
+.raid-end-actions { display: flex; gap: 12px; justify-content: center; margin-top: 22px; flex-wrap: wrap; }
+.raid-end--won { border-color: var(--teal); }
+
+.raid-boss-head { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.raid-boss-emoji { font-size: 44px; line-height: 1; }
+.raid-boss-head--sm .raid-boss-emoji { font-size: 36px; }
+.raid-boss-meta { flex: 1; min-width: 0; }
+
+/* ── Salle d'attente ── */
+.raid-waiting-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+.raid-roster { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; box-shadow: var(--shadow-sm); }
+.raid-roster-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.raid-count { font-size: 13px; color: var(--ink-3); }
+.raid-hint { color: var(--ink-2); font-size: 14px; background: var(--bg-tint); padding: 10px 12px; border-radius: var(--r-sm); }
+.raid-organ-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.raid-organ { text-align: left; background: var(--bg-tint); border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: border-color .15s, transform .1s; }
+.raid-organ:hover:not(:disabled) { border-color: var(--teal); transform: translateY(-1px); }
+.raid-organ:disabled { cursor: not-allowed; opacity: .7; }
+.raid-organ--mine { border-color: var(--teal); background: var(--teal-soft); }
+.raid-organ--taken { opacity: .85; }
+.raid-organ-emoji { font-size: 22px; }
+.raid-organ-label { font-weight: 700; color: var(--ink); }
+.raid-organ-blurb { font-size: 12px; color: var(--ink-2); line-height: 1.35; }
+.raid-organ-holder { font-size: 12px; font-weight: 600; color: var(--teal-700); margin-top: 4px; }
+.raid-roster-actions { margin-top: 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.raid-ready-btn--on { background: var(--teal-700); }
+.raid-launch-hint { font-size: 13px; color: var(--ink-3); margin: 0; }
+
+/* ── Chat ── */
+.raid-chat { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; height: 420px; overflow: hidden; }
+.raid-chat-head { padding: 12px 14px; font-weight: 700; border-bottom: 1px solid var(--line-2); color: var(--ink); }
+.raid-chat-log { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.raid-chat-empty { color: var(--ink-3); font-size: 13px; text-align: center; margin: auto; }
+.raid-chat-msg { display: flex; flex-direction: column; font-size: 14px; }
+.raid-chat-msg--me { align-items: flex-end; }
+.raid-chat-author { font-size: 11px; color: var(--ink-3); font-weight: 600; }
+.raid-chat-text { background: var(--bg-tint); padding: 6px 10px; border-radius: 12px; color: var(--ink); max-width: 85%; }
+.raid-chat-msg--me .raid-chat-text { background: var(--teal-soft); }
+.raid-chat-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--line-2); }
+.raid-chat-input { flex: 1; border: 1px solid var(--line); border-radius: var(--r-pill); padding: 8px 14px; font: inherit; }
+.raid-chat-send { width: 38px; border: none; background: var(--teal); color: #fff; border-radius: 50%; font-size: 18px; cursor: pointer; }
+.raid-chat-send:disabled { opacity: .4; cursor: default; }
+
+/* ── Combat ── */
+.raid-combat-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+.raid-combat-stats { display: flex; align-items: center; gap: 14px; font-size: 14px; font-weight: 600; color: var(--ink-2); }
+.raid-timer--low { color: var(--fb-red); }
+.raid-myrole { background: var(--teal-soft); color: var(--teal-700); border-radius: var(--r-sm); padding: 10px 14px; font-size: 14px; margin-bottom: 16px; }
+.raid-combat-grid { display: grid; grid-template-columns: 1fr 360px; gap: 20px; align-items: start; }
+.raid-combat-board { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.raid-combat-side { display: flex; flex-direction: column; gap: 16px; }
+.raid-captain-bar { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+.raid-hp { position: relative; height: 22px; background: var(--bg-tint); border-radius: var(--r-pill); overflow: hidden; margin-top: 8px; min-width: 200px; }
+.raid-hp-fill { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--coral, #f2603f), var(--orange)); transition: width .5s ease; }
+.raid-hp-txt { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--ink); }
+
+/* ── Plateau neutre + tray ── */
+.raid-board-wrap { --slot-size: 128px; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.raid-tray { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; min-height: 60px; padding: 12px; border: 1.5px dashed var(--line); border-radius: var(--r); width: 100%; }
+.raid-tray--over { border-color: var(--teal); background: var(--teal-soft); }
+.raid-tray-empty { color: var(--ink-3); font-size: 13px; align-self: center; }
+
+/* Dos neutre de carte */
+.word-card--neutral .word-card-label { grid-area: center; font-size: 40px; font-weight: 800; line-height: 1; }
+.word-card-notch { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 9px solid currentColor; }
+
+/* ── Panneau scoped (Œil) ── */
+.raid-oeil { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.raid-oeil-title { font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+.raid-clue-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--ink); }
+.raid-words-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.raid-words-card { border: 1.5px solid var(--line); border-radius: var(--r-sm); padding: 10px; display: flex; gap: 8px; align-items: flex-start; }
+.raid-words-num { font-size: 22px; font-weight: 800; }
+.raid-words-sides { list-style: none; margin: 0; padding: 0; font-size: 12.5px; color: var(--ink); display: flex; flex-direction: column; gap: 2px; }
+.raid-words-side { color: var(--ink-3); font-weight: 600; margin-right: 4px; }
+
+@media (max-width: 920px) {
+  .raid-waiting-grid, .raid-combat-grid { grid-template-columns: 1fr; }
 }

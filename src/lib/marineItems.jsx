@@ -15,6 +15,11 @@ export const MARINE_ITEMS = [
   { level: 8,  xpThreshold: 2800, name: '👑 Couronne',  Component: ({ size }) => <EmojiComponent emoji="👑" size={size} /> },
   { level: 9,  xpThreshold: 4800, name: '🌟 Étoile',   Component: ({ size }) => <EmojiComponent emoji="🌟" size={size} /> },
   { level: 10, xpThreshold: 8000, name: '🏆 Légende',  Component: ({ size }) => <EmojiComponent emoji="🏆" size={size} /> },
+  { level: 11, xpThreshold: 13000, name: '🔮 Oracle',  Component: ({ size }) => <EmojiComponent emoji="🔮" size={size} /> },
+  { level: 12, xpThreshold: 21000, name: '⚡ Foudre',  Component: ({ size }) => <EmojiComponent emoji="⚡" size={size} /> },
+  { level: 13, xpThreshold: 33000, name: '💠 Cristal', Component: ({ size }) => <EmojiComponent emoji="💠" size={size} /> },
+  { level: 14, xpThreshold: 52000, name: '🌞 Soleil',  Component: ({ size }) => <EmojiComponent emoji="🌞" size={size} /> },
+  { level: 15, xpThreshold: 80000, name: '✨ Aura',    Component: ({ size }) => <EmojiComponent emoji="✨" size={size} /> },
 ]
 
 export function getMarineItem(level) {

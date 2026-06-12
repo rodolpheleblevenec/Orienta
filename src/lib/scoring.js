@@ -19,6 +19,17 @@ export function xpAttemptBonus(attemptNo, success) {
   return 0
 }
 
+// Combo de session : multiplicateur d'XP croissant sur les réussites consécutives.
+// La 1re réussite d'une série = ×1.0 ; chaque réussite consécutive ajoute +0.2 ;
+// plafond ×2.0 (atteint à la 6e). Un échec casse la série (steps remis à 0/1).
+// La fenêtre de session (réinitialisation par inactivité) est gérée dans check-attempt.
+export const COMBO_STEP = 0.2
+export const COMBO_MAX = 2.0
+export function comboMultiplier(steps) {
+  if (steps <= 1) return 1.0
+  return Math.min(1 + COMBO_STEP * (steps - 1), COMBO_MAX)
+}
+
 // Logarithmic time decay: score never drops below ~200 during normal play
 export function computeScore(elapsedSeconds, attemptsFailed) {
   const timeDecay = Math.max(0, BASE_SCORE * (1 - 0.35 * Math.log10(1 + elapsedSeconds / 30)))

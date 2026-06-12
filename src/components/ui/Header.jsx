@@ -7,6 +7,7 @@ import StreakModal from './StreakModal'
 import NotificationsPanel from './NotificationsPanel'
 import AdminPasswordModal from './AdminPasswordModal'
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
+import { canSeeRaid } from '../../lib/raid'
 
 const ADMIN_PSEUDO = 'Rodolphe LE BLEVENEC'
 
@@ -33,6 +34,7 @@ export default function Header() {
   }
 
   const streak = user?.streak_current ?? 0
+  const jetons = user?.jetons ?? 0
   const isAdmin = user?.pseudo === ADMIN_PSEUDO
   const initial = user?.pseudo?.[0]?.toUpperCase() ?? '?'
 
@@ -49,6 +51,10 @@ export default function Header() {
           <NavLink to="/hub"        className={({ isActive }) => `nlink${isActive ? ' nlink--active' : ''}`} onClick={() => setNavOpen(false)}>Hub</NavLink>
           <NavLink to="/classement" className={({ isActive }) => `nlink${isActive ? ' nlink--active' : ''}`} onClick={() => setNavOpen(false)}>Classement</NavLink>
           <NavLink to="/tutoriel"   className={({ isActive }) => `nlink${isActive ? ' nlink--active' : ''}`} onClick={() => setNavOpen(false)}>Tutoriel</NavLink>
+          {/* Lien RAID visible pour l'admin ET les comptes testeurs (Testeur 1–4) tant que la feature est en test en prod. */}
+          {canSeeRaid(user?.pseudo) && (
+            <NavLink to="/raid" className={({ isActive }) => `nlink nlink--raid${isActive ? ' nlink--active' : ''}`} onClick={() => setNavOpen(false)}>⚔️ RAID</NavLink>
+          )}
           <button className="nlink nlink-logout-mobile" type="button" onClick={() => { setNavOpen(false); logout() }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16" style={{marginRight: '6px', flexShrink: 0}}>
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -60,6 +66,11 @@ export default function Header() {
         </nav>
 
         <span className="nav-spacer" />
+
+        <Link to="/hub" className="jetons-pill" title="Tes jetons — gagnés en accomplissant des quêtes">
+          <span className="jetons-coin" aria-hidden="true">🪙</span>
+          <span className="jetons-txt">{jetons}</span>
+        </Link>
 
         <button className="streak-pill" onClick={() => setShowStreakModal(true)} type="button" title="Votre streak">
           <svg viewBox="0 0 24 24" fill="currentColor">

@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { computeScore, computeXp, xpStreakBonus, xpAttemptBonus, evaluateAttempt } from '../_shared/scoring.ts'
+import { computeScore, computeXp, xpStreakBonus, xpAttemptBonus, evaluateAttempt, comboMultiplier } from '../_shared/scoring.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,11 +13,35 @@ const json = (body: unknown, status = 200) =>
 const MAX_ATTEMPTS = 3
 const ROTATIONS = [0, 90, 180, 270]
 
+// Combo de session : fenêtre glissante d'inactivité au-delà de laquelle la série
+// est cassée (réussites consécutives à enchaîner pour faire monter le multiplicateur).
+const COMBO_WINDOW_MS = 30 * 60 * 1000
+
+// Clé de jour (heure de Paris) 'YYYY-MM-DD' — miroir de daily-rollover/index.ts.
+function parisDateKey(): string {
+  return new Date().toLocaleDateString('fr-CA', { timeZone: 'Europe/Paris' })
+}
+
+// Clé de semaine ISO 'YYYY-Www' dérivée du jour Paris (ISO 8601 : le jeudi décide
+// l'année + le n° de semaine ; la semaine 1 contient le 4 janvier).
+function isoWeekKey(): string {
+  const date = new Date(parisDateKey() + 'T00:00:00Z')
+  const day = (date.getUTCDay() + 6) % 7              // lundi=0 … dimanche=6
+  date.setUTCDate(date.getUTCDate() - day + 3)        // jeudi de la semaine courante
+  const isoYear = date.getUTCFullYear()
+  const firstThursday = new Date(Date.UTC(isoYear, 0, 4))
+  const fd = (firstThursday.getUTCDay() + 6) % 7
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - fd + 3)
+  const week = 1 + Math.round((date.getTime() - firstThursday.getTime()) / (7 * 86400000))
+  return `${isoYear}-W${String(week).padStart(2, '0')}`
+}
+
 // Niveaux individuels (noms) — utilisés pour la notification level_up.
 // Miroir des noms de src/lib/levels.js (LEVELS).
 const LEVEL_NAMES: Record<number, string> = {
   1: 'Naissance', 2: 'Alevin', 3: 'Banc', 4: 'Explorateur', 5: 'Voyageur',
   6: 'Chasseur', 7: 'Sage', 8: 'Légende', 9: 'Titan', 10: 'Immortel',
+  11: 'Mythe', 12: 'Kraken', 13: 'Sirène', 14: 'Tempête', 15: 'Trident',
 }
 
 // Valide la forme d'une réponse : exactement 4 cartes, chacune bien typée.
@@ -127,7 +151,7 @@ serve(async (req) => {
 
   const { data: user } = await supabase
     .from('orienta_users')
-    .select('pseudo, level, streak_current, streak_best, last_played_at, xp_contributed')
+    .select('pseudo, level, streak_current, streak_best, last_played_at, xp_contributed, combo_count, combo_updated_at')
     .eq('id', play.player_id)
     .single()
 
@@ -135,8 +159,23 @@ serve(async (req) => {
   // Bonus de rapidité : +6 si résolu au 1er essai, +3 au 2e (0 sinon).
   const attemptBonus = (success && !isSelfPlay) ? xpAttemptBonus(attemptNo, success) : 0
   const score = success ? computeScore(elapsed, attemptsFailed) : 0
+
+  // Combo de session : réussites consécutives dans la fenêtre glissante (30 min) →
+  // multiplicateur ×1.2 → ×2 sur l'XP de base éligible. Un échec (ou une inactivité
+  // > fenêtre) casse la série. L'auto-jeu ne touche pas le combo.
+  let comboSteps = user?.combo_count ?? 0
+  if (!isSelfPlay) {
+    const lastTs = user?.combo_updated_at ? new Date(user.combo_updated_at).getTime() : 0
+    const withinWindow = lastTs > 0 && (now - lastTs) <= COMBO_WINDOW_MS
+    comboSteps = success ? (withinWindow ? comboSteps + 1 : 1) : 0
+  }
+  const comboMult = comboMultiplier(comboSteps)
+  // L'XP éligible de base (résolution + série + rapidité), puis la part "extra" du
+  // multiplicateur, exprimée en bonus entier qui transitera par award_xp_on_play.
+  const baseEligibleXp = (success && !isSelfPlay) ? (computeXp(score, success) + streakBonus + attemptBonus) : 0
+  const comboBonus = Math.round(baseEligibleXp * (comboMult - 1))
   // Jouer sa propre grille ne rapporte aucune XP (cohérent avec award_xp_on_play).
-  const playerXp = isSelfPlay ? 0 : (computeXp(score, success) + streakBonus + attemptBonus)
+  const playerXp = isSelfPlay ? 0 : (baseEligibleXp + comboBonus)
   const oldLevel = user?.level ?? 1
 
   // Finalisation ATOMIQUE : seul le 1er appel qui bascule completed_at (encore
@@ -167,6 +206,8 @@ serve(async (req) => {
       streak_best: Math.max(user.streak_best ?? 0, newStreak),
       last_played_at: new Date().toISOString(),
       xp_contributed: (user.xp_contributed ?? 0) + playerXp,
+      // L'auto-jeu ne modifie pas le combo (ni le compteur ni l'horodatage de fenêtre).
+      ...(isSelfPlay ? {} : { combo_count: comboSteps, combo_updated_at: new Date().toISOString() }),
     }).eq('id', play.player_id)
   }
 
@@ -180,6 +221,21 @@ serve(async (req) => {
       p_success: success,
       p_streak_bonus: streakBonus,
       p_attempt_bonus: attemptBonus,
+      p_combo_bonus: comboBonus,
+    })
+
+    // Progression des quêtes (autorité serveur) — la récompense (jetons) est créditée
+    // plus tard, au claim manuel. apply_quest_progress crée les lignes de période si
+    // besoin (joueur qui joue avant d'ouvrir le hub) et notifie à la complétion.
+    await supabase.rpc('apply_quest_progress', {
+      p_user_id: play.player_id,
+      p_success: success,
+      p_time_seconds: elapsed,
+      p_attempts_count: attemptNo,
+      p_is_daily_grid: isDailyGrid,
+      p_grid_id: gridIdResolved,
+      p_daily_key: parisDateKey(),
+      p_week_key: isoWeekKey(),
     })
   }
 
@@ -222,6 +278,7 @@ serve(async (req) => {
       attemptCount: attemptNo,
       success,
       leveledUp,
+      combo: { count: comboSteps, multiplier: comboMult, bonusXp: comboBonus },
     },
   })
 })

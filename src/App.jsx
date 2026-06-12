@@ -11,6 +11,7 @@ import DashboardPage from './pages/dashboard/DashboardPage'
 import DailyAdminPage from './pages/admin/DailyAdminPage'
 import ClassementPage from './pages/classement/ClassementPage'
 import TutorielPage from './pages/tutoriel/TutorielPage'
+import RaidArenaPage from './pages/raid/RaidArenaPage'
 import './index.css'
 
 export default function App() {
@@ -29,6 +30,9 @@ export default function App() {
         <Route path="/admin/daily"       element={<RequireAuth><DailyAdminPage /></RequireAuth>} />
         <Route path="/classement"        element={<RequireAuth><ClassementPage /></RequireAuth>} />
         <Route path="/tutoriel"          element={<RequireAuth><TutorielPage /></RequireAuth>} />
+        {/* Mode RAID — route ouverte (RequireAuth) pour permettre le test multi-session ;
+            le lien n'est visible que pour l'admin (Header) tant que la feature est en test. */}
+        <Route path="/raid"              element={<RequireAuth><RaidArenaPage /></RequireAuth>} />
         <Route path="*"                  element={<Navigate to="/hub" replace />} />
       </Routes>
     </BrowserRouter>

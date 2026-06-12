@@ -3,7 +3,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useRef, useEffect } from 'react'
 import { getCardColor } from '../../lib/cardColors'
 
-export default function WordCard({ card, rotation = 0, feedback = 'neutral', onRotate, draggable = true, id, disableTransition = false, colorIndex = 0 }) {
+export default function WordCard({ card, rotation = 0, feedback = 'neutral', onRotate, draggable = true, id, disableTransition = false, colorIndex = 0, neutral = false, label = '' }) {
   const isInitialRender = useRef(true)
   useEffect(() => {
     isInitialRender.current = false
@@ -54,12 +54,23 @@ export default function WordCard({ card, rotation = 0, feedback = 'neutral', onR
       className="word-card-draggable"
       {...(draggable ? { ...listeners, ...attributes } : {})}
     >
-      <div className={`word-card ${feedbackClass} ${isDragging ? 'word-card--dragging' : ''}`} style={cardInnerStyle}>
+      <div className={`word-card ${neutral ? 'word-card--neutral' : ''} ${feedbackClass} ${isDragging ? 'word-card--dragging' : ''}`} style={cardInnerStyle}>
         <span className="word-card-badge" style={badgeStyle} />
-        <span className="word-card-top"    style={wordStyle('top')}   >{card.word_top}</span>
-        <span className="word-card-right"  style={wordStyle('right')} >{card.word_right}</span>
-        <span className="word-card-bottom" style={wordStyle('bottom')}>{card.word_bottom}</span>
-        <span className="word-card-left"   style={wordStyle('left')}  >{card.word_left}</span>
+        {neutral ? (
+          <>
+            {/* Encoche = bord « haut » actuel de la carte ; tourne avec elle → orientation lisible par tous */}
+            <span className="word-card-notch" style={{ borderBottomColor: border }} />
+            {/* Numéro maintenu droit (contre-rotation) pour rester lisible */}
+            <span className="word-card-label" style={{ color: text, transform: `rotate(${-rotation}deg)` }}>{label}</span>
+          </>
+        ) : (
+          <>
+            <span className="word-card-top"    style={wordStyle('top')}   >{card.word_top}</span>
+            <span className="word-card-right"  style={wordStyle('right')} >{card.word_right}</span>
+            <span className="word-card-bottom" style={wordStyle('bottom')}>{card.word_bottom}</span>
+            <span className="word-card-left"   style={wordStyle('left')}  >{card.word_left}</span>
+          </>
+        )}
       </div>
 
       {onRotate && (

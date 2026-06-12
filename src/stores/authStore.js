@@ -7,6 +7,7 @@ export const useAuthStore = create((set, get) => ({
   user: null,
   loading: true,
   notifCount: 0,
+  quests: { daily: [], weekly: [] },
 
   init: async () => {
     const savedId = localStorage.getItem(STORAGE_KEY)
@@ -21,6 +22,7 @@ export const useAuthStore = create((set, get) => ({
     set({ user: data ?? null, loading: false })
     if (data) {
       get().fetchNotifCount(data.id)
+      get().fetchQuests(data.id)
       get().pingSeen(data.id)
     }
   },
@@ -47,13 +49,14 @@ export const useAuthStore = create((set, get) => ({
     localStorage.setItem(STORAGE_KEY, data.user.id)
     set({ user: data.user })
     get().fetchNotifCount(data.user.id)
+    get().fetchQuests(data.user.id)
     get().pingSeen(data.user.id)
     return { user: data.user, isNew: data.isNew }
   },
 
   logout: () => {
     localStorage.removeItem(STORAGE_KEY)
-    set({ user: null, notifCount: 0 })
+    set({ user: null, notifCount: 0, quests: { daily: [], weekly: [] } })
   },
 
   refreshUser: async () => {
@@ -86,6 +89,33 @@ export const useAuthStore = create((set, get) => ({
       body: { action: 'notifs-read', user_id: user.id },
     })
     if (error || data?.error) get().fetchNotifCount(user.id) // resynchronise si échec
+  },
+
+  // Quêtes du jour / de la semaine (création paresseuse + lecture côté serveur).
+  fetchQuests: async (userId) => {
+    const id = userId ?? get().user?.id
+    if (!id) return
+    const { data, error } = await supabase.functions.invoke('quests', {
+      body: { action: 'list', user_id: id },
+    })
+    if (!error && data?.quests) set({ quests: data.quests })
+  },
+
+  // Réclame la récompense (jetons) d'une quête accomplie, puis resynchronise.
+  claimQuest: async (progressId) => {
+    const { user } = get()
+    if (!user || !progressId) return { error: 'no user' }
+    const { data, error } = await supabase.functions.invoke('quests', {
+      body: { action: 'claim', user_id: user.id, progress_id: progressId },
+    })
+    if (error || data?.error || !data?.claimed) {
+      get().fetchQuests(user.id)
+      return { error: 'claim failed' }
+    }
+    // Crédit optimiste du solde de jetons renvoyé par le serveur.
+    if (typeof data.jetons === 'number') set({ user: { ...user, jetons: data.jetons } })
+    get().fetchQuests(user.id)
+    return { reward_jetons: data.reward_jetons ?? 0, jetons: data.jetons }
   },
 
   markTourDone: async (flag) => {

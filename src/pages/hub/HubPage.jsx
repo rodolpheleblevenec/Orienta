@@ -6,7 +6,9 @@ import Header from '../../components/ui/Header'
 import CollectiveGauge from '../../components/ui/CollectiveGauge'
 import GridCard from '../../components/ui/GridCard'
 import CreatedGridCard from '../../components/ui/CreatedGridCard'
+import QuestPanel from '../../components/ui/QuestPanel'
 import WinnerWelcomeModal from '../../components/ui/WinnerWelcomeModal'
+import NewWojoModal from '../../components/ui/NewWojoModal'
 import OnlinePlayersPanel from '../../components/ui/OnlinePlayersPanel'
 import { useOnlinePlayers } from '../../lib/useOnlinePlayers'
 
@@ -32,7 +34,7 @@ function statusLabel(playInfo) {
 }
 
 export default function HubPage() {
-  const { user, markTourDone } = useAuthStore()
+  const { user, markTourDone, fetchQuests } = useAuthStore()
   const navigate = useNavigate()
   const today = new Date().toISOString().split('T')[0]
   const hasForfeited = localStorage.getItem(`orienta_create_forfeit_${user?.id}`) === today
@@ -48,11 +50,17 @@ export default function HubPage() {
   const [livePlayStats, setLivePlayStats] = useState(null)
   const [pendingGrant, setPendingGrant] = useState(null)   // droit de créer la grille du jour (gagnant)
   const [showWinnerModal, setShowWinnerModal] = useState(false)
+  const [showWojoModal, setShowWojoModal] = useState(false)   // annonce des nouveaux paliers (1 fois)
 
   // Présence temps réel : qui est connecté sur le hub en ce moment.
   // Panneau affiché (desktop only) uniquement s'il y a au moins un AUTRE joueur.
   const onlinePlayers = useOnlinePlayers(user)
   const showOnlinePanel = onlinePlayers.some(p => p.id !== user?.id)
+
+  // Rafraîchit les quêtes à l'ouverture du hub (progression à jour après une partie).
+  useEffect(() => {
+    if (user) fetchQuests(user.id)
+  }, [user, fetchQuests])
 
   useEffect(() => {
     if (!user) return
@@ -128,6 +136,13 @@ export default function HubPage() {
       setLoading(false)
     }
     fetchData()
+  }, [user])
+
+  // Annonce « nouveaux compagnons » : affichée une seule fois, dès que le joueur
+  // existant (new_wojo_seen === false) ouvre le hub après la mise à jour. Les
+  // nouveaux inscrits ont la colonne à true par défaut → jamais affichée.
+  useEffect(() => {
+    if (user && user.new_wojo_seen === false) setShowWojoModal(true)
   }, [user])
 
   const utcToday = new Date().toISOString().split('T')[0]
@@ -245,6 +260,9 @@ export default function HubPage() {
             <span className="hub-grant-banner-cta">Créer ma grille →</span>
           </Link>
         )}
+
+        {/* ===== QUÊTES — objectifs du jour / de la semaine (récompense en jetons) ===== */}
+        <QuestPanel />
 
         {/* ===== PARTIE 01 — LA GRILLE DU JOUR ===== */}
         <section className="hub-part">
@@ -666,7 +684,12 @@ export default function HubPage() {
       )}
       </div>
 
-      {showWinnerModal && pendingGrant && (
+      {showWojoModal && (
+        <NewWojoModal onClose={() => setShowWojoModal(false)} />
+      )}
+
+      {/* La modale gagnant attend que l'annonce des nouveaux paliers soit fermée. */}
+      {showWinnerModal && pendingGrant && !showWojoModal && (
         <WinnerWelcomeModal grant={pendingGrant} onClose={() => setShowWinnerModal(false)} />
       )}
     </div>

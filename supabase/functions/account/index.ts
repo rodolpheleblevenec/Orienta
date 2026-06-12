@@ -12,7 +12,7 @@ const json = (body: unknown, status = 200) =>
 // Flags de tutoriel autorisés (whitelist anti-écriture de colonne arbitraire).
 const ALLOWED_FLAGS = new Set([
   'tutorial_modal_done', 'tour_play_done', 'tour_create_placement_done',
-  'tour_create_clues_done', 'community_unlocked_seen',
+  'tour_create_clues_done', 'community_unlocked_seen', 'new_wojo_seen',
 ])
 const SUGGESTION_MAX = 1000
 
@@ -23,7 +23,7 @@ const RESERVED_PSEUDOS = new Set(['orienta'])
 // Écritures liées au COMPTE déplacées côté serveur :
 //   - login   : get-or-create d'un utilisateur par pseudo (atomique)
 //   - flag    : marquer un flag de tutoriel (whitelist)
-//   - skin    : changer le skin sélectionné (1..10)
+//   - skin    : changer le skin sélectionné (1..15)
 //   - notifs-read : marquer ses notifications comme lues
 //   - suggestion  : envoyer une idée (pseudo relu côté serveur, jamais le client)
 serve(async (req) => {
@@ -77,7 +77,7 @@ serve(async (req) => {
 
   if (action === 'skin') {
     const skin = body.skin
-    if (typeof skin !== 'number' || !Number.isInteger(skin) || skin < 1 || skin > 10) {
+    if (typeof skin !== 'number' || !Number.isInteger(skin) || skin < 1 || skin > 15) {
       return json({ error: 'invalid skin' }, 400)
     }
     await supabase.from('orienta_users').update({ selected_skin: skin }).eq('id', userId)

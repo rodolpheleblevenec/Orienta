@@ -128,6 +128,9 @@ export default function CreatePage() {
   const [publishing, setPublishing] = useState(false)
   const [publishError, setPublishError] = useState(false)
   const [published, setPublished] = useState(false)
+  const [createdGridId, setCreatedGridId] = useState(null)
+  const [gridTitle, setGridTitle] = useState('')
+  const [savingTitle, setSavingTitle] = useState(false)
   const startTimeRef = useRef(null)
   const timerRef = useRef(null)
 
@@ -350,8 +353,23 @@ export default function CreatePage() {
       return
     }
 
+    setCreatedGridId(data.grid_id ?? null)
     await refreshUser()
     setPublished(true)
+  }
+
+  // Fin de création : sauvegarde le titre éventuel (best-effort) puis retour au Hub.
+  async function finishToHub() {
+    const title = gridTitle.trim()
+    if (title && createdGridId && !grantMode) {
+      setSavingTitle(true)
+      try {
+        await supabase.functions.invoke('set-grid-title', {
+          body: { grid_id: createdGridId, user_id: user.id, title },
+        })
+      } catch { /* le titre est un bonus : on n'empêche jamais le retour au Hub */ }
+    }
+    navigate('/hub')
   }
 
   useEffect(() => {
@@ -556,9 +574,24 @@ export default function CreatePage() {
                   <>
                     <p className="create-expired-title">Bravo, ta grille est créée !</p>
                     <p className="create-expired-text">Ta grille a été publiée. Les autres joueurs peuvent maintenant la résoudre — tu gagneras de l'XP à chaque réussite.</p>
+                    <div className="grid-title-field">
+                      <label htmlFor="grid-title" className="grid-title-label">Donne un titre à ta grille (optionnel)</label>
+                      <input
+                        id="grid-title"
+                        className="grid-title-input"
+                        type="text"
+                        value={gridTitle}
+                        onChange={e => setGridTitle(e.target.value)}
+                        maxLength={60}
+                        placeholder="Ex. La grille du midi"
+                        autoComplete="off"
+                      />
+                    </div>
                   </>
                 )}
-                <button className="btn-primary" onClick={() => navigate('/hub')}>Retour au Hub</button>
+                <button className="btn-primary" onClick={finishToHub} disabled={savingTitle}>
+                  {savingTitle ? 'Enregistrement…' : 'Retour au Hub'}
+                </button>
               </div>
             ) : missedCreation ? (
               <div className="create-expired">

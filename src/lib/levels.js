@@ -9,6 +9,11 @@ export const LEVELS = [
   { level: 8, xp: 2800,  name: 'Légende',     key: 'legende' },
   { level: 9, xp: 4800,  name: 'Titan',       key: 'titan' },
   { level: 10, xp: 8000, name: 'Immortel',    key: 'immortel' },
+  { level: 11, xp: 13000, name: 'Mythe',   key: 'mythe' },
+  { level: 12, xp: 21000, name: 'Kraken',  key: 'kraken' },
+  { level: 13, xp: 33000, name: 'Sirène',  key: 'sirene' },
+  { level: 14, xp: 52000, name: 'Tempête', key: 'tempete' },
+  { level: 15, xp: 80000, name: 'Trident', key: 'trident' },
 ]
 
 // Collective progression is 10x harder (paliers are 10x higher)
@@ -23,6 +28,16 @@ export const LEVELS_COLLECTIVE = [
   { level: 8, xp: 28000, name: 'Légende',     key: 'legende' },
   { level: 9, xp: 48000, name: 'Titan',       key: 'titan' },
   { level: 10, xp: 80000, name: 'Immortel',   key: 'immortel' },
+  { level: 11, xp: 130000,  name: 'Mythe',   key: 'mythe' },
+  { level: 12, xp: 210000,  name: 'Kraken',  key: 'kraken' },
+  { level: 13, xp: 330000,  name: 'Sirène',  key: 'sirene' },
+  { level: 14, xp: 520000,  name: 'Tempête', key: 'tempete' },
+  { level: 15, xp: 800000,  name: 'Trident', key: 'trident' },
+  { level: 16, xp: 1250000, name: 'Volcan',  key: 'volcan' },
+  { level: 17, xp: 2000000, name: 'Comète',  key: 'comete' },
+  { level: 18, xp: 3200000, name: 'Planète', key: 'planete' },
+  { level: 19, xp: 5000000, name: 'Galaxie', key: 'galaxie' },
+  { level: 20, xp: 8000000, name: 'Cosmos',  key: 'cosmos' },
 ]
 
 export function getLevelFromXp(xp) {

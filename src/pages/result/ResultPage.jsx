@@ -66,7 +66,7 @@ export default function ResultPage() {
     score = 0, xp = 0, success = false,
     baseXp = 0, bonusXp = 0, attemptBonus = 0,
     timeSeconds = 0, attemptCount = 1, streakCurrent = 0,
-    justPlayed = false,
+    justPlayed = false, combo = null,
   } = location.state ?? {}
 
   const [leaderboard, setLeaderboard] = useState([])
@@ -386,6 +386,12 @@ export default function ResultPage() {
                   <div className="result-xp-row">
                     <span>🔥 Streak {streakCurrent}j</span>
                     <span className="result-xp-value">+{bonusXp} XP</span>
+                  </div>
+                )}
+                {combo?.bonusXp > 0 && (
+                  <div className="result-xp-row">
+                    <span>🔗 Combo ×{combo.multiplier.toFixed(1)} ({combo.count} d'affilée)</span>
+                    <span className="result-xp-value">+{combo.bonusXp} XP</span>
                   </div>
                 )}
                 <div className="result-xp-divider" />
