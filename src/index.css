@@ -1383,6 +1383,11 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .comfort-msg { margin: 8px 0 0; font-size: 12.5px; font-weight: 600; }
 .comfort-msg--ok { color: var(--teal); }
 .comfort-msg--err { color: var(--coral); }
+/* Mobile : on empile le champ et le bouton (le bouton .shop-btn passe en width:100%
+   sous 680px et écraserait sinon le champ dans la rangée flex). */
+@media (max-width: 680px) {
+  .comfort-editor-row { flex-direction: column; align-items: stretch; }
+}
 
 /* ── Roue de la fortune ── */
 .wheel-modal { max-width: 380px; text-align: center; }
@@ -5416,20 +5421,19 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-hud .raid-rolestrip { flex: 1; }
 
 /* ── Deux colonnes : grille + réserve | chat (large) ── */
-.raid-combat-cols { display: grid; grid-template-columns: minmax(440px, 760px) 1fr; gap: 24px; align-items: stretch; }
+.raid-combat-cols { display: grid; grid-template-columns: minmax(440px, 600px) 1fr; gap: 24px; align-items: stretch; }
 .raid-col-board { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-/* La colonne chat s'étire à la hauteur de la colonne plateau+réserve ; le chat
-   la remplit en absolu pour ne jamais imposer sa propre hauteur (sinon un long
-   historique allongerait la colonne au lieu de défiler). */
-/* Hauteur plancher : la colonne chat ne doit jamais s'effondrer (sinon le chat,
-   en position:absolute, devient invisible). Elle s'étire au-delà avec le plateau. */
-.raid-col-chat { position: relative; min-height: 540px; }
+/* La colonne chat est un conteneur flex : le chat la remplit (flex:1) et défile en
+   interne (.rchat-log) — plus de position:absolute fragile, donc il ne disparaît plus,
+   et un long historique n'allonge pas la colonne. Plancher 540px + étirement grille. */
+.raid-col-chat { display: flex; flex-direction: column; min-height: 540px; }
+.raid-combat-cols .rchat { position: static; inset: auto; flex: 1; min-height: 0; }
 .raid-myrole-sm { width: 100%; background: var(--teal-soft); color: var(--teal-700); border-radius: var(--r-sm); padding: 8px 12px; font-size: 13px; }
 
 /* ── Chat moderne (bulles + avatars) ── */
 .rchat { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); min-height: 0; overflow: hidden; }
 .rchat-head { padding: 14px 16px; font-weight: 700; color: var(--ink); border-bottom: 1px solid var(--line-2); flex-shrink: 0; }
-.rchat-log { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.rchat-log { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
 .rchat-empty { color: var(--ink-3); font-size: 13px; text-align: center; margin: auto; }
 .rchat-row { display: flex; gap: 8px; align-items: flex-end; }
 .rchat-row--grouped { margin-top: -4px; }
