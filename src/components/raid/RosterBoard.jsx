@@ -123,7 +123,7 @@ export default function RosterBoard({ boss, roster, me, actions, busy }) {
           <div className="raid-countdown-card">
             <span className="raid-countdown-label">{busy ? 'Lancement…' : 'Le raid commence dans'}</span>
             <span className="raid-countdown-num">{countdown}</span>
-            <span className="raid-countdown-hint">Retire ton « Prêt » pour annuler</span>
+            <button type="button" className="raid-countdown-cancel" onClick={() => actions.setReady(false)}>✕ Annuler</button>
           </div>
         </div>
       )}

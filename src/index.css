@@ -5153,6 +5153,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-countdown-label { font-weight: 700; font-size: 18px; color: rgba(255,255,255,.92); }
 .raid-countdown-num { font-family: var(--display); font-size: 120px; font-weight: 800; line-height: 1; color: #fff; text-shadow: 0 6px 36px rgba(79,214,160,.55); }
 .raid-countdown-hint { font-size: 13px; color: rgba(255,255,255,.7); }
+.raid-countdown-cancel { margin-top: 10px; background: rgba(255,255,255,.16); color: #fff; border: 1px solid rgba(255,255,255,.45); border-radius: var(--r-pill); padding: 9px 24px; font-weight: 700; font-size: 14px; cursor: pointer; transition: background .15s; }
+.raid-countdown-cancel:hover { background: rgba(255,255,255,.28); }
 
 @media (max-width: 920px) {
   .raid-waiting-grid { grid-template-columns: 1fr; }
