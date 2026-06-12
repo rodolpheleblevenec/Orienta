@@ -4,10 +4,10 @@ import Header from '../../components/ui/Header'
 import { useAuthStore } from '../../stores/authStore'
 import { useRaidArena } from '../../lib/useRaidArena'
 import { getAdminSecret } from '../../lib/adminSecret'
-import { ORGANS, getBossByKey, canPlace, canRotate, canValidate, canSeeFeedback, canSeeRaid, isRaidAdmin } from '../../lib/raid'
+import { ORGANS, getBossByKey, canPlace, canRotate, canValidate, canSeeFeedback, canSeeClues, canSeeWords, canSeeRaid, isRaidAdmin } from '../../lib/raid'
 import RosterBoard from '../../components/raid/RosterBoard'
 import RaidChat from '../../components/raid/RaidChat'
-import OeilPanel from '../../components/raid/OeilPanel'
+import RoleStrip from '../../components/raid/RoleStrip'
 import RaidBoard from '../../components/raid/RaidBoard'
 
 function HpBar({ hp, max }) {
@@ -135,6 +135,8 @@ export default function RaidArenaPage() {
   // ── Combat ─────────────────────────────────────────────────────────
   const interactive = !!role && (canPlace(role) || canRotate(role))
   const amCaptain = !!role && canValidate(role)
+  const iSeeClues = canSeeClues(role)
+  const iSeeWords = canSeeWords(role)
   const boardFeedbacks = sharedFeedback || (canSeeFeedback(role) ? view.feedback : null) || {}
   const boardFull = Object.keys(board).length === 4
   const myOrgan = role ? ORGANS[role] : null
@@ -179,7 +181,10 @@ export default function RaidArenaPage() {
               interactive={interactive}
               onChange={actions.moveBoard}
               onPreview={actions.previewBoard}
-              clues={null}
+              clues={view.clues || null}
+              words={view.words || null}
+              canSeeClues={iSeeClues}
+              canSeeWords={iSeeWords}
             />
             {amCaptain && (
               <div className="raid-captain-bar">
@@ -196,7 +201,7 @@ export default function RaidArenaPage() {
           </div>
 
           <div className="raid-combat-side">
-            <OeilPanel view={view} />
+            <RoleStrip roster={roster} meId={user?.id} />
             <RaidChat chat={chat} onSend={actions.sendChat} me={me} />
           </div>
         </div>

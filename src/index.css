@@ -4824,6 +4824,36 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-words-sides { list-style: none; margin: 0; padding: 0; font-size: 12.5px; color: var(--ink); display: flex; flex-direction: column; gap: 2px; }
 .raid-words-side { color: var(--ink-3); font-weight: 600; margin-right: 4px; }
 
+/* Carte raid : numéro central d'identité + mots/indices floutés pour les non-autorisés */
+.word-card-num { grid-area: center; font-size: 26px; font-weight: 800; line-height: 1; opacity: .85; pointer-events: none; }
+.word-card-word--blur { filter: blur(4.5px); opacity: .5; user-select: none; }
+.raid-clue--blur { filter: blur(3.5px); opacity: .5; user-select: none; }
+
+/* Bandeau de l'équipage (combat) — qui a quel organe */
+.raid-rolestrip { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); padding: 12px 14px; }
+.raid-rolestrip-title { font-weight: 700; color: var(--ink); margin-bottom: 8px; font-size: 14px; }
+.raid-rolestrip-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.raid-rolechip { display: flex; align-items: center; gap: 8px; background: var(--bg-tint); border: 1px solid var(--line-2); border-radius: var(--r-sm); padding: 6px 10px; }
+.raid-rolechip--me { background: var(--teal-soft); border-color: var(--teal); }
+.raid-rolechip-emoji { font-size: 18px; line-height: 1; }
+.raid-rolechip-text { display: flex; flex-direction: column; line-height: 1.15; }
+.raid-rolechip-role { font-weight: 700; font-size: 13px; color: var(--ink); }
+.raid-rolechip-who { font-size: 11px; color: var(--ink-3); }
+
+/* Rôle affiché sous le pseudo dans le chat */
+.raid-chat-author { display: flex; flex-direction: column; line-height: 1.15; font-size: 11px; font-weight: 600; color: var(--ink-3); }
+.raid-chat-role { font-size: 10px; color: var(--teal-700); font-weight: 700; }
+
+/* Décompte de lancement automatique */
+.raid-countdown { margin-top: 16px; text-align: center; background: var(--teal-soft); border: 1.5px solid var(--teal); border-radius: var(--r); padding: 14px 16px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.raid-countdown-label { font-weight: 700; color: var(--teal-700); font-size: 14px; }
+.raid-countdown-num { font-family: var(--display); font-size: 60px; font-weight: 800; color: var(--teal-700); line-height: 1.05; }
+.raid-countdown-hint { font-size: 12px; color: var(--ink-3); }
+
+/* Chat agrandi en combat (le bloc d'indices à côté a disparu) */
+.raid-combat-side .raid-chat { height: auto; flex: 1; min-height: 460px; }
+
 @media (max-width: 920px) {
   .raid-waiting-grid, .raid-combat-grid { grid-template-columns: 1fr; }
+  .raid-combat-side .raid-chat { min-height: 380px; }
 }
