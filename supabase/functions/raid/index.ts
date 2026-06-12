@@ -325,9 +325,11 @@ serve(async (req) => {
     if (!me?.role || !canValidate(me.role)) return json({ error: 'forbidden' }, 403)
     if (session.sonar_used) return json({ error: 'sonar_spent' }, 409)
 
+    // Le plateau vient du client (Broadcast), pas de la base.
     const slot = String(body.slot ?? '')
-    const cell = (session.board ?? {})[slot]
-    if (!cell) return json({ error: 'empty' }, 400)
+    const board = (body.board ?? {}) as Record<string, { handle?: string; rotation?: number }>
+    const cell = board[slot]
+    if (!cell || !cell.handle) return json({ error: 'empty' }, 400)
     const { data: secrets } = await supabase.from('orienta_raid_session_secrets').select('card_map, grid_ids').eq('session_id', sessionId).single()
     const cardId = (secrets?.card_map ?? {})[cell.handle]
     const gridId = (secrets?.grid_ids ?? [])[session.assault_index]
