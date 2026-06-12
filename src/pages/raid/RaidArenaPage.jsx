@@ -12,8 +12,8 @@ import RaidBoard from '../../components/raid/RaidBoard'
 import HallOfFame from '../../components/raid/HallOfFame'
 import RaidIntroBanner from '../../components/raid/RaidIntroBanner'
 
-// Scène 3D lazy-loadée (n'alourdit pas le bundle hors /raid).
-const RaidMonster3D = lazy(() => import('../../components/raid/RaidMonster3D'))
+// Scène 2D (SVG) lazy-loadée (n'alourdit pas le bundle hors /raid).
+const RaidMonster2D = lazy(() => import('../../components/raid/RaidMonster2D'))
 const hueOf = (s) => { let h = 0; for (let i = 0; i < (s || '').length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return h }
 
 const SLOT_LABELS = { 0: 'Haut', 1: 'Droite', 2: 'Bas', 3: 'Gauche' }
@@ -87,7 +87,7 @@ export default function RaidArenaPage() {
     return () => clearTimeout(t)
   }, [session?.status, role])
 
-  // Signaux pour animer la méduse 3D : perte de PV (recul + flash) / essai raté ou bouée perdue (lunge).
+  // Signaux pour animer le boss 2D : perte de PV (recul + flash) / essai raté ou bouée perdue (lunge).
   const [hitSignal, setHitSignal] = useState(0)
   const [attackSignal, setAttackSignal] = useState(0)
   const prevHpRef = useRef(null)
@@ -244,10 +244,10 @@ export default function RaidArenaPage() {
     <>
       <Header />
       <main className="raid-page raid-page--combat">
-        {/* Bloc 3D plein écran : la méduse tente d'attraper l'équipage */}
+        {/* Scène 2D plein écran : le boss tente d'attraper l'équipage */}
         <div className="raid-monster">
           <Suspense fallback={<div className="raid-monster-loading">Invocation de {displayBoss.name}…</div>}>
-            <RaidMonster3D crew={crew} hp={session.current_hp} maxHp={session.max_hp} hitSignal={hitSignal} attackSignal={attackSignal} />
+            <RaidMonster2D boss={displayBoss.key} crew={crew} hp={session.current_hp} maxHp={session.max_hp} hitSignal={hitSignal} attackSignal={attackSignal} />
           </Suspense>
           <div className="raid-monster-overlay">
             <div className="raid-monster-topline">

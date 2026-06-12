@@ -5459,6 +5459,42 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 /* ── Bloc 3D du monstre (plein largeur) ── */
 .raid-monster { position: relative; width: 100%; height: 420px; border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow); margin-bottom: 16px; background: #2f9ec0; }
 .raid-monster canvas { display: block; }
+
+/* ════════════ RAID — scène 2D (SVG vectoriel animé) ════════════ */
+.r2d { position: absolute; inset: 0; width: 100%; height: 100%; }
+.r2d-svg { display: block; width: 100%; height: 100%; }
+
+/* Idle permanent — chaque élément pivote autour de sa propre boîte (fill-box). */
+.r2d-rays { transform-box: fill-box; transform-origin: 50% 0%; animation: r2dRays 9s ease-in-out infinite; }
+.r2d-caustic { animation: r2dCaustic 6s ease-in-out infinite; }
+.r2d-blade { transform-box: fill-box; transform-origin: 50% 100%; animation: r2dSway 4s ease-in-out infinite; }
+.r2d-tentacle, .r2d-arm { transform-box: fill-box; transform-origin: 50% 0%; animation: r2dSway 5s ease-in-out infinite; }
+.r2d-claw { transform-box: fill-box; transform-origin: 50% 100%; animation: r2dClaw 2.6s ease-in-out infinite; }
+.r2d-eyestalk { transform-box: fill-box; transform-origin: 50% 100%; animation: r2dSway 3.4s ease-in-out infinite; }
+.r2d-tail { transform-box: fill-box; transform-origin: 100% 50%; animation: r2dTail 2.2s ease-in-out infinite; }
+.r2d-serpent { transform-box: fill-box; transform-origin: 50% 50%; animation: r2dSerpent 6s ease-in-out infinite; }
+.r2d-boss-breathe { transform-box: fill-box; transform-origin: 50% 80%; animation: r2dBreathe 4.5s ease-in-out infinite; }
+.r2d-fish { animation: r2dSwim 6s linear infinite; }
+.r2d-bubble { animation: r2dBubble 8s linear infinite; }
+.r2d-glowdot { animation: r2dGlow 2.4s ease-in-out infinite; }
+.r2d-matelot { transform-box: fill-box; transform-origin: 50% 100%; animation: r2dBob 3.6s ease-in-out infinite; }
+
+@keyframes r2dRays { 0%, 100% { transform: rotate(-2deg); opacity: 1; } 50% { transform: rotate(2deg); opacity: .82; } }
+@keyframes r2dCaustic { 0%, 100% { opacity: .04; transform: translateX(-12px); } 50% { opacity: .1; transform: translateX(12px); } }
+@keyframes r2dSway { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+@keyframes r2dClaw { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(6deg); } }
+@keyframes r2dTail { 0%, 100% { transform: rotate(-9deg); } 50% { transform: rotate(9deg); } }
+@keyframes r2dSerpent { 0%, 100% { transform: translateY(-6px) rotate(-1.4deg); } 50% { transform: translateY(6px) rotate(1.4deg); } }
+@keyframes r2dBreathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.03, 0.965); } }
+@keyframes r2dSwim { 0% { transform: translateX(-140px); } 100% { transform: translateX(1140px); } }
+@keyframes r2dBubble { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: .8; } 100% { transform: translateY(-560px); opacity: 0; } }
+@keyframes r2dGlow { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+@keyframes r2dBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+/* Boss en péril (PV bas) : respiration plus nerveuse. */
+.r2d[data-low="true"] .r2d-boss-breathe { animation-duration: 2.6s; }
+
+@media (prefers-reduced-motion: reduce) { .r2d * { animation: none !important; } }
 .raid-monster-loading { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(255,255,255,.92); font-size: 14px; }
 .raid-monster-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 18px 16px; background: linear-gradient(to top, rgba(8,16,30,.92), rgba(8,16,30,0)); pointer-events: none; }
 .raid-monster-topline { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }

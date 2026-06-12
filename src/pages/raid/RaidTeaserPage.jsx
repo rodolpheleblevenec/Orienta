@@ -4,8 +4,8 @@ import Header from '../../components/ui/Header'
 import { useCountdown } from '../../lib/useCountdown'
 import { RAID_LAUNCH_AT } from '../../lib/raid'
 
-// Scène 3D lazy-loadée (Three.js hors du bundle principal, comme l'arène).
-const RaidMonster3D = lazy(() => import('../../components/raid/RaidMonster3D'))
+// Scène 2D (SVG) lazy-loadée, comme l'arène.
+const RaidMonster2D = lazy(() => import('../../components/raid/RaidMonster2D'))
 
 const pad = (n) => String(n).padStart(2, '0')
 
@@ -17,7 +17,7 @@ const PILLARS = [
   { emoji: '⏱️', title: 'Temps réel', text: 'Tout se joue en direct, ensemble, contre la montre.' },
 ]
 
-// Page de pré-annonce du mode RAID — NON jouable. Affiche la scène 3D en
+// Page de pré-annonce du mode RAID — NON jouable. Affiche la scène 2D en
 // silhouette, le compte à rebours, et les grandes lignes du mode.
 export default function RaidTeaserPage() {
   const { days, hours, minutes, seconds, done } = useCountdown(RAID_LAUNCH_AT)
@@ -37,7 +37,7 @@ export default function RaidTeaserPage() {
         <section className="raid-teaser-hero">
           <div className="raid-teaser-hero-3d">
             <Suspense fallback={<div className="raid-teaser-hero-loading">Les abysses s’éveillent…</div>}>
-              <RaidMonster3D teaser crew={[]} />
+              <RaidMonster2D teaser crew={[]} boss="meduse" />
             </Suspense>
           </div>
           <span className="raid-teaser-hero-veil" aria-hidden="true" />
