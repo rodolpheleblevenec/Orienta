@@ -193,7 +193,7 @@ export default function RaidArenaPage() {
         <main className="raid-page raid-page--waiting">
           <RaidIntroBanner />
           <div className="raid-lobby">
-            <RosterBoard boss={boss} roster={roster} me={me} actions={actions} busy={busy} />
+            <RosterBoard boss={boss} roster={roster} me={me} actions={actions} busy={busy} minPlayers={difficultyForLevel(session.boss_level ?? currentRaidLevel()).min_players} />
             <RaidChat chat={chat} onSend={actions.sendChat} me={me} />
           </div>
           {/* Le record de la semaine à battre — visible pendant qu'on s'organise. */}

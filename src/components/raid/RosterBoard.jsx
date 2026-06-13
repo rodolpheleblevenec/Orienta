@@ -14,7 +14,7 @@ function Avatar({ pseudo, me }) {
 
 // Salle d'attente : enrôlement de l'équipage (organes du palier = effectif).
 // Quand tout le monde est prêt, un décompte lance automatiquement.
-export default function RosterBoard({ boss, roster, me, actions, busy }) {
+export default function RosterBoard({ boss, roster, me, actions, busy, minPlayers = MIN_PLAYERS }) {
   const count = roster.length
   const organs = getOrgansForTier(count)
   const byRole = {}
@@ -24,7 +24,10 @@ export default function RosterBoard({ boss, roster, me, actions, busy }) {
   const readyCount = roster.filter(p => p.is_ready).length
   const allClaimed = organs.every(r => byRole[r])
   const allReady = count > 0 && roster.every(p => p.is_ready)
-  const enoughPlayers = count >= MIN_PLAYERS
+  const enoughPlayers = count >= minPlayers
+  // Le compteur de prêts est toujours « sur minPlayers » au minimum (il faut ce minimum
+  // pour lancer) — sinon « 1/1 » laisse croire que tout est prêt avec un seul joueur.
+  const target = Math.max(count, minPlayers)
   const canLaunch = enoughPlayers && allClaimed && allReady
 
   // Décompte automatique : démarre quand tout le monde est prêt, s'annule sinon.
@@ -47,7 +50,7 @@ export default function RosterBoard({ boss, roster, me, actions, busy }) {
   }, [canLaunch]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const status = !enoughPlayers
-    ? `En attente de ${MIN_PLAYERS - count} joueur·s de plus…`
+    ? `En attente de ${minPlayers - count} joueur·s de plus…`
     : !myRole ? 'Choisis ton organe pour pouvoir te déclarer prêt'
       : !allClaimed ? 'Il reste des organes à couvrir'
         : !allReady ? `En attente : ${count - readyCount} joueur·s pas encore prêt·s`
@@ -63,9 +66,12 @@ export default function RosterBoard({ boss, roster, me, actions, busy }) {
         </div>
         <div className="raid-lobby-meta">
           <span className="raid-lobby-players">👥 {count}</span>
-          <span className="raid-lobby-readytxt">{readyCount}/{count} prêts</span>
+          <span className="raid-lobby-readytxt">{readyCount}/{target} prêts</span>
           <span className="raid-lobby-dots">
-            {roster.map((p, i) => <i key={i} className={`raid-dot${p.is_ready ? ' raid-dot--on' : ''}`} />)}
+            {Array.from({ length: target }, (_, i) => {
+              const p = roster[i]
+              return <i key={i} className={`raid-dot${p ? (p.is_ready ? ' raid-dot--on' : '') : ' raid-dot--empty'}`} />
+            })}
           </span>
         </div>
       </div>

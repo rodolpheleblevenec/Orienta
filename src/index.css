@@ -5342,7 +5342,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 @media (max-width: 560px) { .raid-res-stat { flex-basis: 130px; } .raid-res-actions { flex-direction: column; } .raid-res-actions .btn-primary, .raid-res-actions .btn-secondary { width: 100%; } }
 
 /* ── Hall of Fame — variante compacte (sas de préparation) ── */
-.raid-hof--compact { margin: 16px auto 0; max-width: 760px; }
+/* Sas d'attente : « Le record à battre » s'aligne sur la pleine largeur du bloc .raid-lobby juste au-dessus. */
+.raid-hof--compact { margin: 16px auto 0; max-width: none; }
 .raid-hof--compact .raid-hof-emoji { font-size: 30px; }
 .raid-hof--compact .raid-hof-title { font-size: 15px; }
 .raid-hof-list--compact { gap: 6px; }
@@ -5620,6 +5621,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-lobby-dots { display: flex; gap: 5px; margin-top: 2px; }
 .raid-dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.28); }
 .raid-dot--on { background: #4fd6a0; box-shadow: 0 0 8px rgba(79,214,160,.6); }
+.raid-dot--empty { background: transparent; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.4); }
 
 .raid-orgcard-grid { padding: 18px 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; flex: 1; align-content: start; }
 .raid-orgcard { text-align: left; border-radius: var(--r-sm); padding: 14px; cursor: pointer; display: flex; flex-direction: column; gap: 7px;
