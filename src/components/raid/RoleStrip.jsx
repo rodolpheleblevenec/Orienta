@@ -1,4 +1,5 @@
 import { ORGANS } from '../../lib/raid'
+import { fxForRole } from '../../lib/raidRoleFx'
 
 // Traductions joueur des capacités (codes internes → libellés lisibles).
 const SEES_LABEL = {
@@ -34,8 +35,10 @@ export default function RoleStrip({ roster, meId, vertical = false }) {
           const mine = p.user_id === meId
           const sees = o?.sees?.length ? fmtList(o.sees, SEES_LABEL) : null
           const does = o?.does?.length ? fmtList(o.does, DOES_LABEL) : null
+          // Accent couleur de la carte = teinte de l'effet d'attaque du rôle (cohérence scène).
+          const rhue = fxForRole(p.role).hue
           return (
-            <div key={p.user_id} className={`raid-rolechip${mine ? ' raid-rolechip--me' : ''}`} tabIndex={0}>
+            <div key={p.user_id} className={`raid-rolechip${mine ? ' raid-rolechip--me' : ''}`} tabIndex={0} style={{ '--rhue': rhue }}>
               <span className="raid-rolechip-emoji">{o?.emoji}</span>
               <span className="raid-rolechip-text">
                 <span className="raid-rolechip-role">{o?.label}{mine ? ' (toi)' : ''}</span>

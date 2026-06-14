@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../../components/ui/Header'
 import { useAuthStore } from '../../stores/authStore'
@@ -12,8 +12,8 @@ import RaidBoard from '../../components/raid/RaidBoard'
 import HallOfFame from '../../components/raid/HallOfFame'
 import RaidIntroBanner from '../../components/raid/RaidIntroBanner'
 
-// Scène 2D (SVG) lazy-loadée (n'alourdit pas le bundle hors /raid).
-const RaidMonster2D = lazy(() => import('../../components/raid/RaidMonster2D'))
+// Boss RAID : 3D (modèle .glb) si dispo, sinon scène 2D vectorielle (aiguilleur).
+import RaidMonster from '../../components/raid/RaidMonster'
 const hueOf = (s) => { let h = 0; for (let i = 0; i < (s || '').length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return h }
 
 const SLOT_LABELS = { 0: 'Haut', 1: 'Droite', 2: 'Bas', 3: 'Gauche' }
@@ -77,9 +77,9 @@ export default function RaidArenaPage() {
   // Le sonar se recharge à chaque assaut → on efface le résultat affiché.
   useEffect(() => { setSonarResult(null) }, [session?.assault_index, session?.status])
 
-  // Spectateur : un combat est déjà en cours et je n'en fais pas partie (arènes
-  // sérialisées). Délai de ~2,5 s pour ne pas afficher cet écran à un participant
-  // dont la vue n'est pas encore chargée.
+  // Combat lancé sans moi : il est déjà en cours et je n'en fais pas partie (sessions
+  // parallèles → je pourrai ouvrir une nouvelle arène). Délai de ~2,5 s pour ne pas
+  // afficher cet écran à un participant dont la vue n'est pas encore chargée.
   const [spectator, setSpectator] = useState(false)
   useEffect(() => {
     if (session?.status !== 'active' || role) { setSpectator(false); return }
@@ -96,7 +96,8 @@ export default function RaidArenaPage() {
     return () => clearTimeout(t)
   }, [session?.status, session?.id, navigate])
 
-  // Signaux pour animer le boss 2D : perte de PV (recul + flash) / essai raté ou bouée perdue (lunge).
+  // Signaux pour animer la scène : perte de PV → assaut réussi (cascade d'effets + flash clair),
+  // essai raté ou bouée perdue → contre-attaque du boss (flash rouge + secousse).
   const [hitSignal, setHitSignal] = useState(0)
   const [attackSignal, setAttackSignal] = useState(0)
   const prevHpRef = useRef(null)
@@ -114,7 +115,7 @@ export default function RaidArenaPage() {
     if (l != null) prevLivesRef.current = l
   }, [session?.attempts_remaining, session?.lives])
   // À chaque issue de validation (réussite ou échec), tous les écrans remontent en haut
-  // pour voir l'animation de combat de la méduse.
+  // pour voir l'animation de combat du boss.
   useEffect(() => {
     if (hitSignal > 0 || attackSignal > 0) window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [hitSignal, attackSignal])
@@ -203,7 +204,7 @@ export default function RaidArenaPage() {
     )
   }
 
-  // ── Spectateur : un équipage affronte déjà le boss (arène sérialisée) ──
+  // ── Combat déjà lancé sans moi : je peux ouvrir une arène EN PARALLÈLE. ──
   if (!role && spectator) {
     return (
       <>
@@ -211,9 +212,9 @@ export default function RaidArenaPage() {
         <main className="raid-page">
           <div className="raid-empty">
             <div className="raid-empty-emoji">{boss.emoji}</div>
-            <h1 className="raid-h1">Un équipage affronte {boss.name}</h1>
-            <p className="raid-sub">Une seule arène à la fois. Reviens dans quelques minutes pour la prochaine — ou recharge pour la rejoindre dès qu’elle s’ouvre.</p>
-            <button className="btn-primary" onClick={() => window.location.reload()}>Rejoindre la prochaine arène</button>
+            <h1 className="raid-h1">Ce combat a démarré sans toi</h1>
+            <p className="raid-sub">L’équipage est déjà aux prises avec {boss.name}. Tu peux lancer une <b>nouvelle arène en parallèle</b> avec d’autres joueurs connectés.</p>
+            <button className="btn-primary" onClick={() => window.location.reload()}>Ouvrir une nouvelle arène</button>
           </div>
         </main>
       </>
@@ -254,10 +255,10 @@ export default function RaidArenaPage() {
     <>
       <Header />
       <main className="raid-page raid-page--combat">
-        {/* Scène 2D plein écran : le boss tente d'attraper l'équipage */}
+        {/* Scène de combat 2.5D : boss (3D/2D) sur décor illustré + effets d'équipage */}
         <div className="raid-monster">
           <Suspense fallback={<div className="raid-monster-loading">Invocation de {displayBoss.name}…</div>}>
-            <RaidMonster2D boss={displayBoss.key} crew={crew} hp={session.current_hp} maxHp={session.max_hp} hitSignal={hitSignal} attackSignal={attackSignal} />
+            <RaidMonster boss={displayBoss.key} crew={crew} hp={session.current_hp} maxHp={session.max_hp} hitSignal={hitSignal} attackSignal={attackSignal} />
           </Suspense>
           {/* Équipage en colonne verticale, superposé à droite (gagne de la hauteur). */}
           <div className="raid-crew-overlay"><RoleStrip roster={roster} meId={user?.id} vertical /></div>
@@ -265,7 +266,7 @@ export default function RaidArenaPage() {
             <div className="raid-monster-topline">
               <div className="raid-monster-name">
                 <span className="raid-monster-emoji">{displayBoss.emoji}</span> {displayBoss.name}
-                {isAdmin && (
+                {isAdmin && BOSSES.length > 1 && (
                   <span className="raid-boss-nav">
                     <button type="button" className="raid-boss-navbtn" onClick={() => cycleBoss(-1)} aria-label="Boss précédent">‹</button>
                     <span className="raid-boss-navidx">{bossIdx + 1}/{BOSSES.length}</span>

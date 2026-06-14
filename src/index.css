@@ -5438,7 +5438,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-rolestrip--vertical { background: rgba(8,16,30,.60); backdrop-filter: blur(5px); border-color: rgba(255,255,255,.16); box-shadow: 0 6px 18px rgba(0,0,0,.28); padding: 9px 10px; min-width: 148px; }
 .raid-rolestrip--vertical .raid-rolestrip-title { color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; opacity: .82; margin-bottom: 7px; }
 .raid-rolestrip--vertical .raid-rolestrip-list { flex-direction: column; flex-wrap: nowrap; gap: 6px; }
-.raid-rolestrip--vertical .raid-rolechip { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.16); padding: 5px 9px; }
+.raid-rolestrip--vertical .raid-rolechip { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.16); padding: 5px 9px;
+  border-left: 3px solid hsl(var(--rhue, 205) 72% 56%); box-shadow: 0 1px 6px rgba(0,0,0,.22); }
+.raid-rolestrip--vertical .raid-rolechip .raid-rolechip-emoji { filter: drop-shadow(0 0 5px hsl(var(--rhue, 205) 85% 60% / .55)); }
 .raid-rolestrip--vertical .raid-rolechip--me { background: rgba(79,214,160,.26); border-color: var(--teal); }
 .raid-rolestrip--vertical .raid-rolechip-role { color: #fff; font-size: 12.5px; }
 .raid-rolestrip--vertical .raid-rolechip-who { color: rgba(255,255,255,.72); }
@@ -5517,9 +5519,142 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .rchat-send { width: 42px; height: 42px; border: none; background: var(--teal); color: #fff; border-radius: 50%; font-size: 14px; cursor: pointer; flex-shrink: 0; }
 .rchat-send:disabled { opacity: .4; cursor: default; }
 
-/* ── Bloc 3D du monstre (plein largeur) ── */
-.raid-monster { position: relative; width: 100%; height: 420px; border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow); margin-bottom: 16px; background: #2f9ec0; }
+/* ── Scène de combat 2.5D du boss (pleine largeur) ── */
+.raid-monster { position: relative; width: 100%; height: 420px; border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow); margin-bottom: 16px; background: #0a0a0f; }
 .raid-monster canvas { display: block; }
+
+/* Compositeur 2.5D : backdrop illustré → boss (3D/2D) → grade → effets → flash,
+   le tout dans un wrapper qui reçoit le screen-shake (transform CSS, hors WebGL). */
+.raid-stage-shake { position: absolute; inset: -12px; z-index: 0; }
+.raid-backdrop { position: absolute; inset: 0; z-index: 0;
+  background:
+    radial-gradient(120% 85% at 50% 12%, rgba(86,180,205,.45), rgba(10,28,46,0) 55%),
+    radial-gradient(90% 80% at 50% 100%, rgba(6,26,40,.85), rgba(3,12,22,0) 70%),
+    linear-gradient(180deg, #0c2536 0%, #08182b 48%, #03080f 100%); }
+.raid-backdrop-photo { position: absolute; inset: 0; z-index: 0; background-size: cover; background-position: center; background-repeat: no-repeat; }
+.raid-scene { position: absolute; inset: 0; z-index: 1; }
+.raid-scene canvas { width: 100%; height: 100%; }
+/* Boss en clip vidéo (universel, hors WebGL) — remplit la scène comme le canvas. */
+.raid-bossvid { position: absolute; inset: 0; }
+.raid-bossvid-layer { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.raid-bossvid-atk { z-index: 1; transition: opacity .12s ease; }
+.raid-bossvid[data-teaser="true"] .raid-bossvid-layer { filter: brightness(.5) saturate(.8); }
+/* Boss de remplacement (aucun média fourni) : présence lumineuse + emoji flottant. */
+.raid-bossvid-fallback { position: absolute; inset: 0; display: grid; place-items: center; }
+.raid-bossvid-aura { position: absolute; width: 44%; aspect-ratio: 1 / 1; border-radius: 50%;
+  background: radial-gradient(circle, rgba(86,196,224,.5), rgba(40,120,150,.14) 45%, transparent 70%);
+  filter: blur(8px); animation: raidBossFloat 6s ease-in-out infinite; }
+.raid-bossvid-emoji { position: relative; line-height: 1; font-size: clamp(80px, 22vh, 168px);
+  filter: drop-shadow(0 8px 22px rgba(0,0,0,.5)) drop-shadow(0 0 26px rgba(120,210,255,.5));
+  animation: raidBossFloat 5.5s ease-in-out infinite; }
+.raid-bossvid[data-teaser="true"] .raid-bossvid-emoji { filter: brightness(.32) drop-shadow(0 0 18px rgba(80,160,200,.4)); }
+@keyframes raidBossFloat { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-3%) scale(1.02); } }
+@media (prefers-reduced-motion: reduce) { .raid-bossvid-aura, .raid-bossvid-emoji { animation: none; } }
+
+/* Baleine (boss) dessinée en code, qui émerge du lac. */
+.raid-whale { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.raid-whale-idle { transform-box: fill-box; transform-origin: 50% 100%; animation: raidWhaleBob 5s ease-in-out infinite; }
+@keyframes raidWhaleBob { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-9px) rotate(.5deg); } }
+.raid-whale-spout { transform-box: fill-box; transform-origin: 50% 100%; opacity: 0; animation: raidWhaleSpout 6.5s ease-in-out infinite; }
+@keyframes raidWhaleSpout { 0%, 55%, 100% { opacity: 0; transform: scaleY(.3); } 62% { opacity: .9; transform: scaleY(1); } 86% { opacity: .45; transform: scaleY(1.06); } }
+.raid-whale-ripple { transform-box: fill-box; transform-origin: center; opacity: 0; animation: raidWhaleRipple 4.4s ease-out infinite; }
+@keyframes raidWhaleRipple { 0% { transform: scale(.55); opacity: .5; } 100% { transform: scale(1.35); opacity: 0; } }
+.raid-whale[data-low="true"] { filter: saturate(1.15) drop-shadow(0 0 16px rgba(255,70,45,.55)); }
+.raid-whale[data-low="true"] .raid-whale-idle { animation-duration: 2.6s; }
+@media (prefers-reduced-motion: reduce) { .raid-whale-idle, .raid-whale-ripple { animation: none; } .raid-whale-spout { opacity: .55; animation: none; } }
+.raid-grade { position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background:
+    radial-gradient(84% 80% at 52% 44%, rgba(0,0,0,0) 60%, rgba(60,30,20,.34) 100%),
+    linear-gradient(180deg, rgba(70,42,30,.12), rgba(70,42,30,0) 22%, rgba(45,28,22,.16) 100%); }
+.raid-fx-layer { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.raid-fx-svg { display: block; width: 100%; height: 100%; }
+.raid-emitter-halo { animation: raidEmitterPulse 3.2s ease-in-out infinite; }
+@keyframes raidEmitterPulse { 0%, 100% { opacity: .16; } 50% { opacity: .32; } }
+.raid-figure { transform-box: fill-box; transform-origin: 50% 100%; animation: raidFigureBob 3.4s ease-in-out infinite; }
+@keyframes raidFigureBob { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-2.5px) rotate(.8deg); } }
+@media (prefers-reduced-motion: reduce) { .raid-emitter-halo, .raid-figure { animation: none; } }
+
+/* ════════════ RAID — décor « golden hour » (lac + montagnes, dessiné en code) ════════════ */
+.rbk { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+.rbk[data-teaser="true"] { filter: brightness(.45) saturate(.85); }
+/* Ciel → lac → plage en un dégradé (bandes nettes à l'horizon 50% et au rivage 80%). */
+.rbk-base { position: absolute; inset: 0; background: linear-gradient(to bottom,
+  #2f3b6b 0%, #5a4a86 20%, #9c5688 34%, #e1864f 44%, #ffce86 50%,
+  #f3b681 50%, #d59670 60%, #6f7396 79%, #6f7396 80%,
+  #ecca9c 80%, #d2a878 100%); }
+/* Soleil bas + halo chaud, derrière les montagnes. */
+.rbk-sun { position: absolute; left: 56%; top: 41%; width: 52%; height: 48%; transform: translate(-50%, -50%); pointer-events: none;
+  background: radial-gradient(circle at center, rgba(255,248,218,.95) 0%, rgba(255,198,112,.7) 20%, rgba(255,150,80,.24) 44%, transparent 66%); }
+.rbk-rays { position: absolute; left: 56%; top: 41%; width: 106%; height: 106%; transform: translate(-50%, -50%); pointer-events: none; mix-blend-mode: screen;
+  background: repeating-conic-gradient(from 0deg at 50% 50%, rgba(255,228,168,.06) 0deg 2.4deg, transparent 2.4deg 12deg);
+  -webkit-mask: radial-gradient(circle at 50% 50%, rgba(0,0,0,.9) 0%, transparent 47%);
+  mask: radial-gradient(circle at 50% 50%, rgba(0,0,0,.9) 0%, transparent 47%); }
+/* Montagnes étagées (étirées horizontalement, base posée sur l'horizon). */
+.rbk-mtn { position: absolute; left: 0; width: 100%; }
+.rbk-mtn--far { top: 16%; height: 34%; }
+.rbk-mtn--near { top: 22%; height: 28%; }
+.rbk-mtn svg, .rbk-mtn { display: block; }
+.rbk-mtn--far { animation: rbkDriftFar 90s ease-in-out infinite alternate; }
+.rbk-mtn--near { animation: rbkDriftNear 72s ease-in-out infinite alternate; }
+@keyframes rbkDriftFar { to { transform: translateX(-1.6%); } }
+@keyframes rbkDriftNear { to { transform: translateX(1.6%); } }
+/* Brume chaude sur l'horizon (fond les montagnes dans le lac). */
+.rbk-haze { position: absolute; left: 0; right: 0; top: 42%; height: 16%; pointer-events: none;
+  background: linear-gradient(to bottom, transparent, rgba(255,212,152,.55) 55%, rgba(255,212,152,0)); }
+/* Reflet doré du soleil + miroitement du lac. */
+.rbk-streak { position: absolute; top: 50%; bottom: 20%; left: 56%; width: 13%; transform: translateX(-50%); pointer-events: none;
+  filter: blur(3px); mix-blend-mode: screen;
+  background: linear-gradient(to bottom, rgba(255,230,164,.8), rgba(255,212,142,.16) 68%, transparent); }
+.rbk-shimmer { position: absolute; left: 0; right: 0; top: 50%; height: 30%; pointer-events: none; opacity: .6;
+  background: repeating-linear-gradient(to bottom, rgba(255,255,255,.06) 0 2px, transparent 2px 9px);
+  -webkit-mask: linear-gradient(to bottom, transparent, #000 40%, #000);
+  mask: linear-gradient(to bottom, transparent, #000 40%, #000);
+  animation: rbkShimmer 6s linear infinite; }
+@keyframes rbkShimmer { to { background-position: 0 9px; } }
+/* Nuages chauds qui dérivent. */
+.rbk-clouds { position: absolute; inset: 0; pointer-events: none; }
+.rbk-cloud { position: absolute; border-radius: 50%; filter: blur(5px);
+  background: radial-gradient(circle, rgba(255,226,198,.7), rgba(255,210,180,0) 70%); }
+.rbk-cloud--1 { left: -12%; top: 14%; width: 30%; height: 9%; animation: rbkCloud 84s linear infinite; }
+.rbk-cloud--2 { left: -22%; top: 24%; width: 22%; height: 7%; animation: rbkCloud 112s linear infinite; animation-delay: -34s; }
+.rbk-cloud--3 { left: -16%; top: 8%; width: 26%; height: 8%; animation: rbkCloud 98s linear infinite; animation-delay: -64s; }
+@keyframes rbkCloud { from { transform: translateX(0); } to { transform: translateX(520%); } }
+/* Oiseaux lointains. */
+.rbk-birds { position: absolute; inset: 0; pointer-events: none; }
+.rbk-bird { transform-box: fill-box; animation: rbkBird 20s linear infinite; }
+@keyframes rbkBird { 0% { transform: translateX(0); opacity: 0; } 12% { opacity: .5; } 88% { opacity: .5; } 100% { transform: translateX(90px); opacity: 0; } }
+/* Grains de lumière dans l'air chaud. */
+.rbk-motes { position: absolute; inset: 0; pointer-events: none; opacity: .6;
+  background-image:
+    radial-gradient(2px 2px at 20% 38%, rgba(255,240,200,.6), transparent),
+    radial-gradient(2px 2px at 70% 30%, rgba(255,240,200,.5), transparent),
+    radial-gradient(1.5px 1.5px at 45% 54%, rgba(255,240,200,.5), transparent),
+    radial-gradient(2px 2px at 85% 48%, rgba(255,240,200,.45), transparent),
+    radial-gradient(1.5px 1.5px at 32% 62%, rgba(255,240,200,.4), transparent);
+  animation: rbkMotes 15s ease-in-out infinite alternate; }
+@keyframes rbkMotes { to { transform: translateY(-9px); opacity: .85; } }
+@media (prefers-reduced-motion: reduce) { .rbk * , .rbk-mtn { animation: none !important; } }
+.raid-flash { position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0; }
+.raid-flash--hit { background: radial-gradient(62% 55% at 50% 42%, rgba(190,240,255,.9), rgba(190,240,255,0) 70%); mix-blend-mode: screen; }
+.raid-flash--atk { background: radial-gradient(72% 62% at 50% 46%, rgba(255,70,60,.8), rgba(255,70,60,0) 72%); }
+.raid-flash--on { animation: raidFlash 380ms ease-out; }
+
+.raid-shake--hit { animation: raidShake 420ms cubic-bezier(.36,.07,.19,.97); }
+.raid-shake--atk { animation: raidShakeBig 520ms cubic-bezier(.36,.07,.19,.97); }
+@keyframes raidShake {
+  10% { transform: translate(-4px, 2px); } 25% { transform: translate(5px, -3px); }
+  40% { transform: translate(-6px, 2px); } 55% { transform: translate(5px, 1px); }
+  70% { transform: translate(-3px, -2px); } 85% { transform: translate(2px, 1px); }
+  100% { transform: translate(0, 0); } }
+@keyframes raidShakeBig {
+  10% { transform: translate(-9px, 4px) rotate(-.3deg); } 25% { transform: translate(10px, -5px) rotate(.3deg); }
+  40% { transform: translate(-11px, 3px); } 55% { transform: translate(8px, 3px); }
+  70% { transform: translate(-5px, -3px); } 85% { transform: translate(3px, 2px); }
+  100% { transform: translate(0, 0); } }
+@keyframes raidFlash { 0% { opacity: 0; } 14% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .raid-shake--hit, .raid-shake--atk, .raid-flash--on { animation: none !important; }
+}
 
 /* ════════════ RAID — scène 2D (SVG vectoriel animé) ════════════ */
 .r2d { position: absolute; inset: 0; width: 100%; height: 100%; }

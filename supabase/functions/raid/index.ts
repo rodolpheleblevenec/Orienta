@@ -229,18 +229,35 @@ serve(async (req) => {
   const playerId = body.player_id ? String(body.player_id) : ''
   const sessionId = body.session_id ? String(body.session_id) : ''
 
-  // ── find : arène ouverte du moment + état fenêtre. Nettoie d'abord. ──
+  // ── find : où dois-je atterrir ? Nettoie d'abord. ──
+  // Modèle parallèle : combats actifs multiples, UN SEUL lobby d'attente.
+  //   1) si je suis déjà dans un combat EN COURS → j'y retourne (rejoin) ;
+  //   2) sinon → le LOBBY public en attente (un seul) ;
+  //   3) sinon (avant lancement / testeur) → le lobby de TEST en attente ;
+  //   4) sinon null (le client en ouvrira un via ensure-public / open-test).
   if (action === 'find') {
     const nowMs = Date.now()
     await lazyCleanup(supabase, nowMs)
     const launched = isLaunchedServer(nowMs)
     const windowOpen = isWithinWindowParis(nowMs)
-    // Arène PUBLIQUE ouverte = toujours prioritaire (modèle sérialisé : une seule).
+
+    // 1) Déjà participant d'un combat actif (public OU test) → rejoindre ce combat.
+    if (playerId) {
+      const { data: parts } = await supabase.from('orienta_raid_participants').select('session_id').eq('user_id', playerId)
+      const ids = (parts ?? []).map((p: { session_id: string }) => p.session_id)
+      if (ids.length) {
+        const { data: act } = await supabase.from('orienta_raid_sessions')
+          .select('*').in('id', ids).eq('status', 'active').order('started_at', { ascending: false }).limit(1).maybeSingle()
+        if (act) return json({ session: publicSession(act), window: { open: windowOpen, launched } })
+      }
+    }
+
+    // 2) Lobby PUBLIC en attente (un seul à la fois) → on s'y rassemble.
     const { data: pub } = await supabase.from('orienta_raid_sessions')
-      .select('*').eq('is_test', false).in('status', ['waiting', 'active']).order('created_at', { ascending: false }).limit(1).maybeSingle()
+      .select('*').eq('is_test', false).eq('status', 'waiting').order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (pub) return json({ session: publicSession(pub), window: { open: windowOpen, launched } })
-    // Pas d'arène publique : avant le lancement (ou pour admin/testeur), exposer
-    // l'arène de TEST si elle existe (flux de test admin inchangé).
+
+    // 3) Avant le lancement (ou pour admin/testeur) : lobby de TEST en attente.
     let allowTest = !launched
     if (!allowTest && playerId) {
       const { data: u } = await supabase.from('orienta_users').select('pseudo').eq('id', playerId).maybeSingle()
@@ -249,21 +266,23 @@ serve(async (req) => {
     }
     if (allowTest) {
       const { data: test } = await supabase.from('orienta_raid_sessions')
-        .select('*').eq('is_test', true).in('status', ['waiting', 'active']).order('created_at', { ascending: false }).limit(1).maybeSingle()
+        .select('*').eq('is_test', true).eq('status', 'waiting').order('created_at', { ascending: false }).limit(1).maybeSingle()
       if (test) return json({ session: publicSession(test), window: { open: windowOpen, launched } })
     }
     return json({ session: null, window: { open: windowOpen, launched } })
   }
 
-  // ── ensure-public : spawn À LA DEMANDE pendant un créneau (modèle sérialisé). ──
+  // ── ensure-public : ouvre/rejoint le LOBBY public à la demande (modèle parallèle). ──
+  // Les combats actifs ne bloquent plus : s'il n'y a pas de lobby en attente, on en
+  // crée un nouveau (→ une 2e session démarre en parallèle des combats en cours).
   if (action === 'ensure-public') {
     const nowMs = Date.now()
     await lazyCleanup(supabase, nowMs)
     if (!isLaunchedServer(nowMs)) return json({ session: null, window: { open: false, launched: false } })
     if (!isWithinWindowParis(nowMs)) return json({ session: null, window: { open: false, launched: true } })
-    // Déjà une arène publique ouverte → la rejoindre.
+    // Déjà un LOBBY public en attente → le rejoindre (une seule salle d'attente).
     const { data: existing } = await supabase.from('orienta_raid_sessions')
-      .select('*').eq('is_test', false).in('status', ['waiting', 'active']).order('created_at', { ascending: false }).limit(1).maybeSingle()
+      .select('*').eq('is_test', false).eq('status', 'waiting').order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (existing) return json({ session: publicSession(existing), window: { open: true, launched: true } })
     // Sinon : créer l'arène de la semaine.
     const level = currentRaidLevel(nowMs)
@@ -277,9 +296,9 @@ serve(async (req) => {
       window_opens_at: nowIso(), window_closes_at: new Date(nowMs + 2 * 3600_000).toISOString(),
     }).select('*').single()
     if (error || !session) {
-      // Course perdue sur l'index unique → rejoindre l'arène gagnante.
+      // Course perdue sur l'index unique (un seul lobby) → rejoindre le lobby gagnant.
       const { data: race } = await supabase.from('orienta_raid_sessions')
-        .select('*').eq('is_test', false).in('status', ['waiting', 'active']).order('created_at', { ascending: false }).limit(1).maybeSingle()
+        .select('*').eq('is_test', false).eq('status', 'waiting').order('created_at', { ascending: false }).limit(1).maybeSingle()
       if (race) return json({ session: publicSession(race), window: { open: true, launched: true } })
       return json({ error: 'could not open arena' }, 500)
     }
@@ -380,8 +399,10 @@ serve(async (req) => {
     }
     if (!allowed) return json({ error: 'unauthorized' }, 403)
 
+    // Réutiliser uniquement un LOBBY de test EN ATTENTE. Si la seule arène de test
+    // est déjà en combat, on en ouvre une nouvelle (test parallèle).
     const { data: existing } = await supabase.from('orienta_raid_sessions')
-      .select('id').eq('is_test', true).in('status', ['waiting', 'active'])
+      .select('id').eq('is_test', true).eq('status', 'waiting')
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (existing) return json({ session_id: existing.id, reused: true })
 

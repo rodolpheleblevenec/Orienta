@@ -1,11 +1,11 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import Header from '../../components/ui/Header'
 import { useCountdown } from '../../lib/useCountdown'
 import { RAID_LAUNCH_AT } from '../../lib/raid'
 
-// Scène 2D (SVG) lazy-loadée, comme l'arène.
-const RaidMonster2D = lazy(() => import('../../components/raid/RaidMonster2D'))
+// Boss RAID : 3D (modèle .glb) si dispo, sinon scène 2D vectorielle (aiguilleur).
+import RaidMonster from '../../components/raid/RaidMonster'
 
 const pad = (n) => String(n).padStart(2, '0')
 
@@ -37,7 +37,7 @@ export default function RaidTeaserPage() {
         <section className="raid-teaser-hero">
           <div className="raid-teaser-hero-3d">
             <Suspense fallback={<div className="raid-teaser-hero-loading">Les abysses s’éveillent…</div>}>
-              <RaidMonster2D teaser crew={[]} boss="meduse" />
+              <RaidMonster teaser crew={[]} boss="crabe" />
             </Suspense>
           </div>
           <span className="raid-teaser-hero-veil" aria-hidden="true" />

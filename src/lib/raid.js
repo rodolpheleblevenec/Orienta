@@ -119,12 +119,11 @@ export const canValidate    = (role) => role === 'capitaine'
 // ── Bosses (roster + progression communautaire) ──────────────────────
 // Chaque victoire incrémente collective.boss_index_cleared → boss suivant.
 // perilsByTier : périls actifs selon le palier (effectif) — itération 3.
+// ⚙️ Phase de mise au point : UN SEUL boss actif — le Crabe colossal (semaine 1).
+// Les autres boss reviendront plus tard. getBossByKey() retombe sur BOSSES[0],
+// donc même une session serveur référençant une ancienne clé affiche le crabe.
 export const BOSSES = [
-  { key: 'meduse',     name: 'La Méduse spectrale', emoji: '🪼', assault_count: 3 },
-  { key: 'crabe',      name: 'Le Crabe colossal',   emoji: '🦀', assault_count: 3 },
-  { key: 'pieuvre',    name: 'La Pieuvre des abysses', emoji: '🐙', assault_count: 3 },
-  { key: 'requin',     name: 'Le Requin-marteau',   emoji: '🦈', assault_count: 3 },
-  { key: 'leviathan',  name: 'Le Léviathan',        emoji: '🐉', assault_count: 4 },
+  { key: 'rorqual', name: 'Le Rorqual colossal', emoji: '🐋', assault_count: 3 },
 ]
 
 export function getBossOfDay(bossIndexCleared = 0) {
