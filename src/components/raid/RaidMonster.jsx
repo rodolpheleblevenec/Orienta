@@ -1,5 +1,4 @@
 import { lazy, useEffect, useRef } from 'react'
-import { getRaidModel } from '../../lib/raidModels'
 import { getRaidClips } from '../../lib/raidClips'
 import RaidStrikes from './RaidStrikes'
 import RaidMonsterVideo from './RaidMonsterVideo'
@@ -10,8 +9,8 @@ import RaidBackdrop from './RaidBackdrop'
 //
 // Empile, du fond vers l'avant :
 //   1. un BACKDROP illustré (image d'arène, avec dégradé abyssal de secours) ;
-//   2. la SCÈNE du boss — 3D (modèle .glb, canvas transparent) si le boss a un
-//      modèle configuré, sinon 2D vectorielle (aiguillage via getRaidModel) ;
+//   2. la SCÈNE du boss — média pré-rendu / baleine dessinée en code
+//      (RaidMonsterVideo) si un clip existe, sinon scène 2D de secours ;
 //   3. un léger color-grade / vignette pour fondre le boss dans l'ambiance ;
 //   4. la couche d'EFFETS (RaidStrikes : attaques par rôle, ondes du boss) ;
 //   5. un FLASH plein cadre.
@@ -23,13 +22,14 @@ import RaidBackdrop from './RaidBackdrop'
 // Interface : { boss, crew, hp, maxHp, hitSignal, attackSignal, teaser }.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const RaidMonster3D = lazy(() => import('./RaidMonster3D'))
 const RaidMonster2D = lazy(() => import('./RaidMonster2D'))
 
 export default function RaidMonster(props) {
   const { boss, crew = [], hitSignal = 0, attackSignal = 0, teaser = false } = props
-  // Boss : clip vidéo (universel, hors WebGL) si fourni ; sinon 3D (.glb) ; sinon 2D.
-  const Scene = getRaidClips(boss) ? RaidMonsterVideo : getRaidModel(boss) ? RaidMonster3D : RaidMonster2D
+  // Boss : média pré-rendu / baleine dessinée en code (RaidMonsterVideo) si un clip
+  // existe, sinon scène 2D vectorielle de secours. La 3D WebGL est abandonnée
+  // (perte de contexte GPU) → rendu 100 % hors WebGL.
+  const Scene = getRaidClips(boss) ? RaidMonsterVideo : RaidMonster2D
   const shakeRef = useRef(null)
   const flashRef = useRef(null)
 
