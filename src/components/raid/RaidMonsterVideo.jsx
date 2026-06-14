@@ -18,7 +18,7 @@ import RaidWhale from './RaidWhale'
 // Interface alignée sur les autres scènes : { boss, attackSignal, teaser }.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function RaidMonsterVideo({ boss, hitSignal = 0, attackSignal = 0, hp = 1, maxHp = 1, teaser = false }) {
+export default function RaidMonsterVideo({ boss, hitSignal = 0, attackSignal = 0, hp = 1, maxHp = 1, teaser = false, assaultIndex = null, assaultCount = 0, outcome = null }) {
   const clips = getRaidClips(boss) || {}
   const atkRef = useRef(null)
   const [posterOk, setPosterOk] = useState(!!clips.poster)
@@ -68,7 +68,8 @@ export default function RaidMonsterVideo({ boss, hitSignal = 0, attackSignal = 0
       )}
       {/* Aucun média fourni → la baleine dessinée en code (émerge du lac). */}
       {!hasMedia && (
-        <RaidWhale hitSignal={hitSignal} attackSignal={attackSignal} hp={hp} maxHp={maxHp} />
+        <RaidWhale hitSignal={hitSignal} attackSignal={attackSignal} hp={hp} maxHp={maxHp}
+          assaultIndex={assaultIndex} assaultCount={assaultCount} outcome={outcome} />
       )}
     </div>
   )

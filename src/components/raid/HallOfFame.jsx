@@ -45,6 +45,7 @@ export default function HallOfFame({ level, fetchHof, compact = false }) {
   if (compact) {
     const top = teams.slice(0, 3)
     const best = teams[0]?.clear_seconds
+    const attempts = (data?.attempts || []).slice(0, 5)
     return (
       <div className="raid-hof raid-hof--compact">
         <div className="raid-hof-head">
@@ -70,6 +71,24 @@ export default function HallOfFame({ level, fetchHof, compact = false }) {
               </li>
             ))}
           </ol>
+        )}
+        {attempts.length > 0 && (
+          <div className="raid-hof-tries">
+            <div className="raid-hof-tries-title">🌊 Ils ont tenté leur chance</div>
+            <ul className="raid-hof-tries-list">
+              {attempts.map((a) => (
+                <li key={a.session_id} className="raid-hof-try">
+                  <span className="raid-hof-try-team">
+                    {a.members.map(m => <Member key={m.pseudo + m.role} pseudo={m.pseudo} role={m.role} />)}
+                  </span>
+                  <span className="raid-hof-try-stats">
+                    <span className="raid-hof-try-stat" title="Assauts franchis">⚔️ {a.assaults_cleared}/{a.assault_count}</span>
+                    <span className="raid-hof-try-stat" title="Bouées restantes">🛟 {a.lives}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
     )

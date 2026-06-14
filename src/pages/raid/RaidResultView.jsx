@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import confetti from 'canvas-confetti'
 import { ORGANS, getBossByKey } from '../../lib/raid'
 
 // Présentation pure de la page résultat (victoire / défaite), séparée du fetch :
@@ -42,12 +43,28 @@ export default function RaidResultView({ data }) {
   const isRecord = rank?.position === 1
   const cleared = session.assault_index ?? 0
 
+  // Victoire = grand moment (un raid se gagne difficilement) → salve de confettis,
+  // renforcée si c'est un nouveau record de la semaine.
+  useEffect(() => {
+    if (!won) return
+    const colors = ['#ffd166', '#06d6a0', '#4cc9f0', '#ffffff', '#f4a261']
+    const cannon = (x, angle) => confetti({ particleCount: 70, angle, spread: 72, startVelocity: 55, ticks: 190, gravity: 1, scalar: 1.1, origin: { x, y: 0.62 }, colors })
+    cannon(0.06, 60); cannon(0.94, 120)
+    const timers = [
+      setTimeout(() => { cannon(0.06, 60); cannon(0.94, 120) }, 320),
+      setTimeout(() => confetti({ particleCount: 130, spread: 110, startVelocity: 45, ticks: 220, gravity: 0.85, scalar: 1.1, origin: { x: 0.5, y: 0.28 }, colors }), 680),
+    ]
+    if (isRecord) timers.push(setTimeout(() => { cannon(0.2, 70); cannon(0.8, 110) }, 1050))
+    return () => timers.forEach(clearTimeout)
+  }, [won, isRecord])
+
   return (
     <div className={`raid-res ${won ? 'raid-res--won' : 'raid-res--lost'}`}>
       {/* Bandeau d'issue */}
+      {won && <div className="raid-res-victory-badge">⚔️ Victoire d’équipage</div>}
       <div className="raid-res-emoji">{won ? '🏆' : '🌑'}</div>
       <h1 className="raid-h1">
-        {won ? `${boss.name} tombe !` : `${boss.name} a replongé…`}
+        {won ? `${boss.name} est terrassé !` : `${boss.name} a replongé…`}
       </h1>
       <p className="raid-sub">
         {won

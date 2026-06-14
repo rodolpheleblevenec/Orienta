@@ -5318,10 +5318,23 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 @keyframes raid-celebrate-sink { 0% { transform: translateY(-12px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(16px); opacity: .55; } }
 
 /* ── Page résultat (victoire / défaite) ── */
-.raid-res { text-align: center; padding: 40px 22px 32px; max-width: 600px; margin: 32px auto; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); }
-.raid-res--won { border-color: var(--teal); }
+.raid-res { position: relative; overflow: hidden; text-align: center; padding: 40px 22px 32px; max-width: 600px; margin: 32px auto; background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); }
+.raid-res--won { border-color: rgba(255,193,7,.55);
+  background: linear-gradient(180deg, rgba(255,209,102,.14), rgba(255,209,102,0) 30%), var(--card);
+  box-shadow: 0 14px 40px rgba(255,193,7,.18), var(--shadow-sm); }
+/* liseré doré animé en haut de la carte de victoire */
+.raid-res--won::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 4px;
+  background: linear-gradient(90deg, transparent, #ffd166, #06d6a0, #4cc9f0, #ffd166, transparent);
+  background-size: 200% 100%; animation: raidResSheen 3s linear infinite; }
+@keyframes raidResSheen { to { background-position: 200% 0; } }
+.raid-res-victory-badge { display: inline-block; margin-bottom: 12px; padding: 6px 16px; border-radius: 999px;
+  font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #6b4e00;
+  background: linear-gradient(135deg, #ffe39a, #ffc83d); border: 1px solid rgba(214,154,0,.5);
+  box-shadow: 0 4px 14px rgba(255,193,7,.35); animation: raid-celebrate-pop .5s cubic-bezier(.2,1.4,.4,1) both; }
 .raid-res-emoji { font-size: 64px; line-height: 1; }
-.raid-res--won .raid-res-emoji { animation: raid-celebrate-pop .6s cubic-bezier(.2,1.4,.4,1) both; }
+.raid-res--won .raid-res-emoji { font-size: 78px; filter: drop-shadow(0 0 20px rgba(255,209,102,.6));
+  animation: raid-celebrate-pop .6s cubic-bezier(.2,1.4,.4,1) both, raid-celebrate-float 2.4s ease-in-out .7s infinite; }
+@media (prefers-reduced-motion: reduce) { .raid-res--won::before, .raid-res--won .raid-res-emoji, .raid-res-victory-badge { animation: none; } }
 .raid-res-testbadge { display: inline-block; margin-top: 10px; font-size: 12px; color: var(--ink-2); background: rgba(0,0,0,.05); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; }
 .raid-res-stats { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 24px 0 8px; }
 .raid-res-stat { flex: 1 1 150px; max-width: 220px; background: rgba(0,0,0,.03); border: 1px solid var(--line); border-radius: 12px; padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; }
@@ -5348,6 +5361,15 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-hof--compact .raid-hof-title { font-size: 15px; }
 .raid-hof-list--compact { gap: 6px; }
 .raid-hof-list--compact .raid-hof-row { padding: 7px 10px; }
+
+/* « Ils ont tenté leur chance » : équipages défaits (montre que ça joue/essaie). */
+.raid-hof-tries { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.raid-hof-tries-title { font-size: 13px; font-weight: 700; color: var(--ink-2); margin-bottom: 8px; }
+.raid-hof-tries-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.raid-hof-try { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: rgba(0,0,0,.025); border: 1px solid var(--line); border-radius: 10px; }
+.raid-hof-try-team { display: flex; flex-wrap: wrap; gap: 6px 10px; flex: 1; min-width: 0; }
+.raid-hof-try-stats { display: flex; align-items: center; gap: 10px; flex-shrink: 0; font-size: 13px; font-weight: 700; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.raid-hof-try-stat { white-space: nowrap; }
 
 .raid-boss-head { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
 .raid-boss-emoji { font-size: 44px; line-height: 1; }
@@ -5484,13 +5506,17 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-hud .raid-rolestrip { flex: 1; }
 
 /* ── Deux colonnes : grille + réserve | chat (large) ── */
-.raid-combat-cols { display: grid; grid-template-columns: minmax(440px, 600px) 1fr; gap: 24px; align-items: stretch; }
-.raid-col-board { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+/* Colonne chat = minmax(0, 1fr) (et min-width:0) : sa largeur ne dépend QUE de la
+   place restante, jamais du contenu. Sinon le 1er message (label de rôle en
+   white-space:nowrap) gonflait le min-content de la piste 1fr et faisait « sauter »
+   la largeur du chat. Largeur désormais fixe quel que soit l'historique. */
+.raid-combat-cols { display: grid; grid-template-columns: minmax(440px, 600px) minmax(0, 1fr); gap: 24px; align-items: stretch; }
+.raid-col-board { display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 0; }
 /* La colonne chat est un conteneur flex : le chat la remplit (flex:1) et défile en
    interne (.rchat-log) — plus de position:absolute fragile, donc il ne disparaît plus,
    et un long historique n'allonge pas la colonne. Plancher 540px + étirement grille. */
-.raid-col-chat { display: flex; flex-direction: column; min-height: 540px; }
-.raid-combat-cols .rchat { position: static; inset: auto; flex: 1; min-height: 0; }
+.raid-col-chat { display: flex; flex-direction: column; min-height: 540px; min-width: 0; }
+.raid-combat-cols .rchat { position: static; inset: auto; flex: 1; min-height: 0; min-width: 0; }
 .raid-myrole-sm { width: 100%; background: var(--teal-soft); color: var(--teal-700); border-radius: var(--r-sm); padding: 8px 12px; font-size: 13px; }
 
 /* ── Chat moderne (bulles + avatars) ── */
@@ -5572,7 +5598,34 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 @keyframes raidEmitterPulse { 0%, 100% { opacity: .16; } 50% { opacity: .32; } }
 .raid-figure { transform-box: fill-box; transform-origin: 50% 100%; animation: raidFigureBob 3.4s ease-in-out infinite; }
 @keyframes raidFigureBob { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-2.5px) rotate(.8deg); } }
-@media (prefers-reduced-motion: reduce) { .raid-emitter-halo, .raid-figure { animation: none; } }
+/* Victoire : les matelots sautent de joie sur la plage. */
+.raid-figure--cheer { animation: raidFigureCheer .58s ease-in-out infinite; }
+@keyframes raidFigureCheer { 0%, 100% { transform: translateY(0) rotate(0deg); } 35% { transform: translateY(-16px) rotate(-3deg); } 55% { transform: translateY(-12px) rotate(3deg); } 78% { transform: translateY(0) rotate(0deg); } }
+@media (prefers-reduced-motion: reduce) { .raid-emitter-halo, .raid-figure, .raid-figure--cheer { animation: none; } }
+
+/* Fin de combat : la baleine coule (bob d'idle + souffle coupés, remous intensifiés
+   le temps qu'elle s'enfonce). Le corps lui-même est animé en Framer Motion. */
+.raid-whale-idle--end { animation: none !important; }
+.raid-whale[data-outcome="won"] .raid-whale-spout,
+.raid-whale[data-outcome="lost"] .raid-whale-spout { animation: none; opacity: 0; }
+.raid-whale[data-outcome="won"] .raid-whale-ripple,
+.raid-whale[data-outcome="lost"] .raid-whale-ripple { animation-duration: 1.5s; }
+
+/* Bandeau de cinématique de fin (par-dessus la scène, apparaît après le plongeon). */
+.raid-monster--end { background: #0a0a0f; }
+.raid-endbanner { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 6;
+  width: min(92%, 460px); text-align: center; padding: 14px 18px 16px; color: #fff;
+  background: rgba(8,16,30,.64); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.16); border-radius: var(--r); box-shadow: 0 12px 32px rgba(0,0,0,.45);
+  opacity: 0; animation: raidEndBannerIn .55s ease .9s forwards; }
+.raid-endbanner--won { border-color: rgba(79,214,160,.6); box-shadow: 0 12px 36px rgba(79,214,160,.3); }
+.raid-endbanner-emoji { font-size: 42px; line-height: 1; }
+.raid-endbanner--won .raid-endbanner-emoji { filter: drop-shadow(0 0 16px rgba(255,209,102,.6)); animation: raid-celebrate-float 2.2s ease-in-out 1.5s infinite; }
+.raid-endbanner-title { font-family: var(--display); font-size: 22px; font-weight: 800; margin: 6px 0 2px; color: #fff; }
+.raid-endbanner-sub { font-size: 13px; color: rgba(255,255,255,.82); margin: 0 0 10px; }
+.raid-endbanner .btn-primary { margin-top: 2px; }
+@keyframes raidEndBannerIn { from { opacity: 0; transform: translate(-50%, 14px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .raid-endbanner { animation: none; opacity: 1; transform: translate(-50%, 0); } }
 
 /* ════════════ RAID — décor « golden hour » (lac + montagnes, dessiné en code) ════════════ */
 .rbk { position: absolute; inset: 0; z-index: 0; overflow: hidden; }

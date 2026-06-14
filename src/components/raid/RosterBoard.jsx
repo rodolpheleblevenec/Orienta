@@ -129,7 +129,6 @@ export default function RosterBoard({ boss, roster, me, actions, busy, minPlayer
           <div className="raid-countdown-card">
             <span className="raid-countdown-label">{busy ? 'Lancement…' : 'Le raid commence dans'}</span>
             <span className="raid-countdown-num">{countdown}</span>
-            <p className="raid-countdown-warn">👀 Ne regardez pas l’écran de vos autres équipiers. Ça faussera le jeu.</p>
             <button type="button" className="raid-countdown-cancel" onClick={() => actions.setReady(false)}>✕ Annuler</button>
           </div>
         </div>

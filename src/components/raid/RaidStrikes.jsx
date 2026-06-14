@@ -102,7 +102,7 @@ function Strike({ ox, hue, kind, delay, glow }) {
 // Disque lumineux à la couleur du rôle + emoji ; c'est de là que part son effet.
 // Petit bonhomme sur la plage, à la couleur de son rôle, bras levés vers la
 // baleine : c'est de lui que part l'effet d'énergie. Présence permanente.
-function CrewEmitter({ x, hue, emoji, delay }) {
+function CrewEmitter({ x, hue, emoji, delay, cheer = false }) {
   const body = `hsl(${hue} 62% 52%)`
   const bodyDk = `hsl(${hue} 60% 40%)`
   return (
@@ -111,7 +111,8 @@ function CrewEmitter({ x, hue, emoji, delay }) {
       <circle className="raid-emitter-halo" cx="0" cy="-8" r="26" fill={`hsl(${hue} 88% 62%)`} opacity="0.16" style={{ animationDelay: `${delay}s` }} />
       {/* ombre sur le sable */}
       <ellipse cx="0" cy="22" rx="15" ry="4.5" fill="rgba(60,30,15,.34)" />
-      <g className="raid-figure" style={{ animationDelay: `${delay}s` }}>
+      {/* Victoire : les matelots sautent de joie (sinon léger bob d'idle). */}
+      <g className={`raid-figure${cheer ? ' raid-figure--cheer' : ''}`} style={{ animationDelay: `${delay}s` }}>
         {/* jambes */}
         <path d="M -4 15 L -5 21 M 4 15 L 5 21" stroke={bodyDk} strokeWidth="4" strokeLinecap="round" />
         {/* corps */}
@@ -146,7 +147,7 @@ function BossWave({ glow }) {
   )
 }
 
-export default function RaidStrikes({ crew = [], hitSignal = 0, attackSignal = 0, teaser = false }) {
+export default function RaidStrikes({ crew = [], hitSignal = 0, attackSignal = 0, teaser = false, outcome = null }) {
   const uid = useId().replace(/:/g, '')
   const glow = `url(#${uid}-g)`
   const reduce = useReducedMotion()
@@ -188,7 +189,7 @@ export default function RaidStrikes({ crew = [], hitSignal = 0, attackSignal = 0
       {/* Postes d'équipage (un par rôle), présence permanente au bas de la scène. */}
       {members.map((m, i) => (
         <CrewEmitter key={`em-${m.id ?? i}`} x={originX(i, members.length)}
-          hue={fxForRole(m.role).hue} emoji={ORGANS[m.role]?.emoji || '•'} delay={i * 0.5} />
+          hue={fxForRole(m.role).hue} emoji={ORGANS[m.role]?.emoji || '•'} delay={i * 0.5} cheer={outcome === 'won'} />
       ))}
       {volleys.map((vol) => (
         <g key={vol.id}>

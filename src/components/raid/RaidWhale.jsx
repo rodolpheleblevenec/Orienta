@@ -7,7 +7,9 @@ import { motion, useAnimationControls } from 'framer-motion'
 // Dessinée en code (SVG, hors WebGL). Réagit au combat :
 //   • hitSignal   (assaut réussi) → plonge/encaisse + s'illumine ;
 //   • attackSignal (contre-attaque) → se cabre ;
-//   • PV bas       → halo rouge + respiration plus nerveuse.
+//   • dernier assaut / PV bas → ENRAGÉE : halo rouge + respiration nerveuse ;
+//   • outcome 'won'  → AGONIE : se cabre puis coule et disparaît dans le lac ;
+//   • outcome 'lost' → replonge dans les profondeurs.
 // Repère commun aux effets : viewBox 1000×600, "meet" (corps centré ~500/365).
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -15,9 +17,12 @@ const VW = 1000, VH = 600
 const BACK = 'M 332 404 C 358 352, 432 322, 512 324 C 602 326, 658 366, 688 404 Z'
 const BACK_RIM = 'M 332 404 C 358 352, 432 322, 512 324 C 602 326, 658 366, 688 404'
 
-export default function RaidWhale({ hitSignal = 0, attackSignal = 0, hp = 1, maxHp = 1 }) {
+export default function RaidWhale({ hitSignal = 0, attackSignal = 0, hp = 1, maxHp = 1, assaultIndex = null, assaultCount = 0, outcome = null }) {
   const controls = useAnimationControls()
-  const lowHp = maxHp > 0 && hp / maxHp <= 0.3
+  // Enragée pendant tout le DERNIER assaut (à 100 PV sur 300, on est à 33 % → un seuil
+  // de pourcentage seul ne se déclenche jamais). On se base donc sur l'index d'assaut.
+  const finalAssault = assaultCount > 0 && assaultIndex != null && assaultIndex >= assaultCount - 1
+  const lowHp = !outcome && (finalAssault || (maxHp > 0 && hp / maxHp <= 0.34))
 
   useEffect(() => {
     if (hitSignal <= 0) return
@@ -29,8 +34,27 @@ export default function RaidWhale({ hitSignal = 0, attackSignal = 0, hp = 1, max
     controls.start({ y: [0, -24, 0], rotate: [0, -2.5, 0], scale: [1, 1.04, 1], transition: { duration: 0.55, ease: 'easeOut' } })
   }, [attackSignal]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fin de combat : la baleine coule et disparaît (victoire = agonie spectaculaire,
+  // défaite = replongée dans les abysses). Le bob d'idle est coupé (classe --end).
+  useEffect(() => {
+    if (!outcome) return
+    if (outcome === 'won') {
+      controls.start({
+        y: [0, -34, 16, 300], rotate: [0, -5, 6, 18], scale: [1, 1.06, 1, 0.78],
+        opacity: [1, 1, 1, 0],
+        filter: ['brightness(1)', 'brightness(1.5)', 'brightness(.85)', 'brightness(.45)'],
+        transition: { duration: 2.4, times: [0, 0.16, 0.42, 1], ease: 'easeIn' },
+      })
+    } else {
+      controls.start({
+        y: [0, -20, 170], rotate: [0, -2, 5], scale: [1, 1.04, 0.9], opacity: [1, 1, 0.18],
+        transition: { duration: 2.0, times: [0, 0.28, 1], ease: 'easeIn' },
+      })
+    }
+  }, [outcome]) // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <svg className="raid-whale" data-low={lowHp ? 'true' : 'false'} viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+    <svg className="raid-whale" data-low={lowHp ? 'true' : 'false'} data-outcome={outcome || 'none'} viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
       <defs>
         <linearGradient id="rw-body" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#3b4a6a" />
@@ -44,6 +68,20 @@ export default function RaidWhale({ hitSignal = 0, attackSignal = 0, hp = 1, max
         <ellipse className="raid-whale-ripple" cx="510" cy="406" rx="150" ry="24" fill="none" stroke="#fff3df" strokeWidth="3" />
         <ellipse className="raid-whale-ripple" cx="510" cy="406" rx="150" ry="24" fill="none" stroke="#fff3df" strokeWidth="3" style={{ animationDelay: '2.2s' }} />
       </g>
+
+      {/* Éclaboussure de submersion : grand remous au moment où la baleine coule. */}
+      {outcome && (
+        <g>
+          <motion.ellipse cx="510" cy="408" rx="64" ry="15" fill="#fdf6ec"
+            initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: [0.4, 3.4], opacity: [0, 0.85, 0] }}
+            transition={{ duration: 1.7, delay: 1.0, ease: 'easeOut' }}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }} />
+          <motion.ellipse cx="510" cy="408" rx="64" ry="15" fill="none" stroke="#ffffff" strokeWidth="4"
+            initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: [0.5, 4.4], opacity: [0.9, 0] }}
+            transition={{ duration: 1.9, delay: 1.2, ease: 'easeOut' }}
+            style={{ transformBox: 'fill-box', transformOrigin: 'center' }} />
+        </g>
+      )}
 
       {/* écume au pied du corps */}
       <g filter="url(#rw-soft)">
@@ -61,7 +99,7 @@ export default function RaidWhale({ hitSignal = 0, attackSignal = 0, hp = 1, max
       </g>
 
       {/* corps (bob d'idle en CSS sur le groupe, réactions de combat en Framer Motion) */}
-      <g className="raid-whale-idle">
+      <g className={`raid-whale-idle${outcome ? ' raid-whale-idle--end' : ''}`}>
         <motion.g animate={controls} initial={{ y: 0, scale: 1 }} style={{ transformBox: 'fill-box', transformOrigin: '50% 100%' }}>
           <path d={BACK} fill="url(#rw-body)" />
           {/* liseré chaud (lumière rasante du soleil) */}

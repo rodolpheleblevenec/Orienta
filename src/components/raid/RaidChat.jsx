@@ -12,8 +12,10 @@ function hueOf(s) {
 // rôle sous le pseudo, regroupement des messages consécutifs.
 export default function RaidChat({ chat, onSend, me }) {
   const [text, setText] = useState('')
-  const endRef = useRef(null)
-  useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }) }, [chat])
+  const logRef = useRef(null)
+  // Auto-défilement INTERNE au journal uniquement (on règle scrollTop du conteneur)
+  // — surtout pas scrollIntoView, qui remonte aussi la fenêtre/page à chaque message.
+  useEffect(() => { const el = logRef.current; if (el) el.scrollTop = el.scrollHeight }, [chat])
 
   function submit(e) {
     e.preventDefault()
@@ -25,7 +27,7 @@ export default function RaidChat({ chat, onSend, me }) {
   return (
     <div className="rchat">
       <div className="rchat-head">💬 Coordination de l’équipage</div>
-      <div className="rchat-log">
+      <div className="rchat-log" ref={logRef}>
         {chat.length === 0 && <p className="rchat-empty">Parlez-vous : qui voit quoi, qui pose quoi, qui tourne…</p>}
         {chat.map((m, i) => {
           const mine = m.pseudo === me?.pseudo
@@ -51,7 +53,6 @@ export default function RaidChat({ chat, onSend, me }) {
             </div>
           )
         })}
-        <div ref={endRef} />
       </div>
       <form className="rchat-form" onSubmit={submit}>
         <input className="rchat-input" value={text} onChange={e => setText(e.target.value)} placeholder="Message à l’équipage…" maxLength={240} />

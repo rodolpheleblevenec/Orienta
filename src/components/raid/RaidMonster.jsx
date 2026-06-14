@@ -25,7 +25,7 @@ import RaidBackdrop from './RaidBackdrop'
 const RaidMonster2D = lazy(() => import('./RaidMonster2D'))
 
 export default function RaidMonster(props) {
-  const { boss, crew = [], hitSignal = 0, attackSignal = 0, teaser = false } = props
+  const { boss, crew = [], hitSignal = 0, attackSignal = 0, teaser = false, outcome = null } = props
   // Boss : média pré-rendu / baleine dessinée en code (RaidMonsterVideo) si un clip
   // existe, sinon scène 2D vectorielle de secours. La 3D WebGL est abandonnée
   // (perte de contexte GPU) → rendu 100 % hors WebGL.
@@ -71,7 +71,7 @@ export default function RaidMonster(props) {
       <div className="raid-grade" />
       {!teaser && (
         <div className="raid-fx-layer">
-          <RaidStrikes crew={crew} hitSignal={hitSignal} attackSignal={attackSignal} />
+          <RaidStrikes crew={crew} hitSignal={hitSignal} attackSignal={attackSignal} outcome={outcome} />
         </div>
       )}
       <div className="raid-flash" ref={flashRef} />

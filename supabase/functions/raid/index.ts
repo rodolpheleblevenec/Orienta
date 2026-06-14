@@ -314,8 +314,15 @@ serve(async (req) => {
     const { data: wins } = await supabase.from('orienta_raid_sessions')
       .select('id, boss_key, boss_level, tier, started_at, ended_at')
       .eq('status', 'won').eq('boss_level', level).eq('is_test', false)
+    // Équipages qui ont TENTÉ mais échoué (défaite) — on les met en avant pour
+    // montrer que ça bouge, même sans victoire (noms, assauts franchis, bouées restantes).
+    const { data: losses } = await supabase.from('orienta_raid_sessions')
+      .select('id, tier, assault_index, assault_count, lives, ended_at')
+      .eq('status', 'lost').eq('boss_level', level).eq('is_test', false)
+      .order('ended_at', { ascending: false }).limit(12)
     const sessions = (wins ?? []) as { id: string; tier: number; started_at: string; ended_at: string }[]
-    const ids = sessions.map((s) => s.id)
+    const lossSessions = (losses ?? []) as { id: string; tier: number; assault_index: number; assault_count: number; lives: number; ended_at: string }[]
+    const ids = [...sessions.map((s) => s.id), ...lossSessions.map((s) => s.id)]
     const partsBySession = new Map<string, { pseudo: string; role: string }[]>()
     if (ids.length) {
       const { data: parts } = await supabase.from('orienta_raid_participants')
@@ -336,7 +343,12 @@ serve(async (req) => {
       session_id: firstWin.id, ended_at: firstWin.ended_at,
       clear_seconds: clearSec(firstWin), members: partsBySession.get(firstWin.id) ?? [],
     } : null
-    return json({ level, boss_key: bossKeyForLevel(level), teams, firstClear })
+    const attempts = lossSessions.map((s) => ({
+      session_id: s.id, tier: s.tier, ended_at: s.ended_at,
+      assaults_cleared: s.assault_index ?? 0, assault_count: s.assault_count ?? 0, lives: s.lives ?? 0,
+      members: partsBySession.get(s.id) ?? [],
+    }))
+    return json({ level, boss_key: bossKeyForLevel(level), teams, firstClear, attempts })
   }
 
   // ── result : résultat d'une session terminée (won/lost). Lecture publique. ──
