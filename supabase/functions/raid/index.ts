@@ -487,7 +487,7 @@ serve(async (req) => {
     await supabase.from('orienta_raid_session_secrets').update({ card_map, last_feedback: null, updated_at: nowIso() }).eq('session_id', sessionId)
     await supabase.from('orienta_raid_sessions').update({
       status: 'active', tier: count, card_order, assault_index: 0,
-      attempts_remaining: MAX_ATTEMPTS, lives: cfg.lives, current_hp: session.max_hp, sonar_used: false,
+      attempts_remaining: cfg.lives, lives: cfg.lives, current_hp: session.max_hp, sonar_used: false,
       assault_deadline: new Date(Date.now() + cfg.timer_seconds * 1000).toISOString(), started_at: nowIso(),
     }).eq('id', sessionId)
     return json(await buildView(supabase, sessionId, playerId))
@@ -536,7 +536,6 @@ serve(async (req) => {
     const fbBySlot: Record<string, string> = {}
     for (const s of slots) fbBySlot[s] = cardFeedbacks[answer[Number(s)].card_id] ?? 'wrong'
 
-    const attemptsLeft = session.attempts_remaining - 1
     await supabase.from('orienta_raid_attempts').insert({
       session_id: sessionId, assault_index: session.assault_index, submitted_by: playerId,
       answer, correct_full: correctFull, correct_rotation: correctRotation, neither, damage: success ? HP_PER_ASSAULT : 0,
@@ -552,16 +551,23 @@ serve(async (req) => {
       }
       const { card_order, card_map } = await buildAssault(supabase, (secrets?.grid_ids ?? [])[next], session.is_test)
       await supabase.from('orienta_raid_session_secrets').update({ card_map, last_feedback: null, updated_at: nowIso() }).eq('session_id', sessionId)
-      // Timer GLOBAL : on ne réinitialise pas le chrono entre assauts.
+      // Timer GLOBAL : on ne réinitialise pas le chrono entre assauts. Les bouées
+      // ne se rechargent PAS entre assauts (3 erreurs pour TOUT le raid).
       await supabase.from('orienta_raid_sessions').update({
-        assault_index: next, card_order, attempts_remaining: MAX_ATTEMPTS, sonar_used: false,
+        assault_index: next, card_order, attempts_remaining: session.lives, sonar_used: false,
         current_hp: session.max_hp - next * HP_PER_ASSAULT,
       }).eq('id', sessionId)
       return json({ ...(await buildView(supabase, sessionId, playerId)), feedback: fbBySlot, success: true, assaultCleared: true })
     }
 
-    if (attemptsLeft <= 0) return json({ ...(await failAssault(supabase, session, playerId, 'attempts')), feedback: fbBySlot })
-    await supabase.from('orienta_raid_sessions').update({ attempts_remaining: attemptsLeft }).eq('id', sessionId)
+    // Mauvais essai → l'équipe perd UNE BOUÉE. 3 bouées au départ = 3 erreurs pour
+    // TOUT le raid (les bouées ne se rechargent pas entre assauts). À 0 → défaite.
+    const livesLeft = session.lives - 1
+    if (livesLeft <= 0) {
+      await supabase.from('orienta_raid_sessions').update({ status: 'lost', lives: 0, attempts_remaining: 0, ended_at: nowIso() }).eq('id', sessionId)
+      return json({ ...(await buildView(supabase, sessionId, playerId)), feedback: fbBySlot, success: false, failed: true })
+    }
+    await supabase.from('orienta_raid_sessions').update({ lives: livesLeft, attempts_remaining: livesLeft }).eq('id', sessionId)
     return json({ ...(await buildView(supabase, sessionId, playerId)), feedback: fbBySlot, success: false })
   }
 
