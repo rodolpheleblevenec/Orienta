@@ -99,7 +99,7 @@ export default function RaidWhale({ hitSignal = 0, attackSignal = 0, hp = 1, max
       </g>
 
       {/* corps (bob d'idle en CSS sur le groupe, réactions de combat en Framer Motion) */}
-      <g className={`raid-whale-idle${outcome ? ' raid-whale-idle--end' : ''}`}>
+      <g className={`raid-whale-idle${outcome ? ' raid-whale-idle--end' : ''}${lowHp ? ' raid-whale-idle--rage' : ''}`}>
         <motion.g animate={controls} initial={{ y: 0, scale: 1 }} style={{ transformBox: 'fill-box', transformOrigin: '50% 100%' }}>
           <path d={BACK} fill="url(#rw-body)" />
           {/* liseré chaud (lumière rasante du soleil) */}
@@ -108,9 +108,19 @@ export default function RaidWhale({ hitSignal = 0, attackSignal = 0, hp = 1, max
           <path d="M 556 330 L 572 308 L 588 332 Z" fill="#1b2640" />
           {/* sillon de la bouche */}
           <path d="M 336 392 Q 360 400, 394 396" fill="none" stroke="#141d33" strokeWidth="3" strokeLinecap="round" opacity="0.7" />
+          {/* ENRAGÉE (dernier assaut) : embrasement rouge pulsant + œil furieux + naseaux fumants */}
+          {lowHp && (
+            <g>
+              <path className="raid-whale-rage" d={BACK} fill="#ff2d18" />
+              <path className="raid-whale-rage" d={BACK_RIM} fill="none" stroke="#ff7a4a" strokeWidth="4" strokeLinecap="round" />
+              <circle className="raid-whale-rage-eye" cx="386" cy="372" r="8.5" fill="#ff2d18" />
+              <circle cx="383" cy="369" r="2.2" fill="#ffe7df" />
+              {/* sourcil furieux */}
+              <path d="M 372 360 L 398 366" stroke="#ff2d18" strokeWidth="4" strokeLinecap="round" />
+            </g>
+          )}
           {/* œil */}
-          <circle cx="386" cy="372" r="6.5" fill="#0e1626" />
-          <circle cx="384" cy="370" r="2" fill="#cfe0f2" />
+          {!lowHp && <><circle cx="386" cy="372" r="6.5" fill="#0e1626" /><circle cx="384" cy="370" r="2" fill="#cfe0f2" /></>}
         </motion.g>
       </g>
     </svg>

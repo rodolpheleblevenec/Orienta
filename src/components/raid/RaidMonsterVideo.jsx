@@ -21,7 +21,12 @@ import RaidWhale from './RaidWhale'
 export default function RaidMonsterVideo({ boss, hitSignal = 0, attackSignal = 0, hp = 1, maxHp = 1, teaser = false, assaultIndex = null, assaultCount = 0, outcome = null }) {
   const clips = getRaidClips(boss) || {}
   const atkRef = useRef(null)
-  const [posterOk, setPosterOk] = useState(!!clips.poster)
+  // On PART du principe qu'aucun média n'est prêt → la baleine dessinée (RaidWhale)
+  // s'affiche IMMÉDIATEMENT (et joue enrage/agonie de façon fiable). Un vrai poster
+  // ne prend le dessus QUE s'il se charge réellement (onLoad). Indispensable car
+  // l'hébergement réécrit les chemins inconnus vers index.html (le poster « 200 » mais
+  // n'est pas une image) → sans ça, la baleine ne se montait jamais de façon fiable.
+  const [posterOk, setPosterOk] = useState(false)
   const [idleOk, setIdleOk] = useState(false)
 
   // Contre-attaque du boss → si un clip 'attack' existe, on le joue une fois
@@ -44,7 +49,7 @@ export default function RaidMonsterVideo({ boss, hitSignal = 0, attackSignal = 0
     <div className="raid-bossvid" data-teaser={teaser ? 'true' : 'false'}>
       {clips.poster && (
         <img className="raid-bossvid-layer raid-bossvid-poster" src={clips.poster} alt="" aria-hidden="true"
-          onError={() => setPosterOk(false)} />
+          onLoad={() => setPosterOk(true)} onError={() => setPosterOk(false)} />
       )}
       {clips.idle && (
         <video

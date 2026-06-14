@@ -5,7 +5,7 @@ import Header from '../../components/ui/Header'
 import { useAuthStore } from '../../stores/authStore'
 import { useRaidArena } from '../../lib/useRaidArena'
 import { getAdminSecret } from '../../lib/adminSecret'
-import { ORGANS, getBossByKey, BOSSES, canPlace, canRotate, canValidate, canSeeFeedback, canSeeClues, canSeeWords, canSeeRaid, isRaidAdmin, raidWindowsText, isRaidLaunched, nextRaidWindowStart, currentRaidLevel, difficultyForLevel } from '../../lib/raid'
+import { ORGANS, getBossByKey, BOSSES, canPlace, canRotate, canValidate, canSeeFeedback, canSeeClues, canSeeWords, canSeeRaid, isRaidAdmin, isRaidLaunched, currentRaidLevel, difficultyForLevel } from '../../lib/raid'
 import RosterBoard from '../../components/raid/RosterBoard'
 import RaidChat from '../../components/raid/RaidChat'
 import RoleStrip from '../../components/raid/RoleStrip'
@@ -67,21 +67,6 @@ function VictoryFX() {
     return () => timers.forEach(clearTimeout)
   }, [])
   return null
-}
-
-// Compte à rebours jusqu'au prochain créneau d'ouverture (entre deux créneaux).
-function NextWindow() {
-  const [left, setLeft] = useState('')
-  useEffect(() => {
-    const tick = () => {
-      const ms = nextRaidWindowStart().getTime() - Date.now()
-      if (ms <= 0) { setLeft('quelques instants'); return }
-      const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000), s = Math.floor((ms % 60000) / 1000)
-      setLeft(h > 0 ? `${h} h ${String(m).padStart(2, '0')} min` : m > 0 ? `${m} min ${String(s).padStart(2, '0')} s` : `${s} s`)
-    }
-    tick(); const iv = setInterval(tick, 1000); return () => clearInterval(iv)
-  }, [])
-  return <>{left}</>
 }
 
 export default function RaidArenaPage() {
@@ -156,7 +141,7 @@ export default function RaidArenaPage() {
     return (<><Header /><main className="raid-page"><div className="raid-loading">Connexion à l’arène…</div></main></>)
   }
 
-  // Aucune arène ouverte (hors créneau). Une fois lancé : Hall of Fame + compte à rebours.
+  // Aucune arène (le raid est disponible à toute heure : il suffit d'être à plusieurs).
   if (noArena || !session) {
     const launched = isRaidLaunched()
     return (
@@ -165,10 +150,11 @@ export default function RaidArenaPage() {
         <main className="raid-page raid-page--nowindow">
           <div className="raid-empty">
             <div className="raid-empty-emoji">🌊</div>
-            <h1 className="raid-h1">{launched ? 'Aucun raid en cours' : 'Aucune arène ouverte'}</h1>
+            <h1 className="raid-h1">{launched ? 'Aucun équipage en mer pour l’instant' : 'Le raid n’est pas encore ouvert'}</h1>
             <p className="raid-sub">
-              Les raids s’ouvrent chaque jour sur deux créneaux : {raidWindowsText()}.{' '}
-              {launched ? <>Prochain créneau dans <b><NextWindow /></b>.</> : 'Reviens à l’une de ces heures !'}
+              {launched
+                ? <>Le raid se joue <b>à toute heure</b> : reviens dans un instant, ou invite d’autres joueurs à rejoindre l’arène pour former un équipage.</>
+                : <>Le mode RAID ouvre le <b>15 juin à 8h</b>. Reviens à l’ouverture pour affronter le boss en équipe.</>}
             </p>
             {canOpen && (
               <button className="btn-primary" onClick={openTestArena} disabled={opening}>
@@ -320,8 +306,7 @@ export default function RaidArenaPage() {
                     <span className="rms-chip rms-chip--week">Sem.&nbsp;<b>{session.boss_level ?? currentRaidLevel()}</b></span>
                     <span className="rms-chip rms-chip--time"><Timer deadline={session.assault_deadline} onExpire={actions.signalTimeout} /></span>
                     <span className="rms-chip">Assaut <b>{Math.min(session.assault_index + 1, session.assault_count)}/{session.assault_count}</b></span>
-                    <span className="rms-chip">Essais <b>{session.attempts_remaining}</b></span>
-                    <span className="rms-chip rms-chip--lives">{'🛟'.repeat(Math.max(0, session.lives)) || '—'}</span>
+                    <span className="rms-chip rms-chip--lives" title="Bouées (vies de l’équipage)">{'🛟'.repeat(Math.max(0, session.lives)) || '—'}</span>
                   </>
                 )}
               </div>
@@ -361,7 +346,11 @@ export default function RaidArenaPage() {
                     {[0, 1, 2, 3].filter(s => board[s]).length === 0 && <span className="raid-sonar-hint">pose une carte pour la sonder</span>}
                   </div>
                 ) : sonarResult ? (
-                  <span className="raid-sonar-result">Sonar {SLOT_LABELS[sonarResult.slot]} : {sonarResult.green ? '✓ carte parfaite' : '✗ pas encore'}</span>
+                  <span className={`raid-sonar-result ${sonarResult.green ? 'raid-sonar-result--ok' : 'raid-sonar-result--ko'}`}>
+                    {sonarResult.green
+                      ? <>✓ {SLOT_LABELS[sonarResult.slot]} — carte bien placée</>
+                      : <>✗ {SLOT_LABELS[sonarResult.slot]} — pas à sa place</>}
+                  </span>
                 ) : (
                   <span className="raid-sonar-result raid-sonar-result--spent">Sonar utilisé cet assaut</span>
                 )}

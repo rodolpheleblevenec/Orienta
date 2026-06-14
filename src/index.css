@@ -1087,6 +1087,13 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   margin: 10px 2px 0; padding-top: 10px; border-top: 1px solid var(--line);
   font-size: 11.5px; line-height: 1.4; color: var(--ink-2);
 }
+/* Variante cliquable (RAID lancé) : un petit CTA vers l'arène. */
+a.hub-online-foot--cta {
+  display: block; text-decoration: none; font-weight: 700; color: var(--teal-700);
+  background: var(--teal-soft); border: 1px solid var(--teal); border-radius: var(--r-sm);
+  padding: 8px 10px; margin-top: 12px; transition: background .15s ease, transform .15s ease;
+}
+a.hub-online-foot--cta:hover { background: var(--teal); color: #fff; transform: translateY(-1px); }
 
 /* Desktop only : sous 1280px on masque le panneau et on rétablit la pleine largeur. */
 @media (max-width: 1280px) {
@@ -5585,8 +5592,28 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 @keyframes raidWhaleSpout { 0%, 55%, 100% { opacity: 0; transform: scaleY(.3); } 62% { opacity: .9; transform: scaleY(1); } 86% { opacity: .45; transform: scaleY(1.06); } }
 .raid-whale-ripple { transform-box: fill-box; transform-origin: center; opacity: 0; animation: raidWhaleRipple 4.4s ease-out infinite; }
 @keyframes raidWhaleRipple { 0% { transform: scale(.55); opacity: .5; } 100% { transform: scale(1.35); opacity: 0; } }
-.raid-whale[data-low="true"] { filter: saturate(1.15) drop-shadow(0 0 16px rgba(255,70,45,.55)); }
-.raid-whale[data-low="true"] .raid-whale-idle { animation-duration: 2.6s; }
+/* ENRAGÉE (dernier assaut) : halo rouge qui pulse, corps qui se débat, œil furieux. */
+.raid-whale[data-low="true"] { animation: raidWhaleRageGlow .9s ease-in-out infinite; }
+@keyframes raidWhaleRageGlow {
+  0%, 100% { filter: saturate(1.25) drop-shadow(0 0 10px rgba(255,55,35,.55)); }
+  50%      { filter: saturate(1.7) drop-shadow(0 0 30px rgba(255,45,24,.95)); }
+}
+.raid-whale-idle--rage { animation: raidWhaleThrash .62s ease-in-out infinite !important; }
+@keyframes raidWhaleThrash {
+  0%, 100% { transform: translateY(0) rotate(-1.6deg); }
+  25%      { transform: translateY(-5px) rotate(1.8deg); }
+  50%      { transform: translateY(0) rotate(-1.1deg); }
+  75%      { transform: translateY(-4px) rotate(2.2deg); }
+}
+.raid-whale-rage { opacity: .2; animation: raidWhaleRagePulse .9s ease-in-out infinite; }
+@keyframes raidWhaleRagePulse { 0%, 100% { opacity: .16; } 50% { opacity: .52; } }
+.raid-whale-rage-eye { animation: raidWhaleRageEye .9s ease-in-out infinite; }
+@keyframes raidWhaleRageEye { 0%, 100% { fill: #ff5a3c; } 50% { fill: #ff1f08; } }
+@media (prefers-reduced-motion: reduce) {
+  .raid-whale[data-low="true"] { animation: none; filter: saturate(1.4) drop-shadow(0 0 18px rgba(255,45,24,.8)); }
+  .raid-whale-idle--rage, .raid-whale-rage, .raid-whale-rage-eye { animation: none; }
+  .raid-whale-rage { opacity: .4; }
+}
 @media (prefers-reduced-motion: reduce) { .raid-whale-idle, .raid-whale-ripple { animation: none; } .raid-whale-spout { opacity: .55; animation: none; } }
 .raid-grade { position: absolute; inset: 0; z-index: 2; pointer-events: none;
   background:
@@ -5786,7 +5813,10 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 .raid-sonar-btn:hover:not(:disabled) { border-color: var(--teal); color: var(--teal-700); }
 .raid-sonar-btn:disabled { opacity: .5; cursor: default; }
 .raid-sonar-hint { font-size: 12px; color: var(--ink-3); }
-.raid-sonar-result { font-size: 13px; font-weight: 700; color: var(--teal-700); }
+.raid-sonar-result { font-size: 13px; font-weight: 800; color: var(--teal-700); }
+/* Réponse du sonar bien lisible : vert si la carte est parfaite, rouge sinon. */
+.raid-sonar-result--ok  { color: #0f7a47; background: rgba(6,214,160,.16); border: 1px solid rgba(6,214,160,.55); border-radius: var(--r-pill); padding: 5px 12px; }
+.raid-sonar-result--ko  { color: #c0392b; background: rgba(255,86,72,.14); border: 1px solid rgba(255,86,72,.55); border-radius: var(--r-pill); padding: 5px 12px; }
 .raid-sonar-result--spent { color: var(--ink-3); font-weight: 600; }
 
 /* ════ Salle d'attente (lobby) ════ */

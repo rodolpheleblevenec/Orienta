@@ -176,12 +176,13 @@ async function lazyCleanup(supabase: any, nowMs: number) {
   await supabase.from('orienta_raid_sessions')
     .update({ status: 'lost', ended_at: iso })
     .eq('status', 'active').lt('assault_deadline', iso)
-  // 2. Salle d'attente publique périmée (hors créneau, ou trop ancienne) → expirée.
-  let q = supabase.from('orienta_raid_sessions')
+  // 2. Salle d'attente publique trop ancienne (> 2 h) → expirée. Plus de fenêtre
+  //    horaire : le raid est disponible à TOUTE HEURE → on ne purge que par l'âge
+  //    (un lobby vide finit par expirer, mais reste joignable tant qu'il est récent).
+  await supabase.from('orienta_raid_sessions')
     .update({ status: 'expired', ended_at: iso })
     .eq('status', 'waiting').eq('is_test', false)
-  if (isWithinWindowParis(nowMs)) q = q.lt('created_at', new Date(nowMs - 2 * 3600_000).toISOString())
-  await q
+    .lt('created_at', new Date(nowMs - 2 * 3600_000).toISOString())
 }
 
 // Vue SCOPED pour l'organe appelant (cœur anti-triche).
@@ -239,7 +240,8 @@ serve(async (req) => {
     const nowMs = Date.now()
     await lazyCleanup(supabase, nowMs)
     const launched = isLaunchedServer(nowMs)
-    const windowOpen = isWithinWindowParis(nowMs)
+    // Plus de créneau horaire : « ouvert » = « lancé » (le raid se joue à toute heure).
+    const windowOpen = launched
 
     // 1) Déjà participant d'un combat actif (public OU test) → rejoindre ce combat.
     if (playerId) {
@@ -279,7 +281,7 @@ serve(async (req) => {
     const nowMs = Date.now()
     await lazyCleanup(supabase, nowMs)
     if (!isLaunchedServer(nowMs)) return json({ session: null, window: { open: false, launched: false } })
-    if (!isWithinWindowParis(nowMs)) return json({ session: null, window: { open: false, launched: true } })
+    // Plus de créneau horaire : dès que le mode est lancé, on ouvre/rejoint à toute heure.
     // Déjà un LOBBY public en attente → le rejoindre (une seule salle d'attente).
     const { data: existing } = await supabase.from('orienta_raid_sessions')
       .select('*').eq('is_test', false).eq('status', 'waiting').order('created_at', { ascending: false }).limit(1).maybeSingle()

@@ -43,7 +43,7 @@ export default function RaidTeaserBanner() {
           </div>
         )}
         <span className="raid-teaser-banner-cta">{done ? 'Jouer maintenant →' : 'Découvrir le mode →'}</span>
-        <span className="raid-teaser-banner-when">{done ? 'Ouvert chaque jour · 8h30 et 12h' : 'Débloqué lun. 15 juin · 8h'}</span>
+        <span className="raid-teaser-banner-when">{done ? 'Ouvert à toute heure · à plusieurs' : 'Débloqué lun. 15 juin · 8h'}</span>
       </div>
     </Link>
   )

@@ -1,5 +1,7 @@
+import { Link } from 'react-router-dom'
 import { CARD_COLORS } from '../../lib/cardColors'
 import { getMarineItem } from '../../lib/marineItems'
+import { isRaidLaunched } from '../../lib/raid'
 import AvatarFrame from './AvatarFrame'
 
 // Couleur d'avatar déterministe à partir de l'id : un même joueur garde
@@ -62,7 +64,9 @@ export default function OnlinePlayersPanel({ players, currentUserId }) {
           ))}
         </ul>
 
-        <p className="hub-online-foot">Bientôt : jouez ensemble en temps réel.</p>
+        {isRaidLaunched()
+          ? <Link to="/raid" className="hub-online-foot hub-online-foot--cta">⚔️ Jouez ensemble : rejoignez un RAID →</Link>
+          : <p className="hub-online-foot">Bientôt : jouez ensemble en temps réel.</p>}
       </div>
     </aside>
   )

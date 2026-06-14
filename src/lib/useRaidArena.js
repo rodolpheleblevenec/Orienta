@@ -79,7 +79,7 @@ export function useRaidArena(user) {
   }, [call, applyResult])
   fetchViewRef.current = fetchView
 
-  // ── Trouver l'arène ouverte (ou en ouvrir une pendant un créneau public). ──
+  // ── Trouver l'arène ouverte (ou en ouvrir une à toute heure une fois lancé). ──
   useEffect(() => {
     if (!user?.id) return
     let alive = true
@@ -89,8 +89,8 @@ export function useRaidArena(user) {
       if (!alive) return
       if (!error && data?.session) { adopt(data.session); return }
       setWindowInfo(data?.window || null)
-      // Lancé + dans un créneau + aucune arène → ouvrir/rejoindre une arène publique.
-      if (isRaidLaunched() && data?.window?.open) {
+      // Lancé + aucune arène → ouvrir/rejoindre LE lobby public (à toute heure, plus de créneau).
+      if (isRaidLaunched()) {
         const res = await supabase.functions.invoke('raid', { body: { action: 'ensure-public', player_id: user.id } })
         if (!alive) return
         if (res.data?.session) { adopt(res.data.session); return }
