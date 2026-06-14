@@ -23,7 +23,7 @@ export const CHANGELOG = [
       'Victoire fêtée en grand : confettis, équipage en liesse, récap, temps de clear et XP gagné.',
       'Battez le record de la semaine : les équipages les plus rapides sont mis à l\'honneur.',
       'Dès la salle d\'attente : le record à battre et le mur des équipages qui ont tenté leur chance.',
-      'Une toute nouvelle façon de jouer ensemble, en équipe.',
+      'Disponible à toute heure : dès que vous êtes assez nombreux, l\'arène s\'ouvre — à plusieurs, en équipe.',
     ],
   },
   {

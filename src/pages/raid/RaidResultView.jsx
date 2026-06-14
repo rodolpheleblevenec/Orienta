@@ -36,12 +36,12 @@ export default function RaidResultView({ data }) {
     } catch { /* presse-papier indisponible — on ignore silencieusement */ }
   }
 
-  const { session, members, clear_seconds, rank, best_clear_seconds, xp_awarded } = data
-  const won = session.status === 'won'
-  const boss = getBossByKey(session.boss_key)
-  const isTest = session.is_test
+  const { session, members = [], clear_seconds, rank, best_clear_seconds, xp_awarded = 0 } = data || {}
+  const won = session?.status === 'won'
+  const boss = getBossByKey(session?.boss_key)
+  const isTest = session?.is_test
   const isRecord = rank?.position === 1
-  const cleared = session.assault_index ?? 0
+  const cleared = session?.assault_index ?? 0
 
   // Victoire = grand moment (un raid se gagne difficilement) → salve de confettis,
   // renforcée si c'est un nouveau record de la semaine.
@@ -57,6 +57,8 @@ export default function RaidResultView({ data }) {
     if (isRecord) timers.push(setTimeout(() => { cannon(0.2, 70); cannon(0.8, 110) }, 1050))
     return () => timers.forEach(clearTimeout)
   }, [won, isRecord])
+
+  if (!data?.session) return null
 
   return (
     <div className={`raid-res ${won ? 'raid-res--won' : 'raid-res--lost'}`}>

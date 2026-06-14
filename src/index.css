@@ -2162,6 +2162,11 @@ a.hub-online-foot--cta:hover { background: var(--teal); color: #fff; transform: 
   transform: translate(-50%, -50%) scale(1.1);
   opacity: 1;
 }
+/* Tactile : pas de :hover → on révèle en permanence le bouton rotation des cartes
+   POSÉES (sinon Main/Mécanicien ne peuvent pas tourner au doigt — bloquant mobile). */
+@media (hover: none), (pointer: coarse) {
+  .word-card-draggable .word-card-rotate { opacity: 1; }
+}
 /* Rotation dans la réserve : mini-cartes → bouton plus compact, desktop uniquement */
 .card-tray-item .word-card-rotate {
   width: 34px; height: 34px;
@@ -5861,11 +5866,16 @@ a.hub-online-foot--cta:hover { background: var(--teal); color: #fff; transform: 
 .raid-lobby-footer { padding: 14px 20px; border-top: 1px solid var(--line-2); background: var(--bg-tint); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .raid-lobby-footer .raid-ready-btn { min-width: 168px; }
 .raid-lobby-status { font-size: 13px; color: var(--ink-2); margin: 0; }
+/* Joueurs en surplus (tous les rôles pris) : en renfort pour la prochaine arène. */
+.raid-lobby-renfort { padding: 10px 20px; border-top: 1px dashed var(--line-2); display: flex; flex-direction: column; gap: 4px; }
+.raid-lobby-renfort-me { margin: 0; font-size: 13px; color: var(--ink-2); }
+.raid-lobby-renfort-list { font-size: 12px; font-weight: 700; color: var(--teal-700); }
 
 /* Décompte plein écran */
 .raid-countdown-overlay { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; background: rgba(8,16,30,.74); backdrop-filter: blur(5px); }
 .raid-countdown-card { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .raid-countdown-label { font-weight: 700; font-size: 18px; color: rgba(255,255,255,.92); }
+.raid-countdown-err { font-size: 14px; font-weight: 600; max-width: 320px; color: #ffd7cf; }
 .raid-countdown-num { font-family: var(--display); font-size: 120px; font-weight: 800; line-height: 1; color: #fff; text-shadow: 0 6px 36px rgba(79,214,160,.55); }
 .raid-countdown-hint { font-size: 13px; color: rgba(255,255,255,.7); }
 .raid-countdown-cancel { margin-top: 10px; background: rgba(255,255,255,.16); color: #fff; border: 1px solid rgba(255,255,255,.45); border-radius: var(--r-pill); padding: 9px 24px; font-weight: 700; font-size: 14px; cursor: pointer; transition: background .15s; }

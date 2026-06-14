@@ -26,7 +26,6 @@ export default function RaidMonsterVideo({ boss, hitSignal = 0, attackSignal = 0
   // ne prend le dessus QUE s'il se charge réellement (onLoad). Indispensable car
   // l'hébergement réécrit les chemins inconnus vers index.html (le poster « 200 » mais
   // n'est pas une image) → sans ça, la baleine ne se montait jamais de façon fiable.
-  const [posterOk, setPosterOk] = useState(false)
   const [idleOk, setIdleOk] = useState(false)
 
   // Contre-attaque du boss → si un clip 'attack' existe, on le joue une fois
@@ -42,15 +41,16 @@ export default function RaidMonsterVideo({ boss, hitSignal = 0, attackSignal = 0
     return () => a.removeEventListener('ended', hide)
   }, [attackSignal]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Un vrai média est-il visible ? Sinon → boss de remplacement.
-  const hasMedia = (clips.poster && posterOk) || (clips.idle && idleOk)
+  // Média « prêt » UNIQUEMENT si une idle vidéo (animée) est jouable. Un poster SEUL ne
+  // remplace pas la baleine dessinée (RaidWhale, animée + réactive au combat + agonie) :
+  // sinon, ajouter un poster figerait le boss et tuerait la cinématique de victoire.
+  const hasMedia = !!(clips.idle && idleOk)
 
   return (
     <div className="raid-bossvid" data-teaser={teaser ? 'true' : 'false'}>
-      {clips.poster && (
-        <img className="raid-bossvid-layer raid-bossvid-poster" src={clips.poster} alt="" aria-hidden="true"
-          onLoad={() => setPosterOk(true)} onError={() => setPosterOk(false)} />
-      )}
+      {/* Poster utilisé seulement comme 1ʳᵉ frame de l'idle vidéo (attribut `poster`
+          ci-dessous). Seul (sans idle), il ne s'affiche pas → la baleine animée tient
+          la scène et reste réactive au combat. */}
       {clips.idle && (
         <video
           className="raid-bossvid-layer"

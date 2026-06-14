@@ -219,6 +219,7 @@ const BOSS_RENDERERS = {
   crabe: BossCrabe,
   pieuvre: BossPieuvre,
   requin: BossRequin,
+  rorqual: BossRequin, // filet de sécurité (créature marine) — rorqual route normalement vers la vidéo (RaidWhale)
   leviathan: BossLeviathan,
 }
 

@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { Link } from 'react-router-dom'
 import Header from '../../components/ui/Header'
 import { useCountdown } from '../../lib/useCountdown'
-import { RAID_LAUNCH_AT } from '../../lib/raid'
+import { RAID_LAUNCH_AT, BOSSES } from '../../lib/raid'
 
 // Boss RAID : 3D (modèle .glb) si dispo, sinon scène 2D vectorielle (aiguilleur).
 import RaidMonster from '../../components/raid/RaidMonster'
@@ -37,7 +37,7 @@ export default function RaidTeaserPage() {
         <section className="raid-teaser-hero">
           <div className="raid-teaser-hero-3d">
             <Suspense fallback={<div className="raid-teaser-hero-loading">Les abysses s’éveillent…</div>}>
-              <RaidMonster teaser crew={[]} boss="crabe" />
+              <RaidMonster teaser crew={[]} boss={BOSSES[0].key} />
             </Suspense>
           </div>
           <span className="raid-teaser-hero-veil" aria-hidden="true" />
@@ -63,7 +63,7 @@ export default function RaidTeaserPage() {
               </div>
             )}
 
-            <p className="raid-teaser-when">⏳ Ouverture lundi 15 juin à 8h</p>
+            {!done && <p className="raid-teaser-when">⏳ Ouverture lundi 15 juin à 8h</p>}
 
             {done ? (
               <Link to="/raid" className="raid-teaser-cta">Entrer dans l’arène →</Link>

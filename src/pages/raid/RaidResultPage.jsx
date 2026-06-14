@@ -17,19 +17,20 @@ export default function RaidResultPage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [inProgress, setInProgress] = useState(false)
 
   useEffect(() => {
     let alive = true
-    setLoading(true); setError(false)
+    setLoading(true); setError(false); setInProgress(false)
     ;(async () => {
       const { data: res, error: err } = await supabase.functions.invoke('raid', {
         body: { action: 'result', session_id: sessionId },
       })
       if (!alive) return
       if (err || !res?.session) { setError(true); setLoading(false); return }
-      // Session pas encore terminée → renvoyer vers l'arène (rien à célébrer).
+      // Session pas encore terminée → on l'indique (au lieu d'une redirection muette).
       if (res.session.status !== 'won' && res.session.status !== 'lost') {
-        navigate('/raid', { replace: true }); return
+        setInProgress(true); setLoading(false); return
       }
       setData(res); setLoading(false)
     })()
@@ -38,6 +39,24 @@ export default function RaidResultPage() {
 
   if (loading) {
     return (<><Header /><main className="raid-page"><div className="raid-loading">Chargement du résultat…</div></main></>)
+  }
+  if (inProgress) {
+    return (
+      <>
+        <Header />
+        <main className="raid-page">
+          <div className="raid-res raid-res--lost">
+            <div className="raid-res-emoji">⚔️</div>
+            <h1 className="raid-h1">Ce raid est encore en cours</h1>
+            <p className="raid-sub">Le combat n’est pas terminé — le résultat s’affichera une fois l’assaut final joué.</p>
+            <div className="raid-res-actions">
+              <button className="btn-primary" onClick={() => navigate('/raid')}>Rejoindre l’arène</button>
+              <button className="btn-secondary" onClick={() => navigate('/hub')}>Retour au hub</button>
+            </div>
+          </div>
+        </main>
+      </>
+    )
   }
   if (error || !data) {
     return (

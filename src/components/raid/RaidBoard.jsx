@@ -66,9 +66,9 @@ export default function RaidBoard({
     useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 8 } }),
   )
 
-  const placedHandles = Object.values(board).map(c => c.handle)
+  const placedHandles = Object.values(board).filter(Boolean).map(c => c.handle).filter(Boolean)
   const tray = cardOrder.filter(h => !placedHandles.includes(h))
-  const slotOfHandle = (h) => Object.keys(board).find(s => board[s].handle === h)
+  const slotOfHandle = (h) => Object.keys(board).find(s => board[s]?.handle === h)
 
   // Mots affichés pour une carte : réels si autorisé, sinon placeholders flottés.
   const cardFor = (handle) => {
@@ -156,7 +156,7 @@ export default function RaidBoard({
         <Tray handles={tray} interactive cardFor={cardFor} blurWords={blurWords} />
       </div>
       <DragOverlay>
-        {activeHandle != null && (
+        {activeHandle != null && cardOrder.includes(activeHandle) && (
           <WordCard id="raid-overlay" card={cardFor(activeHandle)} blur={blurWords} colorIndex={handleIndex(activeHandle)}
             rotation={board[slotOfHandle(activeHandle)]?.rotation ?? 0} draggable={false} />
         )}

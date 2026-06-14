@@ -154,6 +154,7 @@ export default function RaidStrikes({ crew = [], hitSignal = 0, attackSignal = 0
   const [volleys, setVolleys] = useState([])
   const [waves, setWaves] = useState([])
   const seq = useRef(0)
+  const timersRef = useRef([])
 
   const members = crew.filter((c) => c && c.role)
 
@@ -164,15 +165,19 @@ export default function RaidStrikes({ crew = [], hitSignal = 0, attackSignal = 0
     if (reduce || teaser || hitSignal <= 0 || members.length === 0) return
     const id = ++seq.current
     setVolleys((v) => [...v, { id, members }])
-    setTimeout(() => setVolleys((v) => v.filter((x) => x.id !== id)), TRAVEL_HIT)
+    timersRef.current.push(setTimeout(() => setVolleys((v) => v.filter((x) => x.id !== id)), TRAVEL_HIT))
   }, [hitSignal]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (reduce || teaser || attackSignal <= 0) return
     const id = ++seq.current
     setWaves((w) => [...w, { id }])
-    setTimeout(() => setWaves((w) => w.filter((x) => x.id !== id)), TRAVEL_ATK)
+    timersRef.current.push(setTimeout(() => setWaves((w) => w.filter((x) => x.id !== id)), TRAVEL_ATK))
   }, [attackSignal]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Nettoyage au DÉMONTAGE seulement (pas par signal, pour ne pas couper une salve en
+  // cours) → évite les setState après démontage lors de la bascule vers /raid/resultat.
+  useEffect(() => () => { timersRef.current.forEach(clearTimeout) }, [])
 
   // En teaser, pas d'équipage. Sinon on rend toujours les postes d'équipage
   // (présence permanente) ; seules les salves/ondes sont coupées en reduced-motion.

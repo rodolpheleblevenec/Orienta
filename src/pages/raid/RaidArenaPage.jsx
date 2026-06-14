@@ -219,7 +219,8 @@ export default function RaidArenaPage() {
     )
   }
 
-  // ── Combat déjà lancé sans moi : je peux ouvrir une arène EN PARALLÈLE. ──
+  // ── Combat déjà lancé sans moi (surplus) : le hook me bascule automatiquement vers
+  //    une nouvelle arène (rappel de find/ensure-public) ; bouton de secours au cas où. ──
   if (!role && spectator) {
     return (
       <>
@@ -228,8 +229,8 @@ export default function RaidArenaPage() {
           <div className="raid-empty">
             <div className="raid-empty-emoji">{boss.emoji}</div>
             <h1 className="raid-h1">Ce combat a démarré sans toi</h1>
-            <p className="raid-sub">L’équipage est déjà aux prises avec {boss.name}. Tu peux lancer une <b>nouvelle arène en parallèle</b> avec d’autres joueurs connectés.</p>
-            <button className="btn-primary" onClick={() => window.location.reload()}>Ouvrir une nouvelle arène</button>
+            <p className="raid-sub">L’équipage est déjà aux prises avec {boss.name}. On te place dans une <b>nouvelle arène</b> pour former un nouvel équipage…</p>
+            <button className="btn-primary" onClick={() => window.location.reload()}>Rejoindre une nouvelle arène</button>
           </div>
         </main>
       </>

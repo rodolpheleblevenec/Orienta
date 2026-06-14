@@ -30,7 +30,7 @@ export default function RaidChat({ chat, onSend, me }) {
       <div className="rchat-log" ref={logRef}>
         {chat.length === 0 && <p className="rchat-empty">Parlez-vous : qui voit quoi, qui pose quoi, qui tourne…</p>}
         {chat.map((m, i) => {
-          const mine = m.pseudo === me?.pseudo
+          const mine = me?.user_id != null && m.user_id != null ? m.user_id === me.user_id : m.pseudo === me?.pseudo
           const org = m.role ? ORGANS[m.role] : null
           const prev = chat[i - 1]
           const grouped = prev && prev.pseudo === m.pseudo && (m.ts - prev.ts < 90000)

@@ -10,6 +10,21 @@ import { isRaidLaunched } from './raid'
 //     cartes, chat, partage des couleurs, et sync de la session.
 //   • Edge Function `raid` UNIQUEMENT pour le rare/autoritaire : find / open-test /
 //     start / view (vue scoped) / validate / timeout.
+// Sanitise un plateau reçu par Broadcast (non fiable) : ne garde que des cellules
+// { handle:string, rotation:number } pour les slots 0..3 → pas de crash si payload malformé.
+function sanitizeBoard(b) {
+  const out = {}
+  if (b && typeof b === 'object') {
+    for (const k of ['0', '1', '2', '3']) {
+      const c = b[k]
+      if (c && typeof c === 'object' && typeof c.handle === 'string') {
+        out[k] = { handle: c.handle, rotation: Number(c.rotation) || 0 }
+      }
+    }
+  }
+  return out
+}
+
 export function useRaidArena(user) {
   const [sessionId, setSessionId] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -80,26 +95,31 @@ export function useRaidArena(user) {
   fetchViewRef.current = fetchView
 
   // ── Trouver l'arène ouverte (ou en ouvrir une à toute heure une fois lancé). ──
+  // Réutilisable : appelé au montage ET quand un combat démarre sans moi (surplus) →
+  // ensure-public ouvre/rejoint alors un NOUVEAU lobby d'attente (sessions parallèles).
+  const findArena = useCallback(async (isAlive = () => true) => {
+    if (!user?.id) return
+    const adopt = (s) => { if (!isAlive()) return; pubRef.current = s; setPub(s); setSessionId(s.id); setNoArena(false); setLoading(false) }
+    const { data, error } = await supabase.functions.invoke('raid', { body: { action: 'find', player_id: user.id } })
+    if (!isAlive()) return
+    if (!error && data?.session) { adopt(data.session); return }
+    setWindowInfo(data?.window || null)
+    // Lancé + aucune arène → ouvrir/rejoindre LE lobby public (à toute heure, plus de créneau).
+    if (isRaidLaunched()) {
+      const res = await supabase.functions.invoke('raid', { body: { action: 'ensure-public', player_id: user.id } })
+      if (!isAlive()) return
+      if (res.data?.session) { adopt(res.data.session); return }
+      if (res.data?.window) setWindowInfo(res.data.window)
+    }
+    setNoArena(true); setLoading(false)
+  }, [user?.id])
+
   useEffect(() => {
     if (!user?.id) return
     let alive = true
-    const adopt = (s) => { pubRef.current = s; setPub(s); setSessionId(s.id); setLoading(false) }
-    ;(async () => {
-      const { data, error } = await supabase.functions.invoke('raid', { body: { action: 'find', player_id: user.id } })
-      if (!alive) return
-      if (!error && data?.session) { adopt(data.session); return }
-      setWindowInfo(data?.window || null)
-      // Lancé + aucune arène → ouvrir/rejoindre LE lobby public (à toute heure, plus de créneau).
-      if (isRaidLaunched()) {
-        const res = await supabase.functions.invoke('raid', { body: { action: 'ensure-public', player_id: user.id } })
-        if (!alive) return
-        if (res.data?.session) { adopt(res.data.session); return }
-        if (res.data?.window) setWindowInfo(res.data.window)
-      }
-      setNoArena(true); setLoading(false)
-    })()
+    findArena(() => alive)
     return () => { alive = false }
-  }, [user?.id])
+  }, [user?.id, findArena])
 
   // Hall of Fame d'un niveau (semaine) — lecture seule.
   const fetchHof = useCallback(async (level) => {
@@ -150,7 +170,7 @@ export function useRaidArena(user) {
         if (payload.status === 'active') fetchViewRef.current()
       }
     })
-    channel.on('broadcast', { event: 'board' }, ({ payload }) => setBoard(payload.board || {}))
+    channel.on('broadcast', { event: 'board' }, ({ payload }) => setBoard(sanitizeBoard(payload?.board)))
     channel.on('broadcast', { event: 'chat' }, ({ payload }) => setChat(c => [...c.slice(-80), payload]))
     channel.on('broadcast', { event: 'feedback' }, ({ payload }) => setSharedFeedback(payload.fb || null))
 
@@ -179,6 +199,18 @@ export function useRaidArena(user) {
   useEffect(() => {
     if (status === 'active' && !view.clues && !view.words && serverMe == null) fetchView()
   }, [status]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Surplus : le combat a démarré sans moi (aucun rôle) → me reverser dans une nouvelle
+  // arène. La session en cours étant 'active', ensure-public ouvre/rejoint un NOUVEAU
+  // lobby d'attente (modèle parallèle) où je pourrai prendre un rôle.
+  useEffect(() => {
+    if (status !== 'active' || myRole || serverMe) return
+    const t = setTimeout(() => {
+      if (myRoleRef.current || pubRef.current?.status !== 'active') return
+      findArena()
+    }, 2600)
+    return () => clearTimeout(t)
+  }, [status, myRole, serverMe, findArena])
 
   const broadcast = useCallback((event, payload) => channelRef.current?.send({ type: 'broadcast', event, payload }), [])
   const broadcastLobby = useCallback((r, rdy) => {
@@ -232,7 +264,7 @@ export function useRaidArena(user) {
   const sendChat = useCallback((text) => {
     const t = String(text || '').trim().slice(0, 240)
     if (!t) return
-    const msg = { pseudo: user?.pseudo, text: t, ts: Date.now(), role: roleRef.current }
+    const msg = { user_id: user?.id, pseudo: user?.pseudo, text: t, ts: Date.now(), role: roleRef.current }
     setChat(c => [...c.slice(-80), msg])
     broadcast('chat', msg)
   }, [broadcast, user?.pseudo])

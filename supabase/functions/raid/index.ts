@@ -42,7 +42,9 @@ const canSeeFeedback = (r: string) => r === 'capitaine'
 const canValidate    = (r: string) => r === 'capitaine'
 
 const BOSSES = [
-  { key: 'meduse', assault_count: 3 }, { key: 'crabe', assault_count: 3 },
+  // S1 = rorqual (baleine) — aligné sur le client (lib/raid BOSSES[0]) pour que le
+  // boss_key stocké corresponde directement, sans dépendre du fallback getBossByKey.
+  { key: 'rorqual', assault_count: 3 }, { key: 'crabe', assault_count: 3 },
   { key: 'pieuvre', assault_count: 3 }, { key: 'requin', assault_count: 3 },
   { key: 'leviathan', assault_count: 4 },
 ]

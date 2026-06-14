@@ -12,35 +12,42 @@ function Avatar({ pseudo, me }) {
   )
 }
 
-// Salle d'attente : enrôlement de l'équipage (organes du palier = effectif).
-// Quand tout le monde est prêt, un décompte lance automatiquement.
-export default function RosterBoard({ boss, roster, me, actions, busy, minPlayers = MIN_PLAYERS }) {
-  const count = roster.length
-  const organs = getOrgansForTier(count)
+// Salle d'attente : enrôlement de l'équipage. Le lobby est FIGÉ au palier 3 (Œil /
+// Main / Capitaine) : premiers arrivés, premiers servis. Les joueurs en surplus (tous
+// les rôles déjà pris) restent « en renfort » → ils basculent automatiquement dans la
+// prochaine arène dès que cet équipage embarque (sessions parallèles). Quand les 3
+// rôles sont pris ET prêts, un décompte lance automatiquement.
+export default function RosterBoard({ boss, roster, me, actions, busy }) {
+  const count = roster.length                          // connectés (affichage)
+  const organs = getOrgansForTier(MIN_PLAYERS)         // ['oeil','main','capitaine']
   const byRole = {}
   for (const p of roster) if (p.role) byRole[p.role] = p
 
   const myRole = me?.role ?? null
-  const readyCount = roster.filter(p => p.is_ready).length
+  const claimed = roster.filter(p => p.role)           // les seuls qui jouent
+  const reinforcements = roster.filter(p => !p.role)   // en attente d'une place
+  const readyCount = claimed.filter(p => p.is_ready).length
   const allClaimed = organs.every(r => byRole[r])
-  const allReady = count > 0 && roster.every(p => p.is_ready)
-  const enoughPlayers = count >= minPlayers
-  // Le compteur de prêts est toujours « sur minPlayers » au minimum (il faut ce minimum
-  // pour lancer) — sinon « 1/1 » laisse croire que tout est prêt avec un seul joueur.
-  const target = Math.max(count, minPlayers)
-  const canLaunch = enoughPlayers && allClaimed && allReady
+  const allReady = claimed.length === organs.length && claimed.every(p => p.is_ready)
+  const target = organs.length                         // 3 postes à pourvoir
+  const canLaunch = allClaimed && allReady
 
-  // Décompte automatique : démarre quand tout le monde est prêt, s'annule sinon.
+  // Décompte automatique : démarre quand les 3 rôles sont prêts, s'annule sinon.
   const [countdown, setCountdown] = useState(null)
+  const [launchError, setLaunchError] = useState(null)
   useEffect(() => {
-    if (!canLaunch) { setCountdown(null); return }
+    if (!canLaunch) { setCountdown(null); setLaunchError(null); return }
     setCountdown(COUNTDOWN)
     const iv = setInterval(() => {
       setCountdown(c => {
         if (c <= 1) {
           clearInterval(iv)
-          const lowest = [...roster].sort((a, b) => String(a.user_id).localeCompare(String(b.user_id)))[0]
-          if (lowest && me?.user_id === lowest.user_id) actions.startGame()
+          // Un seul lanceur : le plus petit user_id PARMI LES PORTEURS DE RÔLE (jamais
+          // un joueur en renfort). Le serveur est idempotent ; on remonte l'erreur.
+          const lowest = [...claimed].sort((a, b) => String(a.user_id).localeCompare(String(b.user_id)))[0]
+          if (lowest && me?.user_id === lowest.user_id) {
+            Promise.resolve(actions.startGame()).then(res => { if (res?.error) setLaunchError(res.error) })
+          }
           return 0
         }
         return c - 1
@@ -49,12 +56,13 @@ export default function RosterBoard({ boss, roster, me, actions, busy, minPlayer
     return () => clearInterval(iv)
   }, [canLaunch]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const status = !enoughPlayers
-    ? `En attente de ${minPlayers - count} joueur·s de plus…`
-    : !myRole ? 'Choisis ton organe pour pouvoir te déclarer prêt'
-      : !allClaimed ? 'Il reste des organes à couvrir'
-        : !allReady ? `En attente : ${count - readyCount} joueur·s pas encore prêt·s`
-          : 'Tout le monde est prêt !'
+  const missing = organs.length - claimed.length
+  const notReady = claimed.length - readyCount
+  const status = !allClaimed
+    ? (myRole ? `Il reste ${missing} organe${missing > 1 ? 's' : ''} à couvrir` : 'Choisis ton organe pour rejoindre l’équipage')
+    : !allReady
+      ? `En attente : ${notReady} membre${notReady > 1 ? 's' : ''} pas encore prêt${notReady > 1 ? 's' : ''}`
+      : 'Tout le monde est prêt !'
 
   return (
     <div className="raid-lobby-main">
@@ -62,15 +70,15 @@ export default function RosterBoard({ boss, roster, me, actions, busy, minPlayer
         <span className="raid-lobby-emoji">{boss?.emoji}</span>
         <div className="raid-lobby-bannertext">
           <h1 className="raid-lobby-title">{boss?.name}</h1>
-          <p className="raid-lobby-sub">Salle d’attente — couvrez tous les organes, puis « Prêt »</p>
+          <p className="raid-lobby-sub">Salle d’attente — couvrez les 3 rôles, puis « Prêt »</p>
         </div>
         <div className="raid-lobby-meta">
           <span className="raid-lobby-players">👥 {count}</span>
           <span className="raid-lobby-readytxt">{readyCount}/{target} prêts</span>
           <span className="raid-lobby-dots">
-            {Array.from({ length: target }, (_, i) => {
-              const p = roster[i]
-              return <i key={i} className={`raid-dot${p ? (p.is_ready ? ' raid-dot--on' : '') : ' raid-dot--empty'}`} />
+            {organs.map((r) => {
+              const h = byRole[r]
+              return <i key={r} className={`raid-dot${h ? (h.is_ready ? ' raid-dot--on' : '') : ' raid-dot--empty'}`} />
             })}
           </span>
         </div>
@@ -112,6 +120,17 @@ export default function RosterBoard({ boss, roster, me, actions, busy, minPlayer
         })}
       </div>
 
+      {reinforcements.length > 0 && (
+        <div className="raid-lobby-renfort">
+          {!myRole && (
+            <p className="raid-lobby-renfort-me">
+              Tous les rôles sont pris — tu rejoindras la <b>prochaine arène</b> dès que cet équipage embarque.
+            </p>
+          )}
+          <span className="raid-lobby-renfort-list">🛟 En renfort : {reinforcements.map(p => p.pseudo).join(', ')}</span>
+        </div>
+      )}
+
       <div className="raid-lobby-footer">
         <button
           type="button"
@@ -127,9 +146,23 @@ export default function RosterBoard({ boss, roster, me, actions, busy, minPlayer
       {countdown !== null && (
         <div className="raid-countdown-overlay" role="status">
           <div className="raid-countdown-card">
-            <span className="raid-countdown-label">{busy ? 'Lancement…' : 'Le raid commence dans'}</span>
-            <span className="raid-countdown-num">{countdown}</span>
-            <button type="button" className="raid-countdown-cancel" onClick={() => actions.setReady(false)}>✕ Annuler</button>
+            {launchError ? (
+              <>
+                <span className="raid-countdown-label">Lancement impossible</span>
+                <span className="raid-countdown-err">
+                  {launchError === 'invalid_roster'
+                    ? 'Équipage incomplet — vérifiez que les 3 rôles sont bien pris.'
+                    : 'Un souci est survenu. Réessayez dans un instant.'}
+                </span>
+                <button type="button" className="raid-countdown-cancel" onClick={() => { setLaunchError(null); actions.setReady(false) }}>Fermer</button>
+              </>
+            ) : (
+              <>
+                <span className="raid-countdown-label">{busy ? 'Lancement…' : 'Le raid commence dans'}</span>
+                {!busy && <span className="raid-countdown-num">{countdown}</span>}
+                <button type="button" className="raid-countdown-cancel" onClick={() => actions.setReady(false)}>✕ Annuler</button>
+              </>
+            )}
           </div>
         </div>
       )}
