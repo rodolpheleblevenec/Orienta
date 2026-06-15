@@ -65,7 +65,7 @@ export default function OnlinePlayersPanel({ players, currentUserId }) {
         </ul>
 
         {isRaidLaunched()
-          ? <Link to="/raid" className="hub-online-foot hub-online-foot--cta">⚔️ Jouez ensemble : rejoignez un RAID →</Link>
+          ? <Link to="/raid" className="hub-online-foot hub-online-foot--cta">⚔️ Jouez ensemble : rejoignez un RAID</Link>
           : <p className="hub-online-foot">Bientôt : jouez ensemble en temps réel.</p>}
       </div>
     </aside>

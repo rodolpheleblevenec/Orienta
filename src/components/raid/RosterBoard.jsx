@@ -120,7 +120,7 @@ export default function RosterBoard({ boss, roster, me, actions, busy }) {
         })}
       </div>
 
-      {reinforcements.length > 0 && (
+      {allClaimed && reinforcements.length > 0 && (
         <div className="raid-lobby-renfort">
           {!myRole && (
             <p className="raid-lobby-renfort-me">
