@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react'
-import { ORGANS, getOrgansForTier, MIN_PLAYERS } from '../../lib/raid'
+import { ORGANS, getOrgansForTier, organPowers, MIN_PLAYERS } from '../../lib/raid'
 
 const COUNTDOWN = 5
 const hueOf = (s) => { let h = 0; for (let i = 0; i < (s || '').length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return h }
+
+// Rend « **gras** » → <b>gras</b> dans les libellés de pouvoirs.
+function richText(s) {
+  return String(s).split(/\*\*(.+?)\*\*/g).map((p, i) => (i % 2 ? <b key={i}>{p}</b> : p))
+}
+const POWER_KEY = { see: '👁 Voit', do: '✋ Fait', blind: '🚫 Aveugle' }
 
 function Avatar({ pseudo, me }) {
   return (
@@ -99,11 +105,22 @@ export default function RosterBoard({ boss, roster, me, actions, busy }) {
               disabled={!free && !mine}
               title={o.blurb}
             >
+              {mine && <span className="raid-orgcard-flag">Ton rôle</span>}
               <div className="raid-orgcard-top">
                 <span className="raid-orgcard-emoji">{o.emoji}</span>
-                <span className="raid-orgcard-name">{o.label}</span>
+                <span className="raid-orgcard-titles">
+                  <span className="raid-orgcard-name">{o.label}</span>
+                  {o.tagline && <span className="raid-orgcard-tagline">{o.tagline}</span>}
+                </span>
               </div>
-              <p className="raid-orgcard-desc">{o.blurb}</p>
+              <div className="raid-orgcard-powers">
+                {organPowers(key).map((p, i) => (
+                  <div key={i} className={`raid-power raid-power--${p.kind}`}>
+                    <span className="raid-power-key">{POWER_KEY[p.kind]}</span>
+                    <span className="raid-power-txt">{richText(p.text)}</span>
+                  </div>
+                ))}
+              </div>
               <div className="raid-orgcard-holder">
                 {holder ? (
                   <>
@@ -112,7 +129,7 @@ export default function RosterBoard({ boss, roster, me, actions, busy }) {
                     {holder.is_ready && <span className="raid-orgcard-ready">✓ prêt</span>}
                   </>
                 ) : (
-                  <span className="raid-orgcard-take">+ Prendre ce rôle</span>
+                  <span className="raid-orgcard-take">＋ Prendre ce rôle</span>
                 )}
               </div>
             </button>

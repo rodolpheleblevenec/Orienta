@@ -1,0 +1,217 @@
+/* ══════════════════════════════════════════════════════════════
+   Orienta — Component styles
+   Faithful, cleaned-up port of the production component classes
+   (src/index.css). Everything here is reachable from styles.css and
+   therefore ships to consumers. Visuals come from design tokens.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Button ──────────────────────────────────────────────────
+   Primary CTA is a teal pill in the display face — the loudest,
+   roundest thing on screen. Secondary is a quiet outlined chip,
+   ghost is bare. */
+.o-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--display); font-weight: 700; font-size: 16px;
+  border: none; border-radius: var(--r-pill); cursor: pointer;
+  padding: 14px 24px; line-height: 1;
+  text-decoration: none; white-space: nowrap;
+  transition: background var(--dur-fast), transform var(--dur-fast), box-shadow var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast);
+}
+.o-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+.o-btn--primary { background: var(--teal); color: #fff; box-shadow: 0 6px 24px -6px rgba(10,158,132,0.55); }
+.o-btn--primary:hover { background: var(--teal-700); transform: translateY(-2px); box-shadow: 0 12px 28px -8px rgba(10,158,132,0.50); }
+.o-btn--primary:active { transform: none; box-shadow: 0 4px 14px -6px rgba(10,158,132,0.55); }
+.o-btn--secondary { background: var(--card); color: var(--ink); border: 1.5px solid var(--line); box-shadow: var(--shadow-xs); }
+.o-btn--secondary:hover { border-color: var(--teal); color: var(--teal); transform: translateY(-2px); }
+.o-btn--ghost { background: transparent; color: var(--ink-2); }
+.o-btn--ghost:hover { background: var(--bg-tint); color: var(--ink); }
+.o-btn--sm { padding: 9px 16px; font-size: 14px; }
+.o-btn--lg { padding: 16px 28px; font-size: 17px; }
+.o-btn:disabled, .o-btn[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; pointer-events: none; }
+
+/* ── Icon button ─────────────────────────────────────────────*/
+.o-iconbtn {
+  width: 38px; height: 38px; border-radius: 11px; border: none;
+  background: transparent; color: var(--ink-2); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  position: relative; flex-shrink: 0; transition: background var(--dur-fast), color var(--dur-fast);
+}
+.o-iconbtn:hover { background: var(--bg-tint); color: var(--ink); }
+.o-iconbtn svg { width: 19px; height: 19px; }
+.o-iconbtn--active { background: var(--teal-soft); color: var(--teal); }
+
+/* Notification dot on an icon button */
+.o-iconbtn-badge {
+  position: absolute; top: -3px; right: -3px;
+  min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
+  background: var(--coral); color: #fff;
+  font-family: var(--sans); font-size: 10px; font-weight: 700; line-height: 16px;
+  display: flex; align-items: center; justify-content: center; pointer-events: none;
+}
+
+/* ── Stat pill (header currency / streak chips) ──────────────
+   Display face, fully round, tinted by meaning. */
+.o-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--display); font-weight: 700; font-size: 14px;
+  padding: 7px 12px; border-radius: var(--r-pill);
+  border: none; cursor: pointer; text-decoration: none;
+  color: var(--ink-2); background: var(--bg-tint);
+  transition: opacity var(--dur-fast);
+}
+.o-pill:hover { opacity: 0.85; }
+.o-pill svg { width: 15px; height: 15px; flex-shrink: 0; }
+.o-pill--streak { color: var(--coral); background: var(--coral-soft); }
+.o-pill--jetons { color: var(--amber); background: var(--amber-soft); }
+.o-pill--teal   { color: var(--teal-700); background: var(--teal-soft); }
+.o-pill--static { cursor: default; }
+.o-pill--static:hover { opacity: 1; }
+
+/* ── Badge (status) ──────────────────────────────────────────*/
+.o-badge {
+  display: inline-block; font-family: var(--display); font-weight: 700;
+  font-size: 11px; line-height: 1.4; white-space: nowrap;
+  padding: 3px 9px; border-radius: var(--r-pill);
+  color: var(--ink-2); background: var(--bg);
+}
+.o-badge--success { color: var(--teal-700); background: var(--teal-soft); }
+.o-badge--warning { color: var(--amber);    background: var(--orange-soft); }
+.o-badge--info    { color: var(--blue);     background: var(--blue-soft); }
+.o-badge--danger  { color: var(--coral);    background: var(--coral-soft); }
+
+/* ── Card (surface) ──────────────────────────────────────────*/
+.o-card {
+  background: var(--card); border-radius: var(--r);
+  border: 1px solid var(--line); box-shadow: var(--shadow-sm);
+  padding: 22px;
+}
+.o-card--flat { box-shadow: none; }
+.o-card--raised { box-shadow: var(--shadow); }
+.o-card--interactive { cursor: pointer; transition: transform var(--dur), box-shadow var(--dur), border-color var(--dur); }
+.o-card--interactive:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: var(--teal); }
+
+/* ── Text input ──────────────────────────────────────────────*/
+.o-input {
+  width: 100%; box-sizing: border-box;
+  background: var(--bg-tint); border: 1.5px solid var(--line);
+  border-radius: var(--r-sm); padding: 13px 16px;
+  color: var(--ink); font-family: var(--sans); font-size: 16px;
+  outline: none; transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+}
+.o-input::placeholder { color: var(--ink-3); }
+.o-input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(10,158,132,0.12); }
+.o-input:disabled { opacity: 0.5; cursor: not-allowed; }
+.o-input--error { border-color: var(--coral); }
+.o-input--error:focus { box-shadow: 0 0 0 3px rgba(242,96,63,0.12); }
+.o-field { display: flex; flex-direction: column; gap: 7px; }
+.o-field-label {
+  font-family: var(--sans); font-size: 12px; font-weight: 600; color: var(--ink-2);
+  text-transform: uppercase; letter-spacing: var(--tracking-eyebrow);
+}
+.o-field-hint { font-size: 12px; color: var(--ink-3); }
+.o-field-hint--error { color: var(--coral); }
+
+/* ── Avatar ──────────────────────────────────────────────────*/
+.o-avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--r-pill); flex-shrink: 0; overflow: hidden;
+  color: #fff; font-family: var(--display); font-weight: 700;
+  background: var(--teal); line-height: 1; user-select: none;
+}
+.o-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.o-avatar--square { border-radius: 13px; }
+.o-avatar--emoji { background: var(--bg-tint); }
+
+/* ── XP gauge ────────────────────────────────────────────────
+   A progress card: mascot + level on the left, a thin rounded
+   track below filling teal→bright-teal. */
+.o-gauge { display: flex; flex-direction: column; gap: 12px; }
+.o-gauge-head { display: flex; align-items: center; gap: 13px; }
+.o-gauge-mascot {
+  width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
+  background: var(--teal-soft); display: flex; align-items: center; justify-content: center;
+  font-size: 26px; line-height: 1;
+}
+.o-gauge-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.o-gauge-eyebrow {
+  font-family: var(--sans); font-size: 11px; font-weight: 600; color: var(--ink-3);
+  text-transform: uppercase; letter-spacing: var(--tracking-eyebrow);
+}
+.o-gauge-level { font-family: var(--display); font-weight: 700; font-size: 15px; color: var(--ink); }
+.o-gauge-xp { font-family: var(--sans); font-size: 12px; color: var(--ink-2); }
+.o-gauge-chevron { margin-left: auto; color: var(--ink-3); font-size: 18px; align-self: center; }
+.o-gauge-track { height: 8px; border-radius: var(--r-pill); background: var(--bg-surface); overflow: hidden; }
+.o-gauge-fill { height: 100%; border-radius: var(--r-pill); background: linear-gradient(90deg, var(--teal), #00E8B8); transition: width 1s var(--ease); }
+.o-gauge-next { font-family: var(--sans); font-size: 12px; color: var(--ink-2); }
+
+/* ── Section kicker (numbered part heading) ──────────────────
+   The hub's "01 — La grille du jour" rhythm device. */
+.o-kicker { display: flex; align-items: center; gap: 14px; }
+.o-kicker-label { display: inline-flex; align-items: baseline; gap: 10px; font-family: var(--display); font-weight: 800; font-size: 17px; color: var(--ink); letter-spacing: var(--tracking-tight); white-space: nowrap; }
+.o-kicker-num { font-size: 13px; font-weight: 700; color: var(--teal); font-variant-numeric: tabular-nums; }
+.o-kicker-rule { flex: 1; height: 1px; background: var(--line); }
+
+/* ════════════════════════════════════════════════════════════
+   GAME — the rotating 4-word puzzle card and its board
+   ════════════════════════════════════════════════════════════ */
+
+/* A single card: white, identity-tinted border + words, 4 words
+   pinned to the four edges, an identity chip top-left. Slot size is
+   driven by --slot-size so the same markup scales from board to mini. */
+.o-wordcard {
+  position: relative;
+  width: var(--slot-size, 150px); height: var(--slot-size, 150px);
+  background: #fff; border: 1.5px solid var(--line); border-radius: var(--r-card);
+  box-shadow: var(--shadow-card);
+  display: grid;
+  grid-template-areas: ". top ." "left center right" ". bottom .";
+  grid-template-columns: clamp(18px, calc(var(--slot-size,150px) * 0.19), 40px) 1fr clamp(18px, calc(var(--slot-size,150px) * 0.19), 40px);
+  grid-template-rows:    clamp(18px, calc(var(--slot-size,150px) * 0.19), 40px) 1fr clamp(18px, calc(var(--slot-size,150px) * 0.19), 40px);
+  place-items: center; overflow: hidden; user-select: none;
+  transition: border-color var(--dur), box-shadow var(--dur), transform var(--dur-fast);
+}
+.o-wordcard--hoverable:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.o-wordcard-chip { position: absolute; top: 9px; left: 9px; width: 12px; height: 12px; border-radius: 4px; pointer-events: none; }
+.o-wordcard-word {
+  font-family: var(--display); font-weight: 700; text-transform: uppercase;
+  font-size: clamp(9px, calc(var(--slot-size,150px) * 0.105), 18px);
+  letter-spacing: 0.01em; white-space: nowrap; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.o-wordcard-word--top    { grid-area: top; }
+.o-wordcard-word--bottom { grid-area: bottom; }
+.o-wordcard-word--left   { grid-area: left; }
+.o-wordcard-word--right  { grid-area: right; }
+
+/* Mastermind feedback states (game-semantic — never teal) */
+.o-wordcard--correct  { border-color: var(--fb-green)  !important; box-shadow: 0 0 0 3px rgba(22,160,133,0.18); }
+.o-wordcard--rotation { border-color: var(--fb-orange) !important; box-shadow: 0 0 0 3px rgba(232,146,14,0.18); }
+.o-wordcard--wrong    { border-color: var(--fb-red)    !important; box-shadow: 0 0 0 3px rgba(242,96,63,0.18); }
+
+/* The board: 2×2 of cards with clue rails on all four sides */
+.o-board {
+  position: relative; display: grid;
+  grid-template-areas: ". top ." "left grid right" ". bottom .";
+  grid-template-columns: var(--clue-rail, 80px) 1fr var(--clue-rail, 80px);
+  grid-template-rows: var(--clue-rail, 56px) auto var(--clue-rail, 56px);
+  background: rgba(28,33,40,0.018); border-radius: 24px;
+  align-items: center; justify-items: center; margin: 0 auto; padding: 6px;
+}
+.o-board-grid {
+  grid-area: grid; display: grid;
+  grid-template-columns: repeat(2, var(--slot-size, 150px));
+  grid-template-rows: repeat(2, var(--slot-size, 150px));
+  gap: 14px;
+}
+.o-clue {
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(12px, calc(var(--slot-size,150px) * 0.10), 18px);
+  color: var(--teal-700); background: var(--teal-soft);
+  text-align: center; padding: 7px 12px; border-radius: var(--r-sm);
+  white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+}
+.o-clue--top    { grid-area: top; }
+.o-clue--bottom { grid-area: bottom; }
+.o-clue--left   { grid-area: left;  writing-mode: vertical-rl; transform: rotate(180deg); padding: 12px 7px; max-height: calc(var(--slot-size,150px) * 2 + 14px); }
+.o-clue--right  { grid-area: right; writing-mode: vertical-rl; padding: 12px 7px; max-height: calc(var(--slot-size,150px) * 2 + 14px); }
+.o-clue--empty  { color: var(--ink-3); background: rgba(255,255,255,0.55); border: 1.5px dashed rgba(28,33,40,0.15); font-weight: 600; }

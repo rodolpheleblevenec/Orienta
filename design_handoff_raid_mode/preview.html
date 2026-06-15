@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Refonte RAID — aperçu</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="_ds/orienta-design-system-50c4c1e5-2443-4efb-b2da-de028d449ba2/styles.css">
+<script src="_ds/orienta-design-system-50c4c1e5-2443-4efb-b2da-de028d449ba2/_ds_bundle.js"></script>
+<link rel="stylesheet" href="raid.css">
+<style>
+  html,body{margin:0;background:#dfe1e3;font-family:var(--sans,system-ui)}
+  .pv-frame{width:1280px;margin:0 auto 40px;box-shadow:0 20px 60px -24px rgba(0,0,0,.35);border-radius:14px;overflow:hidden;background:var(--bg)}
+  .pv-frame.doc{width:1180px}
+  .pv-cap{width:1280px;margin:40px auto 10px;font-family:var(--display);font-weight:800;font-size:18px;color:#3a4250;letter-spacing:-.02em}
+  .pv-frame .rd{height:auto;min-height:100%}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="raid-parts.jsx"></script>
+<script type="text/babel" src="raid-screens.jsx"></script>
+<script type="text/babel" data-presets="react">
+  function mount(){
+    const DS=window.OrientaDesignSystem_50c4c1;
+    const {LobbyScreen,CombatScreen,CinematicScreen,ResultScreen,DirectionDoc}=window;
+    if(!DS||!LobbyScreen){setTimeout(mount,40);return;}
+    function Frame({h,doc,cap,children}){return (<><div className="pv-cap">{cap}</div><div className={'pv-frame'+(doc?' doc':'')} style={{height:h}}>{children}</div></>);}
+    function All(){return(<div style={{padding:'30px 0 60px'}}>
+      <Frame doc h={404} cap="Direction & système"><DirectionDoc/></Frame>
+      <Frame h={1004} cap="01 · Lobby"><LobbyScreen/></Frame>
+      <Frame h={1092} cap="02 · Combat"><CombatScreen fx={0.6} shards vignette/></Frame>
+      <Frame h={884} cap="03 · Cinématique"><CinematicScreen fx={0.6}/></Frame>
+      <Frame h={1004} cap="04 · Résultat — victoire"><ResultScreen won/></Frame>
+      <Frame h={900} cap="04 · Résultat — défaite"><ResultScreen won={false}/></Frame>
+    </div>);}
+    ReactDOM.createRoot(document.getElementById('root')).render(<All/>);
+  }
+  mount();
+</script>
+</body>
+</html>

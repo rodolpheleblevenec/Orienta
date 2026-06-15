@@ -1,0 +1,611 @@
+/* ══════════════════════════════════════════════════════════════
+   Orienta — RAID redesign
+   « Les abysses chaleureux » : une scène en teal profond pour le boss
+   (ambiance forte), mais toute l'UI de contrôle reste sur la surface
+   claire pointillée d'Orienta, cartes blanches arrondies (ADN Orienta).
+   Tout est ancré dans les tokens du design system (var(--*)).
+   ══════════════════════════════════════════════════════════════ */
+
+.rd {
+  /* Palette de scène — teal profond, jamais froid/noir : chaleur conservée */
+  --rd-deep:    #062a25;   /* fond abysses le plus profond            */
+  --rd-deep-2:  #0c3f37;   /* teal profond intermédiaire              */
+  --rd-deep-3:  #14564b;   /* teal éclairé (halo, crêtes)             */
+  --rd-glow:    rgba(20,190,160,0.55);
+  --rd-on-deep:   rgba(255,255,255,0.94);
+  --rd-on-deep-2: rgba(214,238,232,0.72);
+  --rd-on-deep-3: rgba(180,214,206,0.5);
+  --rd-stroke:    rgba(255,255,255,0.12);
+  --rd-fill:      rgba(255,255,255,0.07);
+
+  /* Intensité des effets de combat — piloté par le panneau Tweaks (0..1) */
+  --fx: 0.6;
+
+  font-family: var(--sans);
+  color: var(--ink);
+  background: var(--bg);
+  background-image: var(--dot-pattern);
+  background-size: var(--dot-size);
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Topbar ──────────────────────────────────────────────────── */
+.rd-topbar {
+  flex: 0 0 auto;
+  background: rgba(241,242,243,0.9);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.rd-topbar-in {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 32px;
+}
+.rd-brand { display: flex; align-items: center; gap: 10px; }
+.rd-brand img { width: 30px; height: 30px; border-radius: 8px; }
+.rd-brand span {
+  font-family: var(--display); font-weight: 800; font-size: 20px;
+  color: var(--teal); letter-spacing: -0.035em;
+}
+.rd-mode-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--display); font-weight: 700; font-size: 13px;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  color: #fff; background: linear-gradient(135deg, var(--teal-700), var(--rd-deep-3));
+  padding: 6px 13px; border-radius: var(--r-pill); white-space: nowrap;
+  box-shadow: 0 4px 14px -6px rgba(8,132,111,0.7);
+}
+.rd-topbar-spacer { flex: 1; }
+.rd-onlinepill {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--display); font-weight: 700; font-size: 14px;
+  color: var(--teal-700); background: var(--teal-soft);
+  padding: 7px 13px; border-radius: var(--r-pill);
+}
+.rd-onlinepill i {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--teal);
+  box-shadow: 0 0 0 3px rgba(10,158,132,0.18);
+}
+.rd-leave {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--sans); font-weight: 600; font-size: 14px;
+  color: var(--ink-2); background: transparent; border: none; cursor: pointer;
+  padding: 7px 12px; border-radius: var(--r-sm);
+}
+.rd-leave:hover { background: var(--bg-tint); color: var(--ink); }
+
+/* ════════════════════════════════════════════════════════════
+   SCÈNE — les abysses (teal profond). Boss + ambiance.
+   ════════════════════════════════════════════════════════════ */
+.rd-stage {
+  position: relative; overflow: hidden;
+  background:
+    radial-gradient(130% 105% at 50% -8%, var(--rd-deep-3) 0%, transparent 48%),
+    radial-gradient(120% 120% at 50% 120%, rgba(8,80,68,0.55) 0%, transparent 55%),
+    linear-gradient(178deg, var(--rd-deep-2) 0%, var(--rd-deep) 88%);
+  color: var(--rd-on-deep);
+  isolation: isolate;
+}
+/* Trame de points discrète (signature Orienta, version claire sur fond sombre) */
+.rd-stage-grid {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 0%, #000 35%, transparent 78%);
+  mask-image: radial-gradient(120% 90% at 50% 0%, #000 35%, transparent 78%);
+}
+/* Halo lumineux central derrière le boss */
+.rd-stage-glow {
+  position: absolute; left: 50%; top: 42%; z-index: 0;
+  width: 560px; height: 560px; transform: translate(-50%,-50%);
+  background: radial-gradient(circle, var(--rd-glow) 0%, transparent 62%);
+  opacity: calc(0.35 + 0.5 * var(--fx)); pointer-events: none;
+  filter: blur(6px);
+}
+/* Bulles qui remontent */
+.rd-bubbles { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.rd-bubble {
+  position: absolute; bottom: -24px; border-radius: 50%;
+  background: radial-gradient(circle at 32% 30%, rgba(255,255,255,0.5), rgba(159,227,210,0.18) 60%, transparent);
+  border: 1px solid rgba(255,255,255,0.12);
+  animation: rd-rise linear infinite;
+  opacity: calc(0.35 + 0.4 * var(--fx));
+}
+@keyframes rd-rise {
+  0%   { transform: translateY(0) scale(0.9); opacity: 0; }
+  12%  { opacity: 0.8; }
+  100% { transform: translateY(-110%) scale(1.1); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .rd-bubble { animation: none; } }
+
+/* Vignette de combat (toggle) */
+.rd-stage[data-vignette="true"]::after {
+  content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  box-shadow: inset 0 0 180px 40px rgba(4,20,18,calc(0.35 + 0.4 * var(--fx)));
+}
+
+/* ── Boss ────────────────────────────────────────────────────── */
+.rd-stage-inner {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 30px 36px 28px;
+}
+.rd-boss { position: relative; display: grid; place-items: center; }
+.rd-boss-rings {
+  position: absolute; inset: 50% auto auto 50%;
+  width: 300px; height: 300px; transform: translate(-50%,-50%);
+  border-radius: 50%; pointer-events: none;
+}
+.rd-boss-rings span {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 1.5px solid rgba(159,227,210,0.28);
+  animation: rd-sonar 3.6s var(--ease) infinite;
+  opacity: calc(0.5 + 0.5 * var(--fx));
+}
+.rd-boss-rings span:nth-child(2) { animation-delay: 1.2s; }
+.rd-boss-rings span:nth-child(3) { animation-delay: 2.4s; }
+@keyframes rd-sonar {
+  0%   { transform: scale(0.55); opacity: calc(0.5 * var(--fx)); }
+  70%  { opacity: 0; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .rd-boss-rings span { animation: none; } }
+.rd-boss-disc {
+  position: relative; width: 190px; height: 190px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 38%, rgba(20,86,75,0.95), rgba(6,42,37,0.95));
+  box-shadow:
+    inset 0 4px 30px rgba(255,255,255,0.12),
+    inset 0 -10px 40px rgba(0,0,0,0.4),
+    0 24px 60px -20px rgba(0,0,0,0.6),
+    0 0 0 1.5px rgba(255,255,255,0.1);
+}
+.rd-boss-emoji {
+  font-size: 104px; line-height: 1;
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,0.45));
+  transform: rotate(-8deg);
+}
+.rd-stage--combat .rd-boss-emoji { animation: rd-bob 5s ease-in-out infinite; }
+@keyframes rd-bob {
+  0%,100% { transform: rotate(-8deg) translateY(0); }
+  50%     { transform: rotate(-5deg) translateY(-8px); }
+}
+@media (prefers-reduced-motion: reduce) { .rd-boss-emoji { animation: none !important; } }
+
+/* Éclats à l'impact (toggle) — anneau + fragments scalés par --fx */
+.rd-impact {
+  position: absolute; inset: 50% auto auto 50%; width: 0; height: 0;
+  transform: translate(-50%,-50%); pointer-events: none; z-index: 4;
+}
+.rd-impact-ring {
+  position: absolute; inset: 50% auto auto 50%; transform: translate(-50%,-50%);
+  width: calc(150px + 120px * var(--fx)); height: calc(150px + 120px * var(--fx));
+  border-radius: 50%;
+  border: calc(2px + 4px * var(--fx)) solid rgba(255,255,255,calc(0.25 + 0.35 * var(--fx)));
+  box-shadow: 0 0 calc(20px + 40px * var(--fx)) var(--rd-glow);
+}
+.rd-shard {
+  position: absolute; left: 50%; top: 50%;
+  width: 4px; height: calc(14px + 22px * var(--fx)); border-radius: 4px;
+  background: linear-gradient(180deg, #fff, var(--mint));
+  opacity: calc(0.45 + 0.5 * var(--fx));
+  transform-origin: 50% 0;
+}
+
+/* ── Bandeau d'infos boss (nom + stats) ──────────────────────── */
+.rd-boss-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; width: 100%; max-width: 760px; margin: 18px auto 0;
+}
+.rd-boss-name {
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rd-boss-eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase; color: var(--rd-on-deep-2);
+}
+.rd-boss-title {
+  font-family: var(--display); font-weight: 800; font-size: 28px;
+  letter-spacing: -0.03em; margin: 0; color: #fff;
+}
+.rd-boss-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.rd-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--display); font-weight: 700; font-size: 13px;
+  color: var(--rd-on-deep); background: var(--rd-fill);
+  border: 1px solid var(--rd-stroke); border-radius: var(--r-pill);
+  padding: 6px 12px; white-space: nowrap;
+}
+.rd-chip b { font-weight: 800; }
+.rd-chip--week { color: #cfeee6; }
+.rd-chip--timer { color: #fff; }
+.rd-chip--timer.is-low { color: #ffd0c6; border-color: rgba(242,96,63,0.5); background: rgba(242,96,63,0.18); }
+.rd-chip--lives { letter-spacing: 1px; }
+
+/* ── Barre de PV ─────────────────────────────────────────────── */
+.rd-hp { width: 100%; max-width: 760px; margin: 16px auto 0; }
+.rd-hp-row { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 7px; }
+.rd-hp-name {
+  font-size: 12px; font-weight: 600; letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase; color: var(--rd-on-deep-2);
+}
+.rd-hp-val { font-family: var(--display); font-weight: 800; font-size: 15px; color: #fff; }
+.rd-hp-track {
+  height: 16px; border-radius: var(--r-pill);
+  background: rgba(0,0,0,0.32); border: 1px solid rgba(255,255,255,0.1);
+  overflow: hidden; position: relative;
+}
+.rd-hp-fill {
+  height: 100%; border-radius: var(--r-pill);
+  background: linear-gradient(90deg, #f2603f, #ff8a5c);
+  box-shadow: 0 0 calc(8px + 18px * var(--fx)) rgba(242,96,63,0.6);
+  position: relative;
+}
+.rd-hp-fill::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.4), transparent 55%);
+}
+
+/* ── Rail d'équipage (combat) ─────────────────────────────────── */
+.rd-crew { display: flex; flex-direction: column; gap: 8px; }
+.rd-crew-title {
+  font-size: 11px; font-weight: 600; letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase; color: var(--rd-on-deep-2); margin-bottom: 2px;
+}
+.rd-crew-member {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--rd-fill); border: 1px solid var(--rd-stroke);
+  border-radius: var(--r-pill); padding: 6px 12px 6px 6px;
+}
+.rd-crew-member.is-speaking { border-color: rgba(159,227,210,0.6); background: rgba(20,190,160,0.16); }
+.rd-crew-av {
+  width: 34px; height: 34px; border-radius: 50%; flex: 0 0 auto;
+  display: grid; place-items: center; color: #fff;
+  font-family: var(--display); font-weight: 700; font-size: 15px;
+  position: relative;
+}
+.rd-crew-role-emoji {
+  position: absolute; right: -4px; bottom: -4px; font-size: 13px;
+  background: var(--rd-deep-2); border-radius: 50%; width: 19px; height: 19px;
+  display: grid; place-items: center; border: 1px solid var(--rd-stroke);
+}
+.rd-crew-info { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.rd-crew-name { font-family: var(--display); font-weight: 700; font-size: 14px; color: #fff; }
+.rd-crew-role { font-size: 11px; color: var(--rd-on-deep-2); }
+.rd-crew-wave { margin-left: auto; font-size: 14px; opacity: 0.9; }
+
+/* ════════════════════════════════════════════════════════════
+   ZONE DE CONTRÔLE — surface claire Orienta
+   ════════════════════════════════════════════════════════════ */
+.rd-work { flex: 1 1 auto; padding: 26px 32px 34px; }
+.rd-work-cols {
+  display: grid; grid-template-columns: 1fr 384px; gap: 22px;
+  align-items: start;
+}
+
+/* ── Carte générique de section ──────────────────────────────── */
+.rd-panel {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r); box-shadow: var(--shadow-sm); padding: 22px;
+}
+.rd-panel-head {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+}
+.rd-panel-title { font-family: var(--display); font-weight: 700; font-size: 17px; letter-spacing: -0.02em; }
+
+/* ── Lobby : cartes de rôle ──────────────────────────────────── */
+.rd-rolecards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.rd-rolecard {
+  text-align: left; position: relative;
+  background: var(--card); border: 1.5px solid var(--line);
+  border-radius: var(--r); box-shadow: var(--shadow-sm);
+  padding: 18px; display: flex; flex-direction: column; gap: 12px;
+  transition: transform var(--dur), box-shadow var(--dur), border-color var(--dur);
+}
+.rd-rolecard--free { cursor: pointer; }
+.rd-rolecard--free:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: var(--teal); }
+.rd-rolecard--mine { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(10,158,132,0.12), var(--shadow-sm); }
+.rd-rolecard--taken { opacity: 0.96; }
+.rd-rolecard-top { display: flex; align-items: center; gap: 11px; }
+.rd-rolecard-emoji {
+  width: 46px; height: 46px; border-radius: 14px; flex: 0 0 auto;
+  display: grid; place-items: center; font-size: 26px;
+  background: var(--teal-soft);
+}
+.rd-rolecard--mine .rd-rolecard-emoji { background: var(--teal); }
+.rd-rolecard-name { font-family: var(--display); font-weight: 800; font-size: 19px; letter-spacing: -0.02em; }
+.rd-rolecard-tagline { font-size: 12.5px; color: var(--ink-2); }
+.rd-mine-flag {
+  position: absolute; top: 14px; right: 14px;
+  font-family: var(--display); font-weight: 700; font-size: 11px;
+  color: var(--teal-700); background: var(--teal-soft);
+  padding: 3px 9px; border-radius: var(--r-pill);
+}
+
+/* Pouvoirs : « tu vois » / « tu fais » — rend l'info asymétrique lisible */
+.rd-powers { display: flex; flex-direction: column; gap: 7px; }
+.rd-power { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.4; }
+.rd-power-key {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--display); font-weight: 700; font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 3px 8px; border-radius: var(--r-pill); margin-top: 1px;
+}
+.rd-power--see .rd-power-key { color: var(--blue); background: var(--blue-soft); }
+.rd-power--do  .rd-power-key { color: var(--teal-700); background: var(--teal-soft); }
+.rd-power--blind .rd-power-key { color: var(--ink-3); background: var(--bg-tint); }
+.rd-power-txt { color: var(--ink-2); }
+.rd-power-txt b { color: var(--ink); font-weight: 600; }
+
+.rd-rolecard-holder {
+  display: flex; align-items: center; gap: 9px; margin-top: auto;
+  padding-top: 12px; border-top: 1px solid var(--line-2);
+}
+.rd-holder-av {
+  width: 30px; height: 30px; border-radius: 50%; flex: 0 0 auto;
+  display: grid; place-items: center; color: #fff;
+  font-family: var(--display); font-weight: 700; font-size: 13px;
+}
+.rd-holder-name { font-family: var(--display); font-weight: 700; font-size: 14px; }
+.rd-holder-ready {
+  margin-left: auto; font-family: var(--display); font-weight: 700; font-size: 12px;
+  color: var(--teal-700); display: inline-flex; align-items: center; gap: 4px;
+}
+.rd-holder-take {
+  font-family: var(--display); font-weight: 700; font-size: 13.5px; color: var(--teal-700);
+  display: inline-flex; align-items: center; gap: 6px;
+}
+
+/* ── Lobby : barre de préparation ────────────────────────────── */
+.rd-ready-bar {
+  display: flex; align-items: center; gap: 16px; margin-top: 16px;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r); box-shadow: var(--shadow-sm); padding: 16px 20px;
+}
+.rd-ready-dots { display: flex; gap: 7px; }
+.rd-ready-dots i {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--bg-tint); border: 1.5px solid var(--line);
+}
+.rd-ready-dots i.on { background: var(--teal); border-color: var(--teal); }
+.rd-ready-status { font-size: 14px; color: var(--ink-2); }
+.rd-ready-status b { color: var(--ink); }
+.rd-ready-bar .rd-spacer { flex: 1; }
+
+/* ── Légende / lentille de rôle (combat) ─────────────────────── */
+.rd-lens {
+  display: flex; align-items: center; gap: 14px;
+  background: linear-gradient(135deg, var(--teal-soft), #f3fbf8);
+  border: 1.5px solid rgba(10,158,132,0.28);
+  border-radius: var(--r); padding: 14px 18px; margin-bottom: 18px;
+}
+.rd-lens-emoji {
+  width: 46px; height: 46px; border-radius: 14px; flex: 0 0 auto;
+  display: grid; place-items: center; font-size: 25px; background: var(--teal); 
+}
+.rd-lens-txt { display: flex; flex-direction: column; gap: 2px; }
+.rd-lens-role { font-family: var(--display); font-weight: 800; font-size: 16px; letter-spacing: -0.02em; }
+.rd-lens-role span { color: var(--teal-700); }
+.rd-lens-desc { font-size: 13px; color: var(--ink-2); }
+.rd-lens-tags { display: flex; gap: 7px; margin-left: auto; }
+
+/* ── Plateau (combat) ────────────────────────────────────────── */
+.rd-boardwrap { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+
+/* Barre d'action capitaine */
+.rd-actionbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+  width: 100%; justify-content: center;
+}
+.rd-sonar {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--bg-tint); border-radius: var(--r-pill); padding: 6px 8px 6px 14px;
+}
+.rd-sonar-label { font-family: var(--display); font-weight: 700; font-size: 13px; color: var(--ink-2); }
+.rd-sonar-btn {
+  font-family: var(--display); font-weight: 700; font-size: 12.5px;
+  color: var(--teal-700); background: var(--card); border: 1.5px solid var(--line);
+  border-radius: var(--r-pill); padding: 6px 12px; cursor: pointer;
+}
+.rd-sonar-btn:hover { border-color: var(--teal); }
+
+/* ── Chat ────────────────────────────────────────────────────── */
+.rd-chat { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.rd-chat-head {
+  display: flex; align-items: center; gap: 9px;
+  padding-bottom: 14px; margin-bottom: 4px; border-bottom: 1px solid var(--line-2);
+}
+.rd-chat-head .rd-panel-title { font-size: 16px; }
+.rd-chat-head .rd-online { margin-left: auto; font-size: 12px; color: var(--ink-3); display: inline-flex; align-items: center; gap: 5px; }
+.rd-chat-head .rd-online i { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); }
+.rd-chat-msgs {
+  display: flex; flex-direction: column; gap: 13px;
+  padding: 16px 2px; flex: 1 1 auto; overflow: hidden;
+}
+.rd-msg { display: flex; gap: 9px; align-items: flex-start; }
+.rd-msg.is-me { flex-direction: row-reverse; }
+.rd-msg-av {
+  width: 30px; height: 30px; border-radius: 50%; flex: 0 0 auto;
+  display: grid; place-items: center; color: #fff;
+  font-family: var(--display); font-weight: 700; font-size: 12px; margin-top: 2px;
+}
+.rd-msg-main { display: flex; flex-direction: column; gap: 3px; max-width: 80%; }
+.rd-msg.is-me .rd-msg-main { align-items: flex-end; }
+.rd-msg-meta { display: flex; align-items: center; gap: 6px; }
+.rd-msg-who { font-family: var(--display); font-weight: 700; font-size: 12.5px; color: var(--ink); }
+.rd-msg-role {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;
+  padding: 1px 7px; border-radius: var(--r-pill);
+}
+.rd-msg-bubble {
+  background: var(--bg-tint); border-radius: 4px 14px 14px 14px;
+  padding: 9px 13px; font-size: 13.5px; line-height: 1.45; color: var(--ink);
+}
+.rd-msg.is-me .rd-msg-bubble {
+  background: var(--teal); color: #fff; border-radius: 14px 4px 14px 14px;
+}
+.rd-msg-sys {
+  align-self: center; font-size: 12px; color: var(--ink-3);
+  background: var(--bg-tint); padding: 4px 12px; border-radius: var(--r-pill);
+}
+.rd-chat-input {
+  display: flex; align-items: center; gap: 9px;
+  margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--line-2);
+}
+.rd-chat-input .o-input { padding: 11px 14px; }
+.rd-chat-send {
+  width: 42px; height: 42px; flex: 0 0 auto; border-radius: 50%;
+  background: var(--teal); color: #fff; border: none; cursor: pointer;
+  display: grid; place-items: center;
+  box-shadow: 0 6px 18px -6px rgba(10,158,132,0.6);
+}
+.rd-chat-send:hover { background: var(--teal-700); }
+
+/* ── Hall of fame (record) ───────────────────────────────────── */
+.rd-hof { }
+.rd-hof-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 0; border-bottom: 1px solid var(--line-2);
+}
+.rd-hof-row:last-child { border-bottom: none; }
+.rd-hof-rank {
+  width: 28px; flex: 0 0 auto; text-align: center;
+  font-family: var(--display); font-weight: 800; font-size: 15px; color: var(--ink-3);
+}
+.rd-hof-rank.is-gold { color: var(--amber); }
+.rd-hof-crew { display: flex; }
+.rd-hof-crew .rd-holder-av { width: 26px; height: 26px; font-size: 11px; margin-left: -7px; border: 2px solid var(--card); }
+.rd-hof-crew .rd-holder-av:first-child { margin-left: 0; }
+.rd-hof-time { margin-left: auto; font-family: var(--display); font-weight: 800; font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* ════════════════════════════════════════════════════════════
+   CINÉMATIQUE DE FIN — plein écran abysses
+   ════════════════════════════════════════════════════════════ */
+.rd-stage--end { flex: 1 1 auto; display: flex; }
+.rd-end {
+  position: relative; z-index: 2; flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 40px; gap: 22px;
+}
+.rd-stage--end .rd-boss-emoji { font-size: 128px; }
+.rd-stage--end .rd-boss-disc { width: 224px; height: 224px; }
+/* le boss s'enfonce (victoire) */
+.rd-end--won .rd-boss { animation: rd-sink 4s var(--ease) forwards; }
+@keyframes rd-sink {
+  0%   { transform: translateY(0) scale(1); filter: none; }
+  100% { transform: translateY(46px) scale(0.92); filter: brightness(0.7) blur(1px); opacity: 0.82; }
+}
+@media (prefers-reduced-motion: reduce) { .rd-end--won .rd-boss { animation: none; } }
+.rd-end-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--display); font-weight: 800; font-size: 14px;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--rd-deep);
+  background: linear-gradient(135deg, #ffd166, #ffb02e);
+  padding: 8px 18px; border-radius: var(--r-pill);
+  box-shadow: 0 10px 30px -8px rgba(255,177,46,0.6);
+}
+.rd-end-title {
+  font-family: var(--display); font-weight: 800; font-size: 46px; line-height: 1.05;
+  letter-spacing: -0.03em; margin: 0; color: #fff; max-width: 16ch;
+}
+.rd-end-sub { font-size: 17px; color: var(--rd-on-deep-2); margin: 0; max-width: 40ch; }
+.rd-end-crew { display: flex; gap: 10px; margin-top: 4px; }
+.rd-end-crew .rd-crew-av { width: 44px; height: 44px; font-size: 18px; border: 2px solid var(--rd-stroke); }
+.rd-end-crew .rd-crew-av { animation: rd-cheer 1.6s ease-in-out infinite; }
+.rd-end-crew .rd-crew-av:nth-child(2) { animation-delay: 0.2s; }
+.rd-end-crew .rd-crew-av:nth-child(3) { animation-delay: 0.4s; }
+.rd-end-crew .rd-crew-av:nth-child(4) { animation-delay: 0.6s; }
+@keyframes rd-cheer { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+@media (prefers-reduced-motion: reduce) { .rd-end-crew .rd-crew-av { animation: none; } }
+
+/* ════════════════════════════════════════════════════════════
+   RÉSULTAT — retour à la surface chaleureuse Orienta
+   ════════════════════════════════════════════════════════════ */
+.rd-result-wrap {
+  flex: 1 1 auto; display: flex; justify-content: center;
+  padding: 34px 32px 40px;
+}
+.rd-result {
+  width: 100%; max-width: 720px;
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px;
+}
+.rd-result-top {
+  width: 100%;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--r); box-shadow: var(--shadow); padding: 34px 32px 30px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  position: relative; overflow: hidden;
+}
+.rd-result-top::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 6px;
+}
+.rd-result--won .rd-result-top::before { background: linear-gradient(90deg, var(--teal), #00e8b8); }
+.rd-result--lost .rd-result-top::before { background: linear-gradient(90deg, var(--ink-3), #c2c8d0); }
+.rd-result-emoji {
+  width: 86px; height: 86px; border-radius: 24px; display: grid; place-items: center;
+  font-size: 46px; margin-top: 4px;
+}
+.rd-result--won .rd-result-emoji { background: var(--teal-soft); }
+.rd-result--lost .rd-result-emoji { background: var(--bg-tint); }
+.rd-result-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--display); font-weight: 800; font-size: 12px;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--teal-700);
+  background: var(--teal-soft); padding: 5px 13px; border-radius: var(--r-pill);
+}
+.rd-result-title {
+  font-family: var(--display); font-weight: 800; font-size: 32px; line-height: 1.1;
+  letter-spacing: -0.03em; margin: 0;
+}
+.rd-result-sub { font-size: 15.5px; color: var(--ink-2); margin: 0; max-width: 44ch; }
+.rd-testbadge {
+  font-family: var(--display); font-weight: 700; font-size: 12px; color: var(--amber);
+  background: var(--amber-soft); padding: 4px 12px; border-radius: var(--r-pill);
+}
+
+.rd-result-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; }
+.rd-stat {
+  background: var(--bg-tint); border-radius: var(--r-sm); padding: 16px 14px;
+  display: flex; flex-direction: column; gap: 3px; align-items: center;
+}
+.rd-stat--gold { background: linear-gradient(160deg, #fdf1d8, #fde9c2); }
+.rd-stat-label {
+  font-size: 11px; font-weight: 600; letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase; color: var(--ink-3);
+}
+.rd-stat-val { font-family: var(--display); font-weight: 800; font-size: 24px; letter-spacing: -0.02em; color: var(--ink); }
+.rd-stat--gold .rd-stat-val { color: var(--amber); }
+.rd-stat-hint { font-size: 11.5px; color: var(--ink-2); }
+
+.rd-result-crew { width: 100%; }
+.rd-result-crewtitle {
+  font-size: 11px; font-weight: 600; letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 12px;
+}
+.rd-result-crewlist { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.rd-res-member {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow-xs);
+  border-radius: var(--r-pill); padding: 6px 14px 6px 6px;
+}
+.rd-res-member .rd-holder-av { width: 28px; height: 28px; font-size: 12px; position: relative; }
+.rd-res-mrole {
+  position: absolute; right: -3px; bottom: -3px; font-size: 11px;
+  background: var(--card); border-radius: 50%; width: 16px; height: 16px;
+  display: grid; place-items: center; box-shadow: 0 0 0 1px var(--line);
+}
+.rd-res-mname { font-family: var(--display); font-weight: 700; font-size: 13.5px; }
+.rd-result-actions { display: flex; gap: 11px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+
+/* ── Panneau « direction & système » (intro) ─────────────────── */
+.rd-doc { padding: 30px 34px; max-width: 1180px; }
+.rd-doc h1 { font-family: var(--display); font-weight: 800; font-size: 30px; letter-spacing: -0.03em; margin: 0 0 6px; }
+.rd-doc .rd-doc-lede { font-size: 16px; color: var(--ink-2); line-height: 1.55; max-width: 70ch; margin: 0 0 22px; }
+.rd-doc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.rd-doc-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); padding: 18px; }
+.rd-doc-card h3 { font-family: var(--display); font-weight: 700; font-size: 15px; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+.rd-doc-card p { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; margin: 0; }
+.rd-doc-swatches { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.rd-sw { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 10px; color: var(--ink-3); }
+.rd-sw i { width: 38px; height: 38px; border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }

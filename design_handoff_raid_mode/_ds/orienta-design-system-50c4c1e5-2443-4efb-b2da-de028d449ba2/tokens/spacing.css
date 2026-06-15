@@ -1,0 +1,54 @@
+/* ──────────────────────────────────────────────────────────────
+   Orienta — Spacing, Radii, Shadows
+   Source of truth: src/index.css :root.
+   ────────────────────────────────────────────────────────────── */
+:root {
+  /* ── Radii ─────────────────────────────────────────────────
+     Orienta is round. Cards & sheets use the big 22px radius;
+     puzzle cards/slots use 18px; inputs/chips use 14px; pills
+     and the primary CTA are fully round. */
+  --r:        22px;    /* cards, panels, modals             */
+  --r-sm:     14px;    /* inputs, chips, small tiles         */
+  --r-pill:   999px;   /* pills, primary CTA, avatars        */
+  --r-card:   18px;    /* puzzle cards & grid slots          */
+
+  /* ── Spacing scale (px) ───────────────────────────────────*/
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  18px;
+  --space-6:  24px;
+  --space-7:  28px;
+  --space-8:  32px;
+
+  /* ── Shadows ───────────────────────────────────────────────
+     Cool, deep, low-spread. Big negative spread keeps them soft
+     and "lifted" rather than dropped. */
+  --shadow:      0 18px 44px -22px rgba(20,30,45,0.30);
+  --shadow-sm:   0 10px 26px -16px rgba(20,30,45,0.24);
+  --shadow-xs:   0 2px 8px -4px    rgba(20,30,45,0.18);
+  --shadow-card: 0 14px 30px -20px rgba(20,30,45,0.40), 0 2px 6px -3px rgba(20,30,45,0.12);
+
+  /* ── Signature background ──────────────────────────────────
+     The dot field that sits under every screen. Apply to a page
+     root with: background: var(--bg); + these two declarations. */
+  --dot-pattern: radial-gradient(rgba(28,33,40,0.04) 1px, transparent 1px); /* @kind other */
+  --dot-size:    24px 24px;
+
+  /* ── Motion ────────────────────────────────────────────────
+     Quick UI transitions (.15–.18s). The signature is the springy
+     card-rotation curve used on puzzle cards. */
+  /* settle / entrance and the springy card-rotation pop */
+  --ease:        cubic-bezier(0.16, 1, 0.3, 1);   /* @kind other */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* @kind other */
+  --dur-fast:    0.15s; /* @kind other */
+  --dur:         0.18s; /* @kind other */
+}
+
+/* Drop-in helper: the Orienta dotted page surface. */
+.orienta-surface {
+  background-color: var(--bg);
+  background-image: var(--dot-pattern);
+  background-size: var(--dot-size);
+}

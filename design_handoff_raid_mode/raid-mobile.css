@@ -1,0 +1,232 @@
+/* ══════════════════════════════════════════════════════════════
+   Orienta — RAID redesign · MOBILE
+   Réutilise la direction « Les abysses chaleureux » et les atomes de
+   raid.css (scène, boss, PV, chips, chat). Ce fichier ne porte que la
+   mise en page tactile (écran ~402px). Charger APRÈS raid.css.
+   ══════════════════════════════════════════════════════════════ */
+
+.rdm {
+  --fx: 0.3;
+  position: relative; height: 100%; overflow: hidden;
+  display: flex; flex-direction: column;
+  font-family: var(--sans); color: var(--ink);
+  background: var(--bg); background-image: var(--dot-pattern); background-size: var(--dot-size);
+  -webkit-font-smoothing: antialiased;
+}
+.rdm-scroll { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+
+/* Zone de sécurité haute (status bar + dynamic island) */
+.rdm-safe { height: 52px; flex: 0 0 auto; }
+
+/* ── Barre d'app compacte ───────────────────────────────────── */
+.rdm-appbar {
+  display: flex; align-items: center; gap: 9px;
+  padding: 4px 16px 10px; flex: 0 0 auto;
+}
+.rdm-appbar.on-dark { color: #fff; }
+.rdm-brand { display: flex; align-items: center; gap: 7px; }
+.rdm-brand img { width: 24px; height: 24px; border-radius: 7px; }
+.rdm-brand span { font-family: var(--display); font-weight: 800; font-size: 17px; color: var(--teal); letter-spacing: -0.035em; }
+.rdm-appbar.on-dark .rdm-brand span { color: #8fe3d0; }
+.rdm-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--display); font-weight: 700; font-size: 11px;
+  letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
+  color: #fff; background: linear-gradient(135deg, var(--teal-700), #14564b);
+  padding: 4px 10px; border-radius: var(--r-pill);
+}
+.rdm-appbar .rdm-spacer { flex: 1; }
+.rdm-online {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--display); font-weight: 700; font-size: 12.5px;
+  color: var(--teal-700); background: var(--teal-soft); padding: 5px 11px; border-radius: var(--r-pill);
+}
+.rdm-online i { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); }
+.rdm-appbar.on-dark .rdm-online { color: #bff0e5; background: rgba(255,255,255,0.12); }
+.rdm-appbar.on-dark .rdm-online i { background: #5fe0c4; }
+
+/* ── Scène compacte ─────────────────────────────────────────── */
+.rdm-stage {
+  flex: 0 0 auto; margin: 0 12px; border-radius: var(--r);
+  padding: 12px 16px 14px; box-shadow: var(--shadow-card);
+  display: flex; flex-direction: column; align-items: center;
+}
+.rdm .rd-boss-disc { width: 94px; height: 94px; }
+.rdm .rd-boss-emoji { font-size: 50px; }
+.rdm .rd-boss-rings { width: 148px; height: 148px; }
+.rdm-boss-name { font-family: var(--display); font-weight: 800; font-size: 19px; letter-spacing: -0.03em; color: #fff; margin: 8px 0 2px; text-align: center; }
+.rdm-boss-eyebrow { font-size: 10.5px; font-weight: 600; letter-spacing: var(--tracking-eyebrow); text-transform: uppercase; color: var(--rd-on-deep-2); }
+.rdm-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 8px; }
+.rdm-chips .rd-chip { font-size: 12px; padding: 5px 10px; }
+.rdm .rd-hp { margin-top: 10px; max-width: none; }
+.rdm .rd-hp-track { height: 14px; }
+
+/* Bandeau boss slim (écran chat) */
+.rdm-bossbar {
+  flex: 0 0 auto; margin: 0 12px; border-radius: var(--r);
+  padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+}
+.rdm-bossbar .rd-boss-disc { width: 46px; height: 46px; }
+.rdm-bossbar .rd-boss-emoji { font-size: 26px; }
+.rdm-bossbar-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.rdm-bossbar-name { font-family: var(--display); font-weight: 800; font-size: 15px; color: #fff; letter-spacing: -0.02em; }
+.rdm-bossbar-sub { font-size: 11px; color: var(--rd-on-deep-2); }
+.rdm-bossbar .rd-chip { margin-left: auto; }
+
+/* ── Bande d'équipage (avatars horizontaux) ─────────────────── */
+.rdm-crew { display: flex; gap: 12px; justify-content: center; margin-top: 10px; }
+.rdm-crew-item { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 50px; }
+.rdm-crew-av {
+  width: 36px; height: 36px; border-radius: 50%; position: relative;
+  display: grid; place-items: center; color: #fff;
+  font-family: var(--display); font-weight: 700; font-size: 15px;
+  border: 1.5px solid var(--rd-stroke);
+}
+.rdm-crew-item.is-speaking .rdm-crew-av { border-color: #7fe6d2; box-shadow: 0 0 0 3px rgba(20,190,160,0.25); }
+.rdm-crew-emoji {
+  position: absolute; right: -4px; bottom: -4px; font-size: 12px;
+  width: 18px; height: 18px; border-radius: 50%; background: var(--rd-deep-2);
+  display: grid; place-items: center; border: 1px solid var(--rd-stroke);
+}
+.rdm-crew-name { font-size: 10.5px; color: var(--rd-on-deep-2); max-width: 52px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rdm-crew-name.is-me { color: #bff0e5; font-weight: 700; }
+
+/* ── Contrôle segmenté (Plateau / Chat) ─────────────────────── */
+.rdm-seg {
+  display: flex; gap: 4px; margin: 14px 16px 0; padding: 4px;
+  background: var(--bg-tint); border-radius: var(--r-pill); flex: 0 0 auto;
+}
+.rdm-seg-btn {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  font-family: var(--display); font-weight: 700; font-size: 14px; color: var(--ink-2);
+  background: transparent; border: none; border-radius: var(--r-pill); padding: 9px 0; cursor: pointer;
+}
+.rdm-seg-btn.is-on { background: var(--card); color: var(--teal-700); box-shadow: var(--shadow-xs); }
+.rdm-seg-btn .rdm-seg-badge {
+  font-size: 10px; font-weight: 800; min-width: 17px; height: 17px; padding: 0 4px;
+  border-radius: var(--r-pill); background: var(--coral); color: #fff;
+  display: inline-grid; place-items: center;
+}
+
+/* ── Lentille de rôle compacte ──────────────────────────────── */
+.rdm-lens {
+  display: flex; align-items: center; gap: 11px; margin: 10px 16px 0; flex: 0 0 auto;
+  background: linear-gradient(135deg, var(--teal-soft), #f3fbf8);
+  border: 1.5px solid rgba(10,158,132,0.28); border-radius: 16px; padding: 9px 12px;
+}
+.rdm-lens-emoji { width: 40px; height: 40px; flex: 0 0 auto; border-radius: 12px; background: var(--teal); display: grid; place-items: center; font-size: 22px; }
+.rdm-lens-txt { display: flex; flex-direction: column; gap: 1px; }
+.rdm-lens-role { font-family: var(--display); font-weight: 800; font-size: 15px; letter-spacing: -0.02em; }
+.rdm-lens-role span { color: var(--teal-700); }
+.rdm-lens-desc { font-size: 12px; color: var(--ink-2); }
+
+/* ── Plateau ────────────────────────────────────────────────── */
+.rdm-board { display: flex; justify-content: center; padding: 12px 0 4px; flex: 0 0 auto; }
+
+/* ── Barre d'actions (empilée) ──────────────────────────────── */
+.rdm-actions { display: flex; flex-direction: column; gap: 9px; padding: 6px 16px 24px; flex: 0 0 auto; }
+.rdm-actions .o-btn { width: 100%; }
+.rdm-sonar { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; background: var(--bg-tint); border-radius: 16px; padding: 10px 12px; }
+.rdm-sonar-label { font-family: var(--display); font-weight: 700; font-size: 12.5px; color: var(--ink-2); width: 100%; }
+.rdm-sonar-btn { font-family: var(--display); font-weight: 700; font-size: 12px; color: var(--teal-700); background: var(--card); border: 1.5px solid var(--line); border-radius: var(--r-pill); padding: 6px 12px; }
+
+/* ── Chat plein écran ───────────────────────────────────────── */
+.rdm-chatwrap { flex: 1 1 auto; min-height: 0; display: flex; padding: 12px 16px 22px; }
+.rdm-chatwrap .rd-chat { width: 100%; }
+.rdm-chatwrap .rd-chat-msgs { overflow: hidden; }
+
+/* ── Lobby : intro + cartes de rôle ─────────────────────────── */
+.rdm-kicker { padding: 12px 16px 0; flex: 0 0 auto; }
+.rdm-kicker-num { font-family: var(--display); font-weight: 700; font-size: 12px; color: var(--teal); }
+.rdm-kicker-title { font-family: var(--display); font-weight: 800; font-size: 17px; letter-spacing: -0.02em; }
+.rdm-intro { font-size: 12.5px; color: var(--ink-2); line-height: 1.4; padding: 4px 16px 0; flex: 0 0 auto; }
+.rdm-intro b { color: var(--ink); }
+
+.rdm-roles { display: flex; flex-direction: column; gap: 8px; padding: 10px 16px 0; flex: 0 0 auto; }
+.rdm-role {
+  display: flex; align-items: center; gap: 12px; position: relative;
+  background: var(--card); border: 1.5px solid var(--line); border-radius: var(--r);
+  box-shadow: var(--shadow-sm); padding: 11px 13px;
+}
+.rdm-role--mine { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(10,158,132,0.1), var(--shadow-sm); }
+.rdm-role-emoji { width: 42px; height: 42px; flex: 0 0 auto; border-radius: 13px; background: var(--teal-soft); display: grid; place-items: center; font-size: 23px; }
+.rdm-role--mine .rdm-role-emoji { background: var(--teal); }
+.rdm-role-mid { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.rdm-role-name { font-family: var(--display); font-weight: 800; font-size: 16px; letter-spacing: -0.02em; }
+.rdm-role-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+.rdm-rp { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: var(--r-pill); }
+.rdm-rp--see { color: var(--blue); background: var(--blue-soft); }
+.rdm-rp--do { color: var(--teal-700); background: var(--teal-soft); }
+.rdm-rp--blind { color: var(--ink-3); background: var(--bg-tint); }
+.rdm-role-right { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.rdm-role-av { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-family: var(--display); font-weight: 700; font-size: 14px; }
+.rdm-role-who { font-size: 10px; color: var(--ink-2); max-width: 54px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rdm-role-ready { font-size: 10px; font-weight: 700; color: var(--teal-700); }
+.rdm-role-take { display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--teal-700); }
+.rdm-role-take .plus { width: 34px; height: 34px; border-radius: 50%; border: 1.5px dashed rgba(10,158,132,0.45); display: grid; place-items: center; font-size: 18px; font-weight: 700; }
+.rdm-role-take span { font-family: var(--display); font-weight: 700; font-size: 9.5px; }
+.rdm-mineflag { position: absolute; top: -8px; right: 12px; font-family: var(--display); font-weight: 700; font-size: 10px; color: #fff; background: var(--teal); padding: 2px 9px; border-radius: var(--r-pill); }
+
+/* Accès chat (lobby) */
+.rdm-chatrow {
+  display: flex; align-items: center; gap: 11px; margin: 10px 16px 0; flex: 0 0 auto;
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-xs); padding: 10px 14px;
+}
+.rdm-chatrow-ic { width: 34px; height: 34px; border-radius: 10px; background: var(--teal-soft); display: grid; place-items: center; font-size: 17px; flex: 0 0 auto; }
+.rdm-chatrow-txt { display: flex; flex-direction: column; }
+.rdm-chatrow-title { font-family: var(--display); font-weight: 700; font-size: 14px; }
+.rdm-chatrow-sub { font-size: 11.5px; color: var(--ink-2); }
+.rdm-chatrow-cnt { margin-left: auto; font-family: var(--display); font-weight: 800; font-size: 11px; color: #fff; background: var(--coral); border-radius: var(--r-pill); min-width: 20px; height: 20px; padding: 0 5px; display: grid; place-items: center; }
+
+/* ── Barre « prêt » (bas) ───────────────────────────────────── */
+.rdm-ready {
+  margin-top: auto; flex: 0 0 auto; padding: 10px 16px 22px;
+  background: rgba(241,242,243,0.92); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border-top: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 9px;
+}
+.rdm-ready .o-btn { width: 100%; }
+.rdm-ready-meta { display: flex; align-items: center; gap: 10px; }
+.rdm-ready-status { font-size: 12.5px; color: var(--ink-2); }
+.rdm-ready-status b { color: var(--ink); }
+.rdm-ready-dots { margin-left: auto; display: flex; gap: 6px; }
+.rdm-ready-dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--bg-tint); border: 1.5px solid var(--line); }
+.rdm-ready-dots i.on { background: var(--teal); border-color: var(--teal); }
+
+/* ── Cinématique (plein écran) ──────────────────────────────── */
+.rdm-end { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 16px; padding: 24px 28px; position: relative; z-index: 2; }
+.rdm .rd-stage--end .rd-boss-disc { width: 150px; height: 150px; }
+.rdm .rd-stage--end .rd-boss-emoji { font-size: 82px; }
+.rdm-end-badge { display: inline-flex; align-items: center; gap: 7px; font-family: var(--display); font-weight: 800; font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--rd-deep); background: linear-gradient(135deg, #ffd166, #ffb02e); padding: 7px 15px; border-radius: var(--r-pill); }
+.rdm-end-title { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1.08; letter-spacing: -0.03em; color: #fff; margin: 0; }
+.rdm-end-sub { font-size: 14px; color: var(--rd-on-deep-2); margin: 0; max-width: 30ch; }
+.rdm-end-crew { display: flex; gap: 9px; margin-top: 2px; }
+.rdm-end-crew .rdm-crew-av { width: 42px; height: 42px; font-size: 17px; }
+.rdm-end .o-btn { width: 100%; max-width: 280px; }
+
+/* ── Résultat ───────────────────────────────────────────────── */
+.rdm-result { flex: 1 1 auto; display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 26px; overflow: hidden; }
+.rdm-result-top {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow);
+  padding: 18px 16px 16px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; position: relative; overflow: hidden;
+}
+.rdm-result-top::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 5px; }
+.rdm-result--won .rdm-result-top::before { background: linear-gradient(90deg, var(--teal), #00e8b8); }
+.rdm-result--lost .rdm-result-top::before { background: linear-gradient(90deg, var(--ink-3), #c2c8d0); }
+.rdm-result-emoji { width: 70px; height: 70px; border-radius: 20px; display: grid; place-items: center; font-size: 38px; margin-top: 2px; }
+.rdm-result--won .rdm-result-emoji { background: var(--teal-soft); }
+.rdm-result--lost .rdm-result-emoji { background: var(--bg-tint); }
+.rdm-result-badge { display: inline-flex; align-items: center; gap: 6px; font-family: var(--display); font-weight: 800; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--teal-700); background: var(--teal-soft); padding: 4px 11px; border-radius: var(--r-pill); }
+.rdm-result-title { font-family: var(--display); font-weight: 800; font-size: 23px; line-height: 1.12; letter-spacing: -0.03em; margin: 0; }
+.rdm-result-sub { font-size: 13px; color: var(--ink-2); margin: 0; }
+.rdm-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.rdm-stat { background: var(--bg-tint); border-radius: 14px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.rdm-stat--gold { background: linear-gradient(160deg, #fdf1d8, #fde9c2); }
+.rdm-stat-label { font-size: 9.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3); }
+.rdm-stat-val { font-family: var(--display); font-weight: 800; font-size: 19px; letter-spacing: -0.02em; }
+.rdm-stat--gold .rdm-stat-val { color: var(--amber); }
+.rdm-stat-hint { font-size: 9.5px; color: var(--ink-2); line-height: 1.2; }
+.rdm-result .o-card, .rdm-result .rd-panel { padding: 16px; }
+.rdm-result-crew { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.rdm-result-actions { display: flex; flex-direction: column; gap: 9px; margin-top: 2px; }
+.rdm-result-actions .o-btn { width: 100%; }

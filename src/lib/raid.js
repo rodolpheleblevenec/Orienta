@@ -6,13 +6,32 @@
 // ── Organes ──────────────────────────────────────────────────────────
 // sees   : informations sémantiques visibles (sinon cachées) — 'clues' | 'words' | 'feedback'
 // does   : actions exclusives — 'place' | 'rotate' | 'validate' | 'peril:*'
+// powers : lignes « ce que tu vois / fais / ne vois pas » affichées sur les cartes de
+// rôle du lobby (redesign RAID). kind = 'see' | 'do' | 'blind'. Le **gras** est rendu
+// en <b>. Facultatif : les rôles sans `powers` retombent sur un dérivé de sees/does
+// (voir organPowers()), ce qui garde l'architecture extensible aux paliers supérieurs.
 export const ORGANS = {
   oeil:       { key: 'oeil',       label: 'Œil',        emoji: '🔭', sees: ['clues', 'words'], does: [],
-                blurb: 'Tu vois les indices ET les mots. Dicte à la Main quoi poser et comment tourner.' },
+                tagline: 'Les yeux de l’équipage', color: 'var(--blue)',
+                blurb: 'Tu vois les indices ET les mots. Dicte à la Main quoi poser et comment tourner.',
+                powers: [
+                  { kind: 'see', text: 'Tu vois les **indices** et les **mots** des cartes.' },
+                  { kind: 'do',  text: 'Tu **dictes** à la Main quoi poser et comment tourner.' },
+                ] },
   main:       { key: 'main',       label: 'Main',       emoji: '✋', sees: [], does: ['place', 'rotate'],
-                blurb: 'Tu places et tournes les cartes — mais tu ne vois ni indices ni mots. Suis les consignes.' },
+                tagline: 'Les mains qui agissent', color: 'var(--green)',
+                blurb: 'Tu places et tournes les cartes — mais tu ne vois ni indices ni mots. Suis les consignes.',
+                powers: [
+                  { kind: 'blind', text: 'Tu ne vois **ni indices ni mots**.' },
+                  { kind: 'do',    text: 'Toi seul **places** et **tournes** les cartes.' },
+                ] },
   capitaine:  { key: 'capitaine',  label: 'Capitaine',  emoji: '🧭', sees: ['feedback'], does: ['validate', 'sonar'],
-                blurb: 'Toi seul valides l’essai et vois les couleurs. Sonar : sonde 1 carte/assaut pour savoir si elle est parfaite.' },
+                tagline: 'La voix qui tranche', color: 'var(--orange)',
+                blurb: 'Toi seul valides l’essai et vois les couleurs. Sonar : sonde 1 carte/assaut pour savoir si elle est parfaite.',
+                powers: [
+                  { kind: 'see', text: 'Tu vois les **couleurs** après chaque essai.' },
+                  { kind: 'do',  text: 'Toi seul **valides** l’essai. **Sonar** : sonde 1 carte/assaut.' },
+                ] },
   // Paliers supérieurs (itérations 2-3) — l’Œil et la Main se scindent, puis les périls.
   vigie:      { key: 'vigie',      label: 'Vigie',      emoji: '👁️', sees: ['clues'], does: [],
                 blurb: 'Tu vois les 4 indices. Décris-les à l’équipe.' },
@@ -100,6 +119,23 @@ export function isWithinRaidWindow(date = new Date()) {
   const mins = date.getHours() * 60 + date.getMinutes()
   const toMin = (hm) => { const [h, m] = hm.split(':'); return Number(h) * 60 + Number(m) }
   return RAID_WINDOWS.some(w => mins >= toMin(w.start) && mins < toMin(w.end))
+}
+
+// Pouvoirs « voit / fait / aveugle » d'un rôle pour les cartes du lobby. Utilise le
+// champ `powers` si fourni (rôles palier 3), sinon dérive depuis sees/does (paliers
+// supérieurs) pour rester extensible sans dupliquer de texte.
+const SEE_TXT = { clues: 'les **indices**', words: 'les **mots** des cartes', feedback: 'les **couleurs** après chaque essai', mapping: 'la **vraie correspondance** des slots', decoy: 'la **carte-leurre**' }
+const DO_TXT = { place: '**places** les cartes', rotate: '**tournes** les cartes', validate: '**valides** l’essai', sonar: 'lances le **sonar**', 'peril:boussole': 'corriges la **boussole**', 'peril:brouillard': 'perces le **brouillard**', 'peril:derive': 're-stabilises les cartes' }
+export function organPowers(role) {
+  const o = ORGANS[role]
+  if (!o) return []
+  if (o.powers) return o.powers
+  const out = []
+  if (o.sees?.length) out.push({ kind: 'see', text: 'Tu vois ' + o.sees.map(s => SEE_TXT[s] || s).join(', ') + '.' })
+  else out.push({ kind: 'blind', text: 'Tu ne vois **rien de spécial**.' })
+  if (o.does?.length) out.push({ kind: 'do', text: 'Tu ' + o.does.map(d => DO_TXT[d] || d).join(', ') + '.' })
+  else out.push({ kind: 'do', text: 'Tu **guides** et **coordonnes** l’équipage.' })
+  return out
 }
 
 // Renvoie la liste des organes (clés) pour un effectif donné (borné 3..5).

@@ -8,6 +8,17 @@ function hueOf(s) {
   return h
 }
 
+// Pastille de rôle tagguée par couleur (cohérent avec les cartes de rôle du lobby).
+const ROLE_TAG = {
+  oeil:        { color: 'var(--blue)',    background: 'var(--blue-soft)' },
+  vigie:       { color: 'var(--blue)',    background: 'var(--blue-soft)' },
+  cartographe: { color: 'var(--violet)',  background: 'var(--violet-soft)' },
+  main:        { color: 'var(--green)',   background: 'var(--green-soft)' },
+  timonier:    { color: 'var(--green)',   background: 'var(--green-soft)' },
+  mecanicien:  { color: 'var(--teal-700)',background: 'var(--teal-soft)' },
+  capitaine:   { color: 'var(--orange)',  background: 'var(--orange-soft)' },
+}
+
 // Chat d'équipage (broadcast) — UI façon messagerie : avatars, bulles gauche/droite,
 // rôle sous le pseudo, regroupement des messages consécutifs.
 export default function RaidChat({ chat, onSend, me }) {
@@ -26,7 +37,11 @@ export default function RaidChat({ chat, onSend, me }) {
 
   return (
     <div className="rchat">
-      <div className="rchat-head">💬 Coordination de l’équipage</div>
+      <div className="rchat-head">
+        <svg className="rchat-head-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
+        <span className="rchat-head-title">Coordination</span>
+        <span className="rchat-head-live"><i />temps réel</span>
+      </div>
       <div className="rchat-log" ref={logRef}>
         {chat.length === 0 && <p className="rchat-empty">Parlez-vous : qui voit quoi, qui pose quoi, qui tourne…</p>}
         {chat.map((m, i) => {
@@ -45,7 +60,7 @@ export default function RaidChat({ chat, onSend, me }) {
                 {!grouped && (
                   <div className="rchat-meta">
                     <span className="rchat-name">{mine ? 'Toi' : (m.pseudo || 'joueur')}</span>
-                    {org && <span className="rchat-role">{org.emoji} {org.label}</span>}
+                    {org && <span className="rchat-role" style={!mine ? ROLE_TAG[m.role] : undefined}>{org.emoji} {org.label}</span>}
                   </div>
                 )}
                 <div className="rchat-text">{m.text}</div>

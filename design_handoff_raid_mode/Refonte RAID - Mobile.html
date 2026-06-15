@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Orienta — RAID mobile</title>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Orienta Design System -->
+<link rel="stylesheet" href="_ds/orienta-design-system-50c4c1e5-2443-4efb-b2da-de028d449ba2/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/orienta-design-system-50c4c1e5-2443-4efb-b2da-de028d449ba2/tokens/colors.css">
+<link rel="stylesheet" href="_ds/orienta-design-system-50c4c1e5-2443-4efb-b2da-de028d449ba2/tokens/typography.css">
+<link rel="stylesheet" href="_ds/orienta-design-system-50c4c1e5-2443-4efb-b2da-de028d449ba2/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/orienta-design-system-50c4c1e5-2443-4efb-b2da-de028d449ba2/components/components.css">
+<link rel="stylesheet" href="_ds/orienta-design-system-50c4c1e5-2443-4efb-b2da-de028d449ba2/styles.css">
+<script src="_ds/orienta-design-system-50c4c1e5-2443-4efb-b2da-de028d449ba2/_ds_bundle.js"></script>
+
+<link rel="stylesheet" href="raid.css">
+<link rel="stylesheet" href="raid-mobile.css">
+
+<style>
+  html, body { margin: 0; height: 100%; background: #f0eee9; }
+  #root { height: 100%; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="raid-parts.jsx"></script>
+<script type="text/babel" src="raid-mobile.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "intensity": 30,
+    "shards": true,
+    "vignette": false
+  }/*EDITMODE-END*/;
+
+  function mount() {
+    const DS = window.OrientaDesignSystem_50c4c1;
+    const { DesignCanvas, DCSection, DCArtboard, IOSDevice } = window;
+    const { useTweaks, TweaksPanel, TweakSection, TweakSlider, TweakToggle } = window;
+    const { MLobby, MLobbyChat, MCombatBoard, MCombatChat, MCinematic, MResult } = window;
+    if (!DS || !DesignCanvas || !useTweaks || !IOSDevice || !MLobby) { setTimeout(mount, 40); return; }
+
+    // Cadre centré avec de la marge pour l'ombre du device.
+    const frameStyle = { background: 'transparent', boxShadow: 'none', borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' };
+    function Phone({ dark, children }) { return <IOSDevice dark={dark}>{children}</IOSDevice>; }
+
+    function App() {
+      const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+      const fx = Math.max(0, Math.min(1, (t.intensity ?? 30) / 100));
+      const W = 464, H = 936;
+
+      return (
+        <>
+          <DesignCanvas>
+            <DCSection id="m-lobby" title="Mobile · Lobby" subtitle="Bascule Rôles ⇄ Chat — former l’équipage en se parlant">
+              <DCArtboard id="lobby" label="Lobby — Rôles" width={W} height={H} style={frameStyle}>
+                <Phone><MLobby fx={fx} /></Phone>
+              </DCArtboard>
+              <DCArtboard id="lobby-chat" label="Lobby — Chat" width={W} height={H} style={frameStyle}>
+                <Phone><MLobbyChat fx={fx} /></Phone>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="m-combat" title="Mobile · Combat" subtitle="Bascule Plateau ⇄ Chat — le cœur tactile du mode">
+              <DCArtboard id="board" label="Combat — Plateau" width={W} height={H} style={frameStyle}>
+                <Phone><MCombatBoard fx={fx} shards={!!t.shards} /></Phone>
+              </DCArtboard>
+              <DCArtboard id="chat" label="Combat — Chat" width={W} height={H} style={frameStyle}>
+                <Phone><MCombatChat fx={fx} /></Phone>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="m-end" title="Mobile · Cinématique" subtitle="Le boss replonge">
+              <DCArtboard id="end" label="Victoire — cinématique" width={W} height={H} style={frameStyle}>
+                <Phone dark><MCinematic fx={fx} /></Phone>
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="m-result" title="Mobile · Résultat" subtitle="Les deux issues">
+              <DCArtboard id="won" label="Résultat — victoire" width={W} height={H} style={frameStyle}>
+                <Phone><MResult won /></Phone>
+              </DCArtboard>
+              <DCArtboard id="lost" label="Résultat — défaite" width={W} height={H} style={frameStyle}>
+                <Phone><MResult won={false} /></Phone>
+              </DCArtboard>
+            </DCSection>
+          </DesignCanvas>
+
+          <TweaksPanel title="Tweaks">
+            <TweakSection label="Effets de combat" />
+            <TweakSlider label="Intensité" value={t.intensity} min={0} max={100} step={5} unit="%" onChange={(v) => setTweak('intensity', v)} />
+            <TweakToggle label="Éclats à l’impact" value={t.shards} onChange={(v) => setTweak('shards', v)} />
+            <TweakToggle label="Vignette de combat" value={t.vignette} onChange={(v) => setTweak('vignette', v)} />
+          </TweaksPanel>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  }
+  mount();
+</script>
+</body>
+</html>

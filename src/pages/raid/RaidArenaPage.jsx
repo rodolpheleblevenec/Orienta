@@ -5,7 +5,7 @@ import Header from '../../components/ui/Header'
 import { useAuthStore } from '../../stores/authStore'
 import { useRaidArena } from '../../lib/useRaidArena'
 import { getAdminSecret } from '../../lib/adminSecret'
-import { ORGANS, getBossByKey, BOSSES, canPlace, canRotate, canValidate, canSeeFeedback, canSeeClues, canSeeWords, canSeeRaid, isRaidAdmin, isRaidLaunched, currentRaidLevel, difficultyForLevel } from '../../lib/raid'
+import { ORGANS, organPowers, getBossByKey, BOSSES, canPlace, canRotate, canValidate, canSeeFeedback, canSeeClues, canSeeWords, canSeeRaid, isRaidAdmin, isRaidLaunched, currentRaidLevel, difficultyForLevel } from '../../lib/raid'
 import RosterBoard from '../../components/raid/RosterBoard'
 import RaidChat from '../../components/raid/RaidChat'
 import RoleStrip from '../../components/raid/RoleStrip'
@@ -21,6 +21,31 @@ const hueOf = (s) => { let h = 0; for (let i = 0; i < (s || '').length; i++) h =
 // 3=bas-droite). On nomme les cartes par leur coin en langage marin (boussole) :
 // nord-ouest / nord-est / sud-ouest / sud-est → plus cohérent que haut/bas/gauche/droite.
 const SLOT_LABELS = { 0: '↖ N-O', 1: '↗ N-E', 2: '↙ S-O', 3: '↘ S-E' }
+const POWER_KEY = { see: '👁 Voit', do: '✋ Fait', blind: '🚫 Aveugle' }
+
+// Rend « **gras** » → <b>gras</b> dans les libellés de pouvoirs (lentille de rôle).
+function richText(s) {
+  return String(s).split(/\*\*(.+?)\*\*/g).map((p, i) => (i % 2 ? <b key={i}>{p}</b> : p))
+}
+
+// Lentille de rôle (combat) : rappelle en permanence le rôle du joueur et ses pouvoirs.
+function RoleLens({ organ, role }) {
+  if (!organ) return null
+  return (
+    <div className="raid-lens">
+      <span className="raid-lens-emoji">{organ.emoji}</span>
+      <div className="raid-lens-txt">
+        <span className="raid-lens-role">Tu joues : <span>{organ.label}</span></span>
+        {organ.tagline && <span className="raid-lens-desc">{organ.tagline}</span>}
+      </div>
+      <div className="raid-lens-tags">
+        {organPowers(role).map((p, i) => (
+          <span key={i} className={`raid-power-key raid-power-key--${p.kind}`}>{POWER_KEY[p.kind]}</span>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 function HpBar({ hp, max }) {
   const pct = max > 0 ? Math.max(0, Math.round((hp / max) * 100)) : 0
@@ -78,10 +103,27 @@ export default function RaidArenaPage() {
   const isAdmin = isRaidAdmin(user?.pseudo)
   const [opening, setOpening] = useState(false)
   const [sonarResult, setSonarResult] = useState(null)
+  // Onglets mobile (le plateau et le chat ne tiennent pas côte à côte) : 'board' | 'chat'.
+  // Sur desktop le contrôle segmenté est masqué et les 2 colonnes s'affichent toujours.
+  const [combatTab, setCombatTab] = useState('board')
+  // Onglets mobile du lobby : 'roles' | 'chat'.
+  const [lobbyTab, setLobbyTab] = useState('roles')
+  // Compteur de messages non lus quand on n'est pas sur l'onglet Chat (badge mobile).
+  const [unread, setUnread] = useState(0)
+  const chatLenRef = useRef(0)
   // Prévisualisation admin de l'UI des différents boss (affichage local uniquement).
   const [bossPreview, setBossPreview] = useState(null)
   // Le sonar se recharge à chaque assaut → on efface le résultat affiché.
   useEffect(() => { setSonarResult(null) }, [session?.assault_index, session?.status])
+
+  // Badge « messages non lus » sur l'onglet Chat (mobile) : incrémente tant qu'on
+  // regarde le plateau, se remet à zéro quand on ouvre le chat.
+  const chatLen = chat?.length ?? 0
+  useEffect(() => {
+    if (combatTab !== 'chat' && chatLen > chatLenRef.current) setUnread(u => u + (chatLen - chatLenRef.current))
+    chatLenRef.current = chatLen
+  }, [chatLen, combatTab])
+  useEffect(() => { if (combatTab === 'chat') setUnread(0) }, [combatTab])
 
   // Combat lancé sans moi : il est déjà en cours et je n'en fais pas partie (sessions
   // parallèles → je pourrai ouvrir une nouvelle arène). Délai de ~2,5 s pour ne pas
@@ -186,6 +228,7 @@ export default function RaidArenaPage() {
                 assaultIndex={session.assault_index} assaultCount={session.assault_count} outcome={session.status} />
             </Suspense>
             <div className={`raid-endbanner raid-endbanner--${session.status}`}>
+              {won && <span className="raid-endbanner-badge">⚔️ Victoire d’équipage</span>}
               <div className="raid-endbanner-emoji">{won ? '🏆' : '🌑'}</div>
               <h2 className="raid-endbanner-title">{won ? `${boss.name} est vaincu !` : `${boss.name} a replongé…`}</h2>
               <p className="raid-endbanner-sub">
@@ -208,7 +251,14 @@ export default function RaidArenaPage() {
         <Header />
         <main className="raid-page raid-page--waiting">
           <RaidIntroBanner />
-          <div className="raid-lobby">
+          {/* Contrôle segmenté (mobile) : Rôles / Chat — masqué sur desktop. */}
+          <div className="raid-seg raid-seg--lobby" role="tablist">
+            <button type="button" role="tab" aria-selected={lobbyTab === 'roles'} className={`raid-seg-btn${lobbyTab === 'roles' ? ' is-on' : ''}`} onClick={() => setLobbyTab('roles')}>🎭 Rôles</button>
+            <button type="button" role="tab" aria-selected={lobbyTab === 'chat'} className={`raid-seg-btn${lobbyTab === 'chat' ? ' is-on' : ''}`} onClick={() => setLobbyTab('chat')}>
+              💬 Chat{lobbyTab !== 'chat' && chat.length > 0 && <span className="raid-seg-badge">{chat.length}</span>}
+            </button>
+          </div>
+          <div className="raid-lobby" data-tab={lobbyTab}>
             <RosterBoard boss={boss} roster={roster} me={me} actions={actions} busy={busy} minPlayers={difficultyForLevel(session.boss_level ?? currentRaidLevel()).min_players} />
             <RaidChat chat={chat} onSend={actions.sendChat} me={me} />
           </div>
@@ -318,8 +368,19 @@ export default function RaidArenaPage() {
           </div>
         </div>
 
+        {/* Lentille de rôle : rappelle en permanence ton rôle et tes pouvoirs. */}
+        <RoleLens organ={myOrgan} role={role} />
+
+        {/* Contrôle segmenté (mobile) : Plateau / Chat — masqué sur desktop (2 colonnes). */}
+        <div className="raid-seg" role="tablist">
+          <button type="button" role="tab" aria-selected={combatTab === 'board'} className={`raid-seg-btn${combatTab === 'board' ? ' is-on' : ''}`} onClick={() => setCombatTab('board')}>🧩 Plateau</button>
+          <button type="button" role="tab" aria-selected={combatTab === 'chat'} className={`raid-seg-btn${combatTab === 'chat' ? ' is-on' : ''}`} onClick={() => setCombatTab('chat')}>
+            💬 Chat{unread > 0 && <span className="raid-seg-badge">{unread}</span>}
+          </button>
+        </div>
+
         {/* Deux colonnes : grille + réserve | chat (large) */}
-        <div className="raid-combat-cols">
+        <div className="raid-combat-cols" data-tab={combatTab}>
           <div className="raid-col-board">
             <RaidBoard
               board={board}

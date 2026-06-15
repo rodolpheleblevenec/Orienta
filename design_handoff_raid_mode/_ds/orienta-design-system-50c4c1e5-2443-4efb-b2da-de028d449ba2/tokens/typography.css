@@ -1,0 +1,32 @@
+/* ──────────────────────────────────────────────────────────────
+   Orienta — Typography
+   Two families. Bricolage Grotesque is the personality (everything
+   that should feel "game-y": titles, numbers, pills, card words).
+   DM Sans is the quiet workhorse for body & UI text.
+   ────────────────────────────────────────────────────────────── */
+:root {
+  --display: 'Bricolage Grotesque', system-ui, sans-serif; /* @kind font */
+  --sans:    'DM Sans', system-ui, sans-serif; /* @kind font */
+
+  /* Display scale (Bricolage Grotesque, weight 700–800, tight tracking) */
+  --fs-display:  28px;   /* hero headline (login)            */
+  --fs-h1:       26px;   /* page titles                      */
+  --fs-h2:       22px;   /* section / modal titles           */
+  --fs-h3:       17px;   /* card titles, level names         */
+
+  /* Text scale (DM Sans) */
+  --fs-body:     16px;   /* default body / inputs            */
+  --fs-ui:       14px;   /* nav, buttons, card meta          */
+  --fs-sm:       13px;   /* secondary meta                   */
+  --fs-xs:       12px;   /* uppercase eyebrow labels         */
+  --fs-2xs:      11px;   /* badge text                       */
+
+  /* Tracking — display sets tighten as they grow */
+  --tracking-display: -0.03em;
+  --tracking-tight:   -0.02em;
+  --tracking-eyebrow:  0.06em;  /* uppercase labels           */
+
+  --lh-tight:    1.18; /* @kind other */
+  --lh-body:     1.5;  /* @kind other */
+  --lh-relaxed:  1.6;  /* @kind other */
+}

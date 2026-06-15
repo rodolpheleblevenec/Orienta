@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Orienta — Refonte du mode RAID</title>
+
+<!-- React + Babel (versions épinglées) -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Orienta Design System : tokens + composants -->
+<link rel="stylesheet" href="_ds/orienta-design-system-50c4c1e5-2443-4efb-b2da-de028d449ba2/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/orienta-design-system-50c4c1e5-2443-4efb-b2da-de028d449ba2/tokens/colors.css">
+<link rel="stylesheet" href="_ds/orienta-design-system-50c4c1e5-2443-4efb-b2da-de028d449ba2/tokens/typography.css">
+<link rel="stylesheet" href="_ds/orienta-design-system-50c4c1e5-2443-4efb-b2da-de028d449ba2/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/orienta-design-system-50c4c1e5-2443-4efb-b2da-de028d449ba2/components/components.css">
+<link rel="stylesheet" href="_ds/orienta-design-system-50c4c1e5-2443-4efb-b2da-de028d449ba2/styles.css">
+<script src="_ds/orienta-design-system-50c4c1e5-2443-4efb-b2da-de028d449ba2/_ds_bundle.js"></script>
+
+<!-- Styles du redesign RAID -->
+<link rel="stylesheet" href="raid.css">
+
+<style>
+  html, body { margin: 0; height: 100%; background: #f0eee9; }
+  #root { height: 100%; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Scaffolding (canvas + panneau Tweaks) -->
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<!-- Composants & écrans RAID -->
+<script type="text/babel" src="raid-parts.jsx"></script>
+<script type="text/babel" src="raid-screens.jsx"></script>
+
+<!-- Application -->
+<script type="text/babel" data-presets="react">
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "intensity": 30,
+    "shards": true,
+    "vignette": false
+  }/*EDITMODE-END*/;
+
+  function mount() {
+    const DS = window.OrientaDesignSystem_50c4c1;
+    const { DesignCanvas, DCSection, DCArtboard } = window;
+    const { useTweaks, TweaksPanel, TweakSection, TweakSlider, TweakToggle } = window;
+    const { LobbyScreen, CombatScreen, CinematicScreen, ResultScreen, DirectionDoc } = window;
+    if (!DS || !DesignCanvas || !useTweaks || !LobbyScreen) { setTimeout(mount, 40); return; }
+
+    function App() {
+      const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+      const fx = Math.max(0, Math.min(1, (t.intensity ?? 60) / 100));
+      const ab = { background: 'var(--bg)' };
+
+      return (
+        <>
+          <DesignCanvas>
+            <DCSection id="dir" title="Direction & système" subtitle="Le parti pris du redesign">
+              <DCArtboard id="doc" label="Concept" width={1180} height={404} style={{ background: 'var(--card)' }}>
+                <DirectionDoc />
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="lobby" title="01 · Lobby" subtitle="Formation de l’équipage & rôles secrets">
+              <DCArtboard id="lobby" label="Lobby — choix des rôles" width={1280} height={1004} style={ab}>
+                <LobbyScreen />
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="combat" title="02 · Combat" subtitle="Le cœur du mode — boss, plateau, coordination">
+              <DCArtboard id="combat" label="Combat — vue Capitaine" width={1280} height={1092} style={ab}>
+                <CombatScreen fx={fx} shards={!!t.shards} vignette={!!t.vignette} />
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="end" title="03 · Cinématique de fin" subtitle="Le boss replonge, bascule vers le résultat">
+              <DCArtboard id="end" label="Victoire — cinématique" width={1280} height={884} style={ab}>
+                <CinematicScreen fx={fx} />
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="result" title="04 · Résultat" subtitle="Les deux issues — victoire & défaite">
+              <DCArtboard id="won" label="Résultat — victoire" width={1280} height={1004} style={ab}>
+                <ResultScreen won />
+              </DCArtboard>
+              <DCArtboard id="lost" label="Résultat — défaite" width={1280} height={900} style={ab}>
+                <ResultScreen won={false} />
+              </DCArtboard>
+            </DCSection>
+          </DesignCanvas>
+
+          <TweaksPanel title="Tweaks">
+            <TweakSection label="Effets de combat" />
+            <TweakSlider label="Intensité" value={t.intensity} min={0} max={100} step={5} unit="%"
+              onChange={(v) => setTweak('intensity', v)} />
+            <TweakToggle label="Éclats à l’impact" value={t.shards}
+              onChange={(v) => setTweak('shards', v)} />
+            <TweakToggle label="Vignette de combat" value={t.vignette}
+              onChange={(v) => setTweak('vignette', v)} />
+          </TweaksPanel>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  }
+  mount();
+</script>
+</body>
+</html>
