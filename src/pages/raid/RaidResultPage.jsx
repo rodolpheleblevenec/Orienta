@@ -46,9 +46,11 @@ export default function RaidResultPage() {
         <Header />
         <main className="raid-page">
           <div className="raid-res raid-res--lost">
-            <div className="raid-res-emoji">⚔️</div>
-            <h1 className="raid-h1">Ce raid est encore en cours</h1>
-            <p className="raid-sub">Le combat n’est pas terminé — le résultat s’affichera une fois l’assaut final joué.</p>
+            <div className="raid-res-top">
+              <div className="raid-res-emoji">⚔️</div>
+              <h1 className="raid-h1 raid-res-title">Ce raid est encore en cours</h1>
+              <p className="raid-sub raid-res-sub">Le combat n’est pas terminé — le résultat s’affichera une fois l’assaut final joué.</p>
+            </div>
             <div className="raid-res-actions">
               <button className="btn-primary" onClick={() => navigate('/raid')}>Rejoindre l’arène</button>
               <button className="btn-secondary" onClick={() => navigate('/hub')}>Retour au hub</button>
@@ -64,9 +66,11 @@ export default function RaidResultPage() {
         <Header />
         <main className="raid-page">
           <div className="raid-res raid-res--lost">
-            <div className="raid-res-emoji">🌫️</div>
-            <h1 className="raid-h1">Résultat introuvable</h1>
-            <p className="raid-sub">Ce raid n’existe plus ou n’est pas encore terminé.</p>
+            <div className="raid-res-top">
+              <div className="raid-res-emoji">🌫️</div>
+              <h1 className="raid-h1 raid-res-title">Résultat introuvable</h1>
+              <p className="raid-sub raid-res-sub">Ce raid n’existe plus ou n’est pas encore terminé.</p>
+            </div>
             <div className="raid-res-actions">
               <button className="btn-primary" onClick={() => navigate('/raid')}>Aller à l’arène</button>
               <button className="btn-secondary" onClick={() => navigate('/hub')}>Retour au hub</button>

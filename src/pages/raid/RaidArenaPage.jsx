@@ -22,10 +22,31 @@ const hueOf = (s) => { let h = 0; for (let i = 0; i < (s || '').length; i++) h =
 // nord-ouest / nord-est / sud-ouest / sud-est → plus cohérent que haut/bas/gauche/droite.
 const SLOT_LABELS = { 0: '↖ N-O', 1: '↗ N-E', 2: '↙ S-O', 3: '↘ S-E' }
 const POWER_KEY = { see: '👁 Voit', do: '✋ Fait', blind: '🚫 Aveugle' }
+const fmtClock = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 
 // Rend « **gras** » → <b>gras</b> dans les libellés de pouvoirs (lentille de rôle).
 function richText(s) {
   return String(s).split(/\*\*(.+?)\*\*/g).map((p, i) => (i % 2 ? <b key={i}>{p}</b> : p))
+}
+
+// Bandeau d'identité du mode RAID (sous le header global) : badge + semaine +
+// nombre de joueurs « en mer » + sortie rapide. Donne au mode son identité propre
+// (« mode séparé ») sans remplacer la navigation globale.
+function RaidStrip({ level, online, onLeave }) {
+  return (
+    <div className="raid-strip">
+      <span className="raid-strip-badge">⚔️ Raid</span>
+      {level != null && <span className="raid-strip-week">Semaine {level}</span>}
+      <span className="raid-strip-spacer" />
+      {online != null && <span className="raid-strip-online"><i />{online} en mer</span>}
+      {onLeave && (
+        <button type="button" className="raid-strip-leave" onClick={onLeave}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+          Quitter
+        </button>
+      )}
+    </div>
+  )
 }
 
 // Lentille de rôle (combat) : rappelle en permanence le rôle du joueur et ses pouvoirs.
@@ -190,6 +211,7 @@ export default function RaidArenaPage() {
       <>
         <Header />
         <main className="raid-page raid-page--nowindow">
+          <RaidStrip level={currentRaidLevel()} online={null} onLeave={() => navigate('/hub')} />
           <div className="raid-empty">
             <div className="raid-empty-emoji">🌊</div>
             <h1 className="raid-h1">{launched ? 'Aucun équipage en mer pour l’instant' : 'Le raid n’est pas encore ouvert'}</h1>
@@ -246,11 +268,37 @@ export default function RaidArenaPage() {
 
   // ── Salle d'attente ────────────────────────────────────────────────
   if (session.status === 'waiting') {
+    const lvl = session.boss_level ?? currentRaidLevel()
+    const cfg = difficultyForLevel(lvl)
+    const lobbyCrew = roster.map(p => ({ id: p.user_id, hue: hueOf(p.pseudo), role: p.role, pseudo: p.pseudo }))
     return (
       <>
         <Header />
         <main className="raid-page raid-page--waiting">
+          <RaidStrip level={lvl} online={roster.length} onLeave={() => navigate('/hub')} />
           <RaidIntroBanner />
+
+          {/* Scène : le boss en approche, calme avant le combat (même décor que le combat). */}
+          <div className="raid-monster raid-monster--lobby">
+            <Suspense fallback={<div className="raid-monster-loading">Le boss approche…</div>}>
+              <RaidMonster boss={boss.key} crew={lobbyCrew} hp={cfg.assault_count * 100} maxHp={cfg.assault_count * 100} assaultIndex={0} assaultCount={cfg.assault_count} />
+            </Suspense>
+            <div className="raid-crew-overlay"><RoleStrip roster={roster} meId={user?.id} vertical /></div>
+            <div className="raid-monster-overlay">
+              <div className="raid-monster-topline">
+                <div className="raid-monster-name"><span className="raid-monster-emoji">{boss.emoji}</span> {boss.name}</div>
+                <div className="raid-monster-stats">
+                  <span className="rms-chip rms-chip--week">Sem.&nbsp;<b>{lvl}</b></span>
+                  <span className="rms-chip">{cfg.assault_count}&nbsp;assauts</span>
+                  <span className="rms-chip">PV&nbsp;<b>{cfg.assault_count * 100}</b></span>
+                  <span className="rms-chip rms-chip--lives">{'🛟'.repeat(Math.max(0, cfg.lives)) || '—'}</span>
+                  <span className="rms-chip">⏱&nbsp;<b>{fmtClock(cfg.timer_seconds)}</b>/assaut</span>
+                  <span className="rms-chip">👥&nbsp;min&nbsp;<b>{cfg.min_players}</b></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Contrôle segmenté (mobile) : Rôles / Chat — masqué sur desktop. */}
           <div className="raid-seg raid-seg--lobby" role="tablist">
             <button type="button" role="tab" aria-selected={lobbyTab === 'roles'} className={`raid-seg-btn${lobbyTab === 'roles' ? ' is-on' : ''}`} onClick={() => setLobbyTab('roles')}>🎭 Rôles</button>
@@ -258,12 +306,17 @@ export default function RaidArenaPage() {
               💬 Chat{lobbyTab !== 'chat' && chat.length > 0 && <span className="raid-seg-badge">{chat.length}</span>}
             </button>
           </div>
+
           <div className="raid-lobby" data-tab={lobbyTab}>
-            <RosterBoard boss={boss} roster={roster} me={me} actions={actions} busy={busy} minPlayers={difficultyForLevel(session.boss_level ?? currentRaidLevel()).min_players} />
-            <RaidChat chat={chat} onSend={actions.sendChat} me={me} />
+            <RosterBoard boss={boss} roster={roster} me={me} actions={actions} busy={busy} minPlayers={cfg.min_players} />
+            <div className="raid-lobby-side">
+              <div className="raid-lobby-chatpanel">
+                <RaidChat chat={chat} onSend={actions.sendChat} me={me} />
+              </div>
+              {/* Le record de la semaine à battre — visible pendant qu'on s'organise. */}
+              <HallOfFame compact level={lvl} fetchHof={actions.fetchHof} />
+            </div>
           </div>
-          {/* Le record de la semaine à battre — visible pendant qu'on s'organise. */}
-          <HallOfFame compact level={session.boss_level ?? currentRaidLevel()} fetchHof={actions.fetchHof} />
         </main>
       </>
     )
@@ -276,6 +329,7 @@ export default function RaidArenaPage() {
       <>
         <Header />
         <main className="raid-page">
+          <RaidStrip level={session.boss_level ?? currentRaidLevel()} online={roster.length} onLeave={() => navigate('/hub')} />
           <div className="raid-empty">
             <div className="raid-empty-emoji">{boss.emoji}</div>
             <h1 className="raid-h1">Ce combat a démarré sans toi</h1>
@@ -321,6 +375,7 @@ export default function RaidArenaPage() {
     <>
       <Header />
       <main className="raid-page raid-page--combat">
+        <RaidStrip level={session.boss_level ?? currentRaidLevel()} online={roster.length} onLeave={() => navigate('/hub')} />
         {/* Scène de combat 2.5D : boss (3D/2D) sur décor illustré + effets d'équipage */}
         <div className="raid-monster">
           <Suspense fallback={<div className="raid-monster-loading">Invocation de {displayBoss.name}…</div>}>

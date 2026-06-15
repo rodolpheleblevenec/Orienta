@@ -17,8 +17,8 @@ function Member({ pseudo, role }) {
     <span className="raid-res-member" title={o?.label || ''}>
       <span className="raid-res-mav" style={{ background: `hsl(${hueOf(pseudo)} 52% 52%)` }}>
         {(pseudo?.[0] || '?').toUpperCase()}
+        {o?.emoji && <span className="raid-res-mrole">{o.emoji}</span>}
       </span>
-      {o?.emoji && <span className="raid-res-mrole">{o.emoji}</span>}
       <span className="raid-res-mname">{pseudo}</span>
     </span>
   )
@@ -62,59 +62,61 @@ export default function RaidResultView({ data }) {
 
   return (
     <div className={`raid-res ${won ? 'raid-res--won' : 'raid-res--lost'}`}>
-      {/* Bandeau d'issue */}
-      {won && <div className="raid-res-victory-badge">⚔️ Victoire d’équipage</div>}
-      <div className="raid-res-emoji">{won ? '🏆' : '🌑'}</div>
-      <h1 className="raid-h1">
-        {won ? `${boss.name} est terrassé !` : `${boss.name} a replongé…`}
-      </h1>
-      <p className="raid-sub">
-        {won
-          ? 'Votre équipage a terrassé le boss de la semaine.'
-          : 'L’équipage est tombé. Mais la mer offre toujours une seconde chance.'}
-      </p>
-      {isTest && <span className="raid-res-testbadge">🔧 Partie de test — hors classement</span>}
+      {/* Carte d'issue (liseré, emoji, titre, stats) */}
+      <div className="raid-res-top">
+        {won && <div className="raid-res-victory-badge">⚔️ Victoire d’équipage</div>}
+        <div className="raid-res-emoji">{won ? '🏆' : '🌑'}</div>
+        <h1 className="raid-h1 raid-res-title">
+          {won ? `${boss.name} est terrassé !` : `${boss.name} a replongé…`}
+        </h1>
+        <p className="raid-sub raid-res-sub">
+          {won
+            ? 'Votre équipage a terrassé le boss de la semaine. L’abysse vous doit une fière chandelle.'
+            : 'L’équipage est tombé. Mais la mer offre toujours une seconde chance.'}
+        </p>
+        {isTest && <span className="raid-res-testbadge">🔧 Partie de test — hors classement</span>}
 
-      {/* Temps & rang (victoire) / progression (défaite) */}
-      <div className="raid-res-stats">
-        {won ? (
-          <>
-            <div className="raid-res-stat">
-              <span className="raid-res-statlabel">Temps de clear</span>
-              <span className="raid-res-statval">{fmtTime(clear_seconds)}</span>
-            </div>
-            {!isTest && rank && (
-              <div className={`raid-res-stat${isRecord ? ' raid-res-stat--gold' : ''}`}>
-                <span className="raid-res-statlabel">Classement de la semaine</span>
-                <span className="raid-res-statval">
-                  {isRecord ? '🥇 Meilleur temps !' : `${ordinal(rank.position)} le plus rapide`}
-                </span>
-                {rank.total > 1 && <span className="raid-res-stathint">sur {rank.total} équipages</span>}
+        {/* Temps & rang (victoire) / progression (défaite) */}
+        <div className="raid-res-stats">
+          {won ? (
+            <>
+              <div className="raid-res-stat">
+                <span className="raid-res-statlabel">Temps de clear</span>
+                <span className="raid-res-statval">{fmtTime(clear_seconds)}</span>
               </div>
-            )}
-            <div className="raid-res-stat">
-              <span className="raid-res-statlabel">XP collectif</span>
-              <span className="raid-res-statval">+{xp_awarded.toLocaleString('fr-FR')}</span>
-              <span className="raid-res-stathint">offert à toute la communauté</span>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="raid-res-stat">
-              <span className="raid-res-statlabel">Assauts franchis</span>
-              <span className="raid-res-statval">{cleared} / {session.assault_count}</span>
-            </div>
-            <div className="raid-res-stat raid-res-stat--record">
-              <span className="raid-res-statlabel">Record à battre cette semaine</span>
-              <span className="raid-res-statval">
-                {best_clear_seconds != null ? fmtTime(best_clear_seconds) : 'Aucun encore !'}
-              </span>
-              <span className="raid-res-stathint">
-                {best_clear_seconds != null ? 'la gloire est à votre portée' : 'soyez les premiers à le vaincre'}
-              </span>
-            </div>
-          </>
-        )}
+              {!isTest && rank && (
+                <div className={`raid-res-stat${isRecord ? ' raid-res-stat--gold' : ''}`}>
+                  <span className="raid-res-statlabel">Classement de la semaine</span>
+                  <span className="raid-res-statval">
+                    {isRecord ? '🥇 Meilleur temps !' : `${ordinal(rank.position)} le plus rapide`}
+                  </span>
+                  {rank.total > 1 && <span className="raid-res-stathint">sur {rank.total} équipages</span>}
+                </div>
+              )}
+              <div className="raid-res-stat">
+                <span className="raid-res-statlabel">XP collectif</span>
+                <span className="raid-res-statval">+{xp_awarded.toLocaleString('fr-FR')}</span>
+                <span className="raid-res-stathint">offert à toute la communauté</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="raid-res-stat">
+                <span className="raid-res-statlabel">Assauts franchis</span>
+                <span className="raid-res-statval">{cleared} / {session.assault_count}</span>
+              </div>
+              <div className="raid-res-stat raid-res-stat--record">
+                <span className="raid-res-statlabel">Record à battre cette semaine</span>
+                <span className="raid-res-statval">
+                  {best_clear_seconds != null ? fmtTime(best_clear_seconds) : 'Aucun encore !'}
+                </span>
+                <span className="raid-res-stathint">
+                  {best_clear_seconds != null ? 'la gloire est à votre portée' : 'soyez les premiers à le vaincre'}
+                </span>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Récap équipage — « générique de fin » */}

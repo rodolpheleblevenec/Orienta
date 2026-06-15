@@ -72,23 +72,14 @@ export default function RosterBoard({ boss, roster, me, actions, busy }) {
 
   return (
     <div className="raid-lobby-main">
-      <div className="raid-lobby-banner">
-        <span className="raid-lobby-emoji">{boss?.emoji}</span>
-        <div className="raid-lobby-bannertext">
-          <h1 className="raid-lobby-title">{boss?.name}</h1>
-          <p className="raid-lobby-sub">Salle d’attente — couvrez les 3 rôles, puis « Prêt »</p>
-        </div>
-        <div className="raid-lobby-meta">
-          <span className="raid-lobby-players">👥 {count}</span>
-          <span className="raid-lobby-readytxt">{readyCount}/{target} prêts</span>
-          <span className="raid-lobby-dots">
-            {organs.map((r) => {
-              const h = byRole[r]
-              return <i key={r} className={`raid-dot${h ? (h.is_ready ? ' raid-dot--on' : '') : ' raid-dot--empty'}`} />
-            })}
-          </span>
-        </div>
+      <div className="raid-lobby-kicker">
+        <span className="raid-lobby-kicker-num">01</span>
+        <span className="raid-lobby-kicker-txt">Formez l’équipage</span>
       </div>
+      <p className="raid-lobby-intro">
+        Chacun choisit un <b>rôle secret</b> aux pouvoirs uniques. Personne ne voit tout :
+        il faudra <b>se parler</b> pour vaincre le boss. Couvrez les 3 rôles, puis « Prêt ».
+      </p>
 
       <div className="raid-orgcard-grid">
         {organs.map(key => {
@@ -148,16 +139,24 @@ export default function RosterBoard({ boss, roster, me, actions, busy }) {
         </div>
       )}
 
-      <div className="raid-lobby-footer">
+      <div className="raid-ready-bar">
         <button
           type="button"
           className={`btn-primary raid-ready-btn${me?.is_ready ? ' raid-ready-btn--on' : ''}`}
           disabled={!myRole}
           onClick={() => actions.setReady(!me?.is_ready)}
         >
-          {!myRole ? 'Choisis un organe' : me?.is_ready ? '✓ Prêt — annuler' : 'Je suis prêt'}
+          {!myRole ? 'Choisis un organe' : me?.is_ready ? '✓ Prêt — annuler' : '✓ Je suis prêt'}
         </button>
-        <p className="raid-lobby-status">{status}</p>
+        <p className="raid-ready-status">{status}</p>
+        <span className="raid-ready-spacer" />
+        <span className="raid-ready-count">{readyCount}/{target} prêts</span>
+        <span className="raid-ready-dots">
+          {organs.map((r) => {
+            const h = byRole[r]
+            return <i key={r} className={`raid-dot${h ? (h.is_ready ? ' raid-dot--on' : '') : ' raid-dot--empty'}`} />
+          })}
+        </span>
       </div>
 
       {countdown !== null && (
