@@ -445,8 +445,82 @@ serve(async (req) => {
     return json({ session_id: session.id })
   }
 
+  // ── admin-list-raids : liste des sessions récentes (admin uniquement). ──
+  // Sert au panneau d'inspection (Admin → onglet Raids) pour choisir une session.
+  if (action === 'admin-list-raids') {
+    if (!await verifyAdmin(supabase, String(body.admin_secret ?? ''))) return json({ error: 'unauthorized' }, 403)
+    const { data } = await supabase.from('orienta_raid_sessions')
+      .select('id, boss_key, boss_level, status, tier, assault_index, assault_count, lives, is_test, created_at, started_at, ended_at')
+      .order('created_at', { ascending: false }).limit(80)
+    const ids = (data ?? []).map((s: { id: string }) => s.id)
+    // Compteurs légers par session (participants / essais / messages) pour la liste.
+    const counts: Record<string, { players: number; attempts: number; messages: number }> = {}
+    for (const id of ids) counts[id] = { players: 0, attempts: 0, messages: 0 }
+    if (ids.length) {
+      const [{ data: parts }, { data: atts }, { data: msgs }] = await Promise.all([
+        supabase.from('orienta_raid_participants').select('session_id').in('session_id', ids),
+        supabase.from('orienta_raid_attempts').select('session_id').in('session_id', ids),
+        supabase.from('orienta_raid_chat').select('session_id').in('session_id', ids),
+      ])
+      for (const p of (parts ?? [])) if (counts[p.session_id]) counts[p.session_id].players++
+      for (const a of (atts ?? [])) if (counts[a.session_id]) counts[a.session_id].attempts++
+      for (const m of (msgs ?? [])) if (counts[m.session_id]) counts[m.session_id].messages++
+    }
+    const sessions = (data ?? []).map((s: { id: string }) => ({ ...s, counts: counts[s.id] }))
+    return json({ sessions })
+  }
+
+  // ── admin-raid-detail : détail complet d'une session (admin uniquement). ──
+  // Roster + tous les essais (avec les mots posés, résolus depuis l'answer) + tchat.
+  if (action === 'admin-raid-detail') {
+    if (!await verifyAdmin(supabase, String(body.admin_secret ?? ''))) return json({ error: 'unauthorized' }, 403)
+    if (!sessionId) return json({ error: 'session_id required' }, 400)
+    const { data: session } = await supabase.from('orienta_raid_sessions')
+      .select('id, boss_key, boss_level, status, tier, assault_index, assault_count, lives, max_hp, current_hp, is_test, created_at, started_at, ended_at')
+      .eq('id', sessionId).maybeSingle()
+    if (!session) return json({ error: 'not found' }, 404)
+    const [{ data: participants }, { data: attempts }, { data: chat }] = await Promise.all([
+      supabase.from('orienta_raid_participants').select('user_id, pseudo, role, joined_at').eq('session_id', sessionId).order('joined_at'),
+      supabase.from('orienta_raid_attempts').select('id, assault_index, submitted_by, answer, correct_full, correct_rotation, neither, damage, created_at').eq('session_id', sessionId).order('created_at'),
+      supabase.from('orienta_raid_chat').select('id, user_id, pseudo, role, text, created_at').eq('session_id', sessionId).order('created_at'),
+    ])
+    // Résout les card_id (dans answer[].card_id) → mots, pour rendre les essais lisibles.
+    const cardIds = new Set<string>()
+    for (const a of (attempts ?? [])) for (const c of (a.answer ?? [])) if (c?.card_id) cardIds.add(c.card_id)
+    const wordsById: Record<string, string> = {}
+    if (cardIds.size) {
+      const { data: cards } = await supabase.from('orienta_word_cards')
+        .select('id, word_top, word_right, word_bottom, word_left').in('id', Array.from(cardIds))
+      for (const c of (cards ?? [])) wordsById[c.id] = [c.word_top, c.word_right, c.word_bottom, c.word_left].filter(Boolean).join(' / ')
+    }
+    // Map pseudo des auteurs d'essai (submitted_by) — fallback si absent du roster.
+    const pseudoById: Record<string, string> = {}
+    for (const p of (participants ?? [])) if (p.user_id) pseudoById[p.user_id] = p.pseudo ?? ''
+    const richAttempts = (attempts ?? []).map((a: { submitted_by: string; answer: { card_id: string; position: number; rotation: number }[] }) => ({
+      ...a,
+      by_pseudo: pseudoById[a.submitted_by] ?? null,
+      placed: (a.answer ?? []).map((c) => ({ position: c.position, rotation: c.rotation, words: wordsById[c.card_id] ?? '?' })),
+    }))
+    return json({ session, participants: participants ?? [], attempts: richAttempts, chat: chat ?? [] })
+  }
+
   if (!sessionId) return json({ error: 'session_id required' }, 400)
   if (!playerId) return json({ error: 'player_id required' }, 400)
+
+  // ── chat : persiste un message d'équipage (audit admin). ──
+  // Le tchat reste diffusé en Broadcast (instantané) ; cet appel est lancé en
+  // fire-and-forget par le client EN PLUS, juste pour garder une trace relisible
+  // par l'admin. Best-effort : on n'échoue jamais la conversation si l'insert rate.
+  if (action === 'chat') {
+    const text = String(body.text ?? '').trim().slice(0, 240)
+    if (!text) return json({ ok: false })
+    await supabase.from('orienta_raid_chat').insert({
+      session_id: sessionId, user_id: playerId,
+      pseudo: body.pseudo ? String(body.pseudo) : '',
+      role: body.role ? String(body.role) : null, text,
+    })
+    return json({ ok: true })
+  }
 
   // ── start : lance le combat. Le client (lobby en Presence) envoie le roster. ──
   if (action === 'start') {

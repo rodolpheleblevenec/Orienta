@@ -12,6 +12,7 @@ import CloverWithInputs from '../../components/game/CloverWithInputs'
 import WordCard from '../../components/game/WordCard'
 import SuggestionsAdmin from './SuggestionsAdmin'
 import StatsAdmin from './StatsAdmin'
+import RaidAdmin from './RaidAdmin'
 
 const ADMIN_PSEUDO = 'Rodolphe LE BLEVENEC'
 const RESERVE_LOW = 3
@@ -297,7 +298,7 @@ export default function DailyAdminPage() {
       <Header />
 
       <div className="admin-tabs">
-        {[['grilles', '🗂 Grilles du jour'], ['idees', '💡 Boîte à idées'], ['stats', '📊 Stats']].map(([id, label]) => (
+        {[['grilles', '🗂 Grilles du jour'], ['idees', '💡 Boîte à idées'], ['stats', '📊 Stats'], ['raids', '⚔️ Raids']].map(([id, label]) => (
           <button key={id} type="button" className={`admin-tab${adminTab === id ? ' admin-tab--active' : ''}`} onClick={() => setAdminTab(id)}>{label}</button>
         ))}
       </div>
@@ -306,6 +307,8 @@ export default function DailyAdminPage() {
         <main className="admin-main admin-main--single"><SuggestionsAdmin /></main>
       ) : adminTab === 'stats' ? (
         <main className="admin-main admin-main--single"><StatsAdmin /></main>
+      ) : adminTab === 'raids' ? (
+        <main className="admin-main admin-main--single"><RaidAdmin /></main>
       ) : view === 'editor' ? (
         // ───────────── ÉDITEUR ─────────────
         <main className="admin-main admin-main--single">

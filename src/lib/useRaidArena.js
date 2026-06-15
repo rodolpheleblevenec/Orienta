@@ -267,7 +267,9 @@ export function useRaidArena(user) {
     const msg = { user_id: user?.id, pseudo: user?.pseudo, text: t, ts: Date.now(), role: roleRef.current }
     setChat(c => [...c.slice(-80), msg])
     broadcast('chat', msg)
-  }, [broadcast, user?.pseudo])
+    // Persistance best-effort (audit admin) — n'attend pas, ne bloque jamais le tchat.
+    call('chat', { text: t, role: roleRef.current }).catch(() => {})
+  }, [broadcast, user?.pseudo, call])
 
   const signalTimeout = useCallback(async () => {
     const res = await call('timeout')
