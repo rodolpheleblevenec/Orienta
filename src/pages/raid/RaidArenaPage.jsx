@@ -307,15 +307,26 @@ export default function RaidArenaPage() {
             </button>
           </div>
 
+          {/* Section 01 — Formez l'équipage : rôles + bouton « Prêt » (RosterBoard) + chat. */}
           <div className="raid-lobby" data-tab={lobbyTab}>
             <RosterBoard boss={boss} roster={roster} me={me} actions={actions} busy={busy} minPlayers={cfg.min_players} />
             <div className="raid-lobby-side">
               <div className="raid-lobby-chatpanel">
                 <RaidChat chat={chat} onSend={actions.sendChat} me={me} />
               </div>
-              {/* Le record de la semaine à battre — visible pendant qu'on s'organise. */}
-              <HallOfFame compact level={lvl} fetchHof={actions.fetchHof} />
             </div>
+          </div>
+
+          {/* Section 02 — Le classement du raid : vainqueurs de la semaine + trinômes défaits. */}
+          <div className="raid-classement">
+            <div className="raid-lobby-kicker">
+              <span className="raid-lobby-kicker-label">
+                <span className="raid-lobby-kicker-num">02</span>
+                <span className="raid-lobby-kicker-txt">Le classement du raid</span>
+              </span>
+              <span className="raid-lobby-kicker-rule" />
+            </div>
+            <HallOfFame compact level={lvl} fetchHof={actions.fetchHof} />
           </div>
         </main>
       </>

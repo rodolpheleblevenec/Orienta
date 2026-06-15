@@ -73,8 +73,11 @@ export default function RosterBoard({ boss, roster, me, actions, busy }) {
   return (
     <div className="raid-lobby-main">
       <div className="raid-lobby-kicker">
-        <span className="raid-lobby-kicker-num">01</span>
-        <span className="raid-lobby-kicker-txt">Formez l’équipage</span>
+        <span className="raid-lobby-kicker-label">
+          <span className="raid-lobby-kicker-num">01</span>
+          <span className="raid-lobby-kicker-txt">Formez l’équipage</span>
+        </span>
+        <span className="raid-lobby-kicker-rule" />
       </div>
       <p className="raid-lobby-intro">
         Chacun choisit un <b>rôle secret</b> aux pouvoirs uniques. Personne ne voit tout :
