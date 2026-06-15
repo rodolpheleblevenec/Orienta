@@ -6078,6 +6078,27 @@ a.hub-online-foot--cta:hover { background: var(--teal); color: #fff; transform: 
   /* Lentille : les pastilles passent sous le texte pour gagner en largeur */
   .raid-lens { flex-wrap: wrap; }
   .raid-lens-tags { margin-left: 0; width: 100%; }
+
+  /* Bande RAID : on masque le badge ⚔️ Raid (place réduite) — reste Semaine N · en mer · Quitter. */
+  .raid-strip-badge { display: none; }
+
+  /* Scène du boss en pleine largeur, bord à bord, sans bordure ni ombre (full-bleed). */
+  .raid-monster:not(.raid-monster--end) {
+    margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw);
+    width: 100vw; max-width: 100vw; border-radius: 0; box-shadow: none;
+  }
+
+  /* Cartes de rôle : empilées (1 colonne) → ne débordent plus ; marges internes réduites. */
+  .raid-orgcard-grid { grid-template-columns: 1fr; }
+  .raid-orgcard { padding: 8px; min-width: 0; }
+
+  /* Lentille « Tu joues : … » compacte (marges réduites pour gagner de l'espace). */
+  .raid-lens { padding: 8px 10px; gap: 10px; margin-bottom: 12px; }
+
+  /* Plateau de combat + réserve : tailles réduites pour tenir dans l'écran (≈ handoff mobile). */
+  .raid-board-wrap { --slot-size: min(96px, calc((100vw - 132px) / 2)); gap: 12px; }
+  .raid-combat-cols .clover-wrapper { grid-template-columns: 44px 1fr 44px; grid-template-rows: 44px auto 44px; }
+  .raid-board-wrap .raid-tray { --slot-size: 60px; padding: 8px; }
 }
 
 /* ── Admin : inspection des raids (onglet ⚔️ Raids) ─────────────────── */
