@@ -20,7 +20,7 @@ export const CHANGELOG = [
     items: [
       'Affrontez le Boss d\'Équipage à plusieurs, en temps réel : voyez-le encaisser vos coups, s\'enrager, puis sombrer quand il tombe.',
       'Chacun son rôle et ses propres informations : communiquez pour coordonner vos coups.',
-      'Victoire fêtée en grand : confettis, équipage en liesse, récap, temps de clear et XP gagné.',
+      'Victoire fêtée en grand : confettis, équipage en liesse, récap, temps de clear, et la jauge de la communauté qui grimpe grâce à votre XP collectif.',
       'Battez le record de la semaine : les équipages les plus rapides sont mis à l\'honneur.',
       'Dès la salle d\'attente : le record à battre et le mur des équipages qui ont tenté leur chance.',
       'Disponible à toute heure : dès que vous êtes assez nombreux, l\'arène s\'ouvre — à plusieurs, en équipe.',

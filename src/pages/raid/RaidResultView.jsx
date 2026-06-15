@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import confetti from 'canvas-confetti'
 import { ORGANS, getBossByKey } from '../../lib/raid'
+import CollectiveGauge from '../../components/ui/CollectiveGauge'
 
 // Présentation pure de la page résultat (victoire / défaite), séparée du fetch :
 // prend un objet `data` (forme renvoyée par l'action `result`) et le rend. Réutilisée
@@ -114,10 +115,22 @@ export default function RaidResultView({ data }) {
                   {best_clear_seconds != null ? 'la gloire est à votre portée' : 'soyez les premiers à le vaincre'}
                 </span>
               </div>
+              <div className="raid-res-stat">
+                <span className="raid-res-statlabel">Boss restant</span>
+                <span className="raid-res-statval">{session.current_hp} PV</span>
+                <span className="raid-res-stathint">si proche du but…</span>
+              </div>
             </>
           )}
         </div>
       </div>
+
+      {/* Victoire : jauge XP collective — le raid offre de l'XP à toute la communauté. */}
+      {won && (
+        <div className="raid-res-gauge">
+          <CollectiveGauge />
+        </div>
+      )}
 
       {/* Récap équipage — « générique de fin » */}
       {members.length > 0 && (
@@ -139,7 +152,7 @@ export default function RaidResultView({ data }) {
           </>
         ) : (
           <>
-            <button className="btn-primary" onClick={() => navigate('/raid')}>⚔️ La revanche vous attend</button>
+            <button className="btn-primary" onClick={() => navigate('/raid')}>⚔️ La revanche</button>
             <button className="btn-secondary" onClick={copyLink}>{copied ? '✓ Lien copié' : 'Partager'}</button>
             <button className="btn-secondary" onClick={() => navigate('/hub')}>Retour au hub</button>
           </>

@@ -5348,15 +5348,14 @@ a.hub-online-foot--cta:hover { background: var(--teal); color: #fff; transform: 
   display: flex; flex-direction: column; align-items: center; gap: 12px; }
 /* Liseré haut (teal victoire / gris défaite) */
 .raid-res-top::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 6px; }
-.raid-res--won .raid-res-top::before { background: linear-gradient(90deg, transparent, #ffd166, #06d6a0, #4cc9f0, #ffd166, transparent);
-  background-size: 200% 100%; animation: raidResSheen 3s linear infinite; }
+/* Liseré haut : teal en victoire, gris en défaite (handoff .rd-result-top::before). */
+.raid-res--won .raid-res-top::before { background: linear-gradient(90deg, var(--teal), #00e8b8); }
 .raid-res--lost .raid-res-top::before { background: linear-gradient(90deg, var(--ink-3), #c2c8d0); }
-.raid-res--won .raid-res-top { box-shadow: 0 16px 44px -20px rgba(255,193,7,.4), var(--shadow); }
-@keyframes raidResSheen { to { background-position: 200% 0; } }
-.raid-res-victory-badge { display: inline-flex; align-items: center; gap: 7px; padding: 6px 16px; border-radius: var(--r-pill);
-  font-family: var(--display); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #6b4e00;
-  background: linear-gradient(135deg, #ffe39a, #ffc83d); border: 1px solid rgba(214,154,0,.5);
-  box-shadow: 0 4px 14px rgba(255,193,7,.35); animation: raid-celebrate-pop .5s cubic-bezier(.2,1.4,.4,1) both; }
+/* Badge victoire : teal-soft + texte teal-700 (handoff .rd-result-badge). */
+.raid-res-victory-badge { display: inline-flex; align-items: center; gap: 7px; padding: 5px 13px; border-radius: var(--r-pill);
+  font-family: var(--display); font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--teal-700); background: var(--teal-soft);
+  animation: raid-celebrate-pop .5s cubic-bezier(.2,1.4,.4,1) both; }
 .raid-res-emoji { width: 86px; height: 86px; margin-top: 4px; border-radius: 24px; display: grid; place-items: center; font-size: 46px; line-height: 1; }
 .raid-res--won .raid-res-emoji { background: var(--teal-soft); }
 .raid-res--lost .raid-res-emoji { background: var(--bg-tint); }
@@ -5374,6 +5373,10 @@ a.hub-online-foot--cta:hover { background: var(--teal); color: #fff; transform: 
 .raid-res-stat--gold .raid-res-statval, .raid-res-stat--record .raid-res-statval { color: var(--amber); }
 .raid-res-stathint { font-size: 11.5px; color: var(--ink-2); }
 .raid-res-title { font-weight: 800; }
+/* Victoire : jauge XP collective (handoff = XPGauge dans .rd-panel). La gauge porte
+   déjà sa propre carte (.collective-gauge) → wrapper simplement en pleine largeur. */
+.raid-res-gauge { width: 100%; }
+.raid-res-gauge .collective-gauge { cursor: pointer; }
 .raid-res-crew { width: 100%; }
 .raid-res-crewtitle { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: var(--tracking-eyebrow); color: var(--ink-3); margin: 0 0 12px; text-align: center; }
 .raid-res-crewlist { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
@@ -5579,22 +5582,21 @@ a.hub-online-foot--cta:hover { background: var(--teal); color: #fff; transform: 
 .rchat-head-title { font-family: var(--display); font-weight: 700; font-size: 16px; color: var(--ink); letter-spacing: -0.01em; }
 .rchat-head-live { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--ink-3); }
 .rchat-head-live i { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 3px rgba(10,158,132,.16); }
-.rchat-log { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.rchat-log { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 13px; }
 .rchat-empty { color: var(--ink-3); font-size: 13px; text-align: center; margin: auto; }
-.rchat-row { display: flex; gap: 8px; align-items: flex-end; }
-.rchat-row--grouped { margin-top: -4px; }
+.rchat-row { display: flex; gap: 9px; align-items: flex-start; }
+.rchat-row--grouped { margin-top: -7px; }
 .rchat-row--me { flex-direction: row-reverse; }
-.rchat-ava { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; color: #fff; font-weight: 700; font-size: 14px; display: grid; place-items: center; }
-.rchat-bubble { max-width: 78%; background: var(--bg-tint); border-radius: 14px; padding: 7px 11px; }
-.rchat-row--me .rchat-bubble { background: var(--teal); }
-.rchat-row--grouped .rchat-bubble { border-top-left-radius: 6px; }
-.rchat-row--me.rchat-row--grouped .rchat-bubble { border-top-right-radius: 6px; border-top-left-radius: 14px; }
-.rchat-meta { display: flex; align-items: baseline; gap: 6px; margin-bottom: 2px; }
-.rchat-name { font-size: 12px; font-weight: 700; color: var(--ink); }
+.rchat-ava { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; color: #fff; font-weight: 700; font-size: 12px; display: grid; place-items: center; margin-top: 2px; }
+/* Bulle à coin-tail asymétrique (handoff .rd-msg-bubble) : entaille en haut côté avatar. */
+.rchat-bubble { max-width: 80%; background: var(--bg-tint); border-radius: 4px 14px 14px 14px; padding: 9px 13px; }
+.rchat-row--me .rchat-bubble { background: var(--teal); border-radius: 14px 4px 14px 14px; }
+.rchat-meta { display: flex; align-items: baseline; gap: 6px; margin-bottom: 3px; }
+.rchat-name { font-size: 12.5px; font-weight: 700; color: var(--ink); }
 .rchat-row--me .rchat-name { color: rgba(255,255,255,.95); }
 .rchat-role { font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; white-space: nowrap; color: var(--teal-700); padding: 1px 7px; border-radius: var(--r-pill); }
 .rchat-row--me .rchat-role { color: rgba(255,255,255,.85); background: rgba(255,255,255,.16); }
-.rchat-text { font-size: 14px; line-height: 1.35; color: var(--ink); word-break: break-word; }
+.rchat-text { font-size: 13.5px; line-height: 1.45; color: var(--ink); word-break: break-word; }
 .rchat-row--me .rchat-text { color: #fff; }
 .rchat-form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line-2); flex-shrink: 0; }
 .rchat-input { flex: 1; border: 1px solid var(--line); border-radius: var(--r-pill); padding: 10px 16px; font: inherit; }

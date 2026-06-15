@@ -254,7 +254,7 @@ export default function RaidArenaPage() {
               <div className="raid-endbanner-emoji">{won ? '🏆' : '🌑'}</div>
               <h2 className="raid-endbanner-title">{won ? `${boss.name} est vaincu !` : `${boss.name} a replongé…`}</h2>
               <p className="raid-endbanner-sub">
-                {won ? 'Victoire de l’équipage !' : 'L’équipage est tombé…'} Débrief en préparation…
+                {won ? 'L’équipage a tenu bon. La bête replonge dans les abysses…' : 'L’équipage est tombé… Débrief en préparation…'}
               </p>
               <button className="btn-primary" onClick={() => navigate(`/raid/resultat/${session.id}`, { replace: true })}>
                 Voir le résultat →

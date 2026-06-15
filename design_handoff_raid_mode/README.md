@@ -1,5 +1,11 @@
 # Handoff : Refonte du mode RAID (desktop + mobile)
 
+> 🔴 **Lis d'abord `CLAUDE.md`** (à la racine de ce dossier) : c'est la directive d'implémentation
+> stricte. En résumé : **reproduire ce handoff à l'identique**, fidélité haute, **sans réinterpréter**.
+> **Seule exception** → le **visuel du monstre/baleine** : garder les visuels existants du codebase
+> (`src/components/raid/RaidMonster.jsx`) et seulement adapter légèrement le cadrage autour.
+> Tout le reste (scène, layout, tokens, copie, composants, interactions) = **conforme à ce handoff**.
+
 ## Overview
 Refonte complète de l'**expérience du mode RAID** d'Orienta — le mode coopératif temps réel
 où un équipage de 3 à 8 joueurs affronte ensemble un boss marin (« Le Rorqual colossal » 🐋)
@@ -43,8 +49,18 @@ Il s'agit donc de **remplacer / restyler** ces écrans existants en suivant les 
 
 ## Fidelity
 **High-fidelity (hifi).** Couleurs, typographie, espacements, rayons, ombres et états sont
-définitifs. Recréer l'UI au pixel près avec les composants/styles existants du codebase.
-Le contenu (textes FR) est aussi définitif et peut être repris tel quel.
+définitifs. Recréer l'UI **au pixel près** avec les composants/styles existants du codebase.
+Le contenu (textes FR) est aussi définitif et doit être repris **mot pour mot**.
+
+**Conformité stricte exigée.** Ne pas réinterpréter, ne pas substituer couleurs/polices/espacements,
+ne pas modifier la structure des écrans, ne pas inventer de composants ni d'illustrations. En cas
+de doute sur un détail, reproduire ce que montrent les fichiers HTML fournis.
+
+**Unique exception : le visuel du boss (baleine/monstre).** Le disque + emoji 🐋 des maquettes est un
+*placeholder* à remplacer par le **rendu du monstre existant** du codebase
+(`src/components/raid/RaidMonster.jsx` → 3D `.glb` ou 2D `RaidMonster2D.jsx`/`RaidWhale.jsx`).
+Adaptation légère autorisée **uniquement** dans le cadrage immédiat du boss (taille, position,
+halo). Voir `CLAUDE.md`.
 
 ---
 
@@ -226,9 +242,11 @@ Le RAID étant hors DS, ces valeurs lui sont propres :
 ## Assets
 - `assets/logo-icon.svg` — logo Orienta (tuile arrondie blanche + glyphe de rotation teal
   `#0E9A7D`). Issu du design system. **Utiliser le logo existant du codebase** en prod.
-- **Boss 🐋** : rendu par un **emoji** sur un disque « abysse » (placeholder propre). Le proto
-  réel charge une scène 2D/3D (`RaidMonster`) — remplacer par l'asset/illustration de boss du
-  jeu si disponible.
+- **Boss 🐋 (monstre)** : dans les maquettes c'est un **placeholder** — emoji sur un disque
+  « abysse » (`.rd-boss-disc` / `.rd-boss-emoji`). **À NE PAS reproduire.** Conserver le **visuel
+  existant du monstre** : `RaidMonster.jsx` (3D `.glb` ou 2D `RaidMonster2D.jsx` / `RaidWhale.jsx`)
+  déjà présent dans `src/components/raid/`. L'intégrer dans la nouvelle scène teal en adaptant
+  seulement son cadrage. (Cf. `CLAUDE.md`.)
 - **Icônes fonctionnelles** : style feather/Lucide (24px, `stroke-width:2`, `currentColor`).
   Utiliser Lucide (ou les SVG inline du repo).
 - **Emojis** comme iconographie de jeu (rôles, bouées 🛟, récompenses 🏆) — à reproduire avec de
