@@ -1045,9 +1045,15 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 /* ── Panneau latéral « joueurs en ligne » (desktop) ──────────────────────── */
 .hub-online-aside {
   flex: 0 0 264px; position: sticky; top: 88px; align-self: flex-start;
-  padding-top: 30px;   /* aligne le panneau avec le 1er bloc de .hub-main */
+  padding-top: 12px;   /* remonté pour gagner de la place (était aligné au 1er bloc) */
+  box-sizing: border-box;
+  /* Borne la colonne à la zone visible (marge de 24px en bas de l'écran) : le fil
+     défile à l'intérieur plutôt que de couler sous le pli. */
+  max-height: calc(100vh - 88px - 24px);
+  display: flex; flex-direction: column; min-height: 0;
 }
 .hub-online-panel {
+  flex: 0 0 auto;
   background: var(--card); border-radius: var(--r);
   box-shadow: var(--shadow), 0 0 0 1px var(--line);
   padding: 18px 18px 16px; animation: hub-online-in .28s ease-out;
@@ -1110,25 +1116,43 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 /* ── Fil « Ça papote » — derniers commentaires, sous la bulle (desktop) ───── */
 .hub-feed-panel {
   margin-top: 18px;
+  flex: 1 1 auto; min-height: 0;   /* prend la hauteur restante et confine le scroll */
+  display: flex; flex-direction: column;
   background: var(--card); border-radius: var(--r);
   box-shadow: var(--shadow), 0 0 0 1px var(--line);
   padding: 16px 14px 12px; animation: hub-online-in .28s ease-out;
 }
 .hub-feed-head {
+  flex: 0 0 auto;
   padding: 0 4px 10px; margin-bottom: 2px; border-bottom: 1px solid var(--line);
 }
 .hub-feed-title {
+  display: block;
   font-family: var(--display); font-weight: 700; font-size: 14px; color: var(--ink);
 }
-.hub-feed-list { list-style: none; margin: 0; padding: 0; }
+.hub-feed-sub {
+  display: block; margin-top: 3px;
+  font-size: 11px; font-weight: 500; color: var(--ink-3);
+}
+.hub-feed-list {
+  list-style: none; margin: 0; padding: 0;
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;   /* défilement à l'intérieur du fil */
+}
 .hub-feed-list li + li { border-top: 1px solid var(--line); }
 .hub-feed-item {
-  display: flex; gap: 10px; width: 100%; text-align: left; cursor: pointer;
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer;
   background: none; border: 0; padding: 11px 6px; border-radius: var(--r-sm);
   font: inherit; color: inherit; transition: background .15s ease;
 }
 .hub-feed-item:hover { background: var(--bg-tint); }
-.hub-feed-item:hover .hub-feed-jump { opacity: 1; }
+.hub-feed-item:hover .hub-feed-go { color: var(--teal-700); transform: translateX(2px); }
+/* Affordance « cliquable » permanente : un chevron qui pointe vers la grille. */
+.hub-feed-go {
+  flex-shrink: 0; align-self: center; color: var(--ink-3);
+  font-size: 22px; font-weight: 700; line-height: 1; padding: 0 2px;
+  transition: color .15s ease, transform .15s ease;
+}
+.hub-feed-item:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
 .hub-feed-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .hub-feed-line1 { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .hub-feed-name {
@@ -1146,10 +1170,6 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 }
 .hub-feed-grid-name {
   min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.hub-feed-jump {
-  margin-left: auto; flex-shrink: 0; color: var(--teal-700); font-weight: 700;
-  opacity: 0; transition: opacity .15s ease;
 }
 
 /* Surbrillance d'une carte de grille au clic depuis le fil. */

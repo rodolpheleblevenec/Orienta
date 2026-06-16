@@ -46,6 +46,7 @@ export default function HubCommentFeed({ comments }) {
     <section className="hub-feed-panel" aria-label="Derniers commentaires">
       <div className="hub-feed-head">
         <span className="hub-feed-title">💬 Ça papote</span>
+        <span className="hub-feed-sub">Clique un message pour ouvrir sa grille</span>
       </div>
       <ul className="hub-feed-list">
         {comments.map((c) => {
@@ -56,7 +57,12 @@ export default function HubCommentFeed({ comments }) {
             : c.grid_creator ? `la grille de ${c.grid_creator}` : 'une grille'
           return (
             <li key={c.id}>
-              <button type="button" className="hub-feed-item" onClick={() => jumpToGrid(c.grid_id)}>
+              <button
+                type="button"
+                className="hub-feed-item"
+                onClick={() => jumpToGrid(c.grid_id)}
+                aria-label={`Ouvrir ${gridName === 'une grille' ? 'la grille' : gridName}`}
+              >
                 <AvatarFrame frame={c.equipped_frame}>
                   <span
                     className={`hub-online-ava${emoji ? ' hub-online-ava--emoji' : ''}`}
@@ -80,9 +86,9 @@ export default function HubCommentFeed({ comments }) {
                     <span className="hub-feed-grid-name">
                       {c.success === false ? '💔' : '🎯'} sur {gridName}
                     </span>
-                    <span className="hub-feed-jump">Voir →</span>
                   </span>
                 </span>
+                <span className="hub-feed-go" aria-hidden="true">›</span>
               </button>
             </li>
           )

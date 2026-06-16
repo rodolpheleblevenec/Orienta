@@ -82,7 +82,7 @@ export default function OnlinePlayersPanel({ players, currentUserId }) {
           <button type="button" className="hub-online-foot hub-online-foot--cta" onClick={playTogether}>
             ⚔️ Jouez ensemble : rejoignez un RAID
             {others > 0 && (
-              <span className="hub-online-foot-sub">Invite les {others} joueur{others > 1 ? 's' : ''} en ligne</span>
+              <span className="hub-online-foot-sub">Invite les joueurs en ligne</span>
             )}
           </button>
         )

@@ -186,7 +186,10 @@ serve(async (req) => {
 
     const [{ data: grids }, { data: users }] = await Promise.all([
       supabase.from('orienta_grids')
-        .select('id, title, status, creator_id, orienta_users(pseudo)')
+        // NB: pas de `title` ici — la colonne orienta_grids.title (migration 027)
+        // n'est pas déployée en prod. La sélectionner ferait échouer la requête
+        // (→ feed vide). On retombe sur « la grille de {créateur} ».
+        .select('id, status, creator_id, orienta_users(pseudo)')
         .in('id', gridIds),
       supabase.from('orienta_users')
         .select('id, pseudo, selected_skin, equipped_color, equipped_frame')
@@ -212,7 +215,7 @@ serve(async (req) => {
           success: r.success,
           at: r.completed_at,
           grid_id: r.grid_id,
-          grid_title: grid.title ?? null,
+          grid_title: null, // titre non déployé en prod (cf. select ci-dessus)
           grid_creator: (grid.orienta_users as { pseudo?: string } | null)?.pseudo ?? null,
         }
       })

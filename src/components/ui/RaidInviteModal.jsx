@@ -32,7 +32,7 @@ export default function RaidInviteModal({ invite, onClose }) {
       >
         <div className="winner-modal-emoji">⚔️</div>
         <h2 className="winner-modal-title">
-          {invite?.from_pseudo ?? 'Un joueur'} vous invite à rejoindre le raid&nbsp;!
+          Les joueurs en ligne vous invitent à rejoindre le raid&nbsp;!
         </h2>
         <p className="winner-modal-text">
           Affrontez le boss en équipage, en temps réel. Souhaitez-vous rejoindre le SAS&nbsp;?
