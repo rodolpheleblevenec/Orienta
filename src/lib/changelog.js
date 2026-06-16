@@ -14,6 +14,26 @@
 // plus tard (ex. le mode RAID, public à partir du 15 juin 2026).
 export const CHANGELOG = [
   {
+    date: '2026-06-16',
+    emoji: '🤝',
+    title: 'Lancez un RAID en invitant les joueurs en ligne',
+    items: [
+      'Depuis la bulle « En ligne », le bouton « Jouez ensemble » invite tous les joueurs connectés d\'un seul clic.',
+      'Ceux que tu invites reçoivent aussitôt une invitation à l\'écran : un clic et ils te rejoignent dans le SAS.',
+      'Le tchat de coordination garde maintenant les messages des 10 dernières minutes : si tu rejoins ou recharges, tu retrouves la conversation en cours.',
+    ],
+  },
+  {
+    date: '2026-06-16',
+    emoji: '💬',
+    title: 'Le fil « Ça papote » sur l\'accueil',
+    items: [
+      'Sur ordinateur, juste sous la bulle des joueurs en ligne, découvre les derniers commentaires laissés sur les grilles.',
+      'Pour chaque message : qui l\'a écrit, ce qu\'il a dit, et sur quelle grille.',
+      'Un clic t\'emmène droit à la grille concernée — surlignée si elle est déjà à l\'écran.',
+    ],
+  },
+  {
     date: '2026-06-15',
     emoji: '⚔️',
     title: 'Mode RAID coopératif',

@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import { supabase } from '../../lib/supabase'
 import { setAdminSecret } from '../../lib/adminSecret'
 import StreakModal from './StreakModal'
 import NotificationsPanel from './NotificationsPanel'
 import AdminPasswordModal from './AdminPasswordModal'
+import RaidInviteModal from './RaidInviteModal'
 import { OnlinePlayerItem } from './OnlinePlayersPanel'
 import RankAvatar from './RankAvatar'
 import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
-import { useOnlinePlayers } from '../../lib/useOnlinePlayers'
+import { useOnlinePlayers, useRaidInvite } from '../../lib/useOnlinePlayers'
 import { canSeeRaid, isRaidLaunched } from '../../lib/raid'
 
 const ADMIN_PSEUDO = 'Rodolphe LE BLEVENEC'
@@ -17,7 +18,10 @@ const ADMIN_PSEUDO = 'Rodolphe LE BLEVENEC'
 export default function Header() {
   const { user, notifCount, logout } = useAuthStore()
   const onlinePlayers = useOnlinePlayers(user)
+  const [raidInvite, dismissInvite] = useRaidInvite()
   const navigate = useNavigate()
+  const location = useLocation()
+  const onRaidPage = location.pathname.startsWith('/raid')
   const [showStreakModal, setShowStreakModal] = useState(false)
   const [showNotifs, setShowNotifs] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
@@ -31,6 +35,11 @@ export default function Header() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [navOpen])
+
+  // Déjà dans l'arène ? Une invitation reçue n'a plus de sens → on l'ignore.
+  useEffect(() => {
+    if (onRaidPage && raidInvite) dismissInvite()
+  }, [onRaidPage, raidInvite, dismissInvite])
 
   // Contrôle du mot de passe admin AU CLIC sur la roue crantée : la modal appelle
   // verifyAdminSecret, qui valide le secret côté serveur. L'interface ne s'ouvre
@@ -223,6 +232,7 @@ export default function Header() {
 
     {showStreakModal && <StreakModal onClose={() => setShowStreakModal(false)} />}
     {showAdminModal && <AdminPasswordModal onClose={() => setShowAdminModal(false)} onSubmit={verifyAdminSecret} />}
+    {raidInvite && !onRaidPage && <RaidInviteModal invite={raidInvite} onClose={dismissInvite} />}
     </>
   )
 }

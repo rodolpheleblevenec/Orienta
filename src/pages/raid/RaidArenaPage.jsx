@@ -292,7 +292,7 @@ export default function RaidArenaPage() {
                   <span className="rms-chip">{cfg.assault_count}&nbsp;assauts</span>
                   <span className="rms-chip">PV&nbsp;<b>{cfg.assault_count * 100}</b></span>
                   <span className="rms-chip rms-chip--lives">{'🛟'.repeat(Math.max(0, cfg.lives)) || '—'}</span>
-                  <span className="rms-chip">⏱&nbsp;<b>{fmtClock(cfg.timer_seconds)}</b>/assaut</span>
+                  <span className="rms-chip">⏱&nbsp;<b>{fmtClock(cfg.timer_seconds)}</b></span>
                   <span className="rms-chip">👥&nbsp;min&nbsp;<b>{cfg.min_players}</b></span>
                 </div>
               </div>

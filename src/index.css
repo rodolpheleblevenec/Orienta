@@ -1096,15 +1096,71 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   margin: 10px 2px 0; padding-top: 10px; border-top: 1px solid var(--line);
   font-size: 11.5px; line-height: 1.4; color: var(--ink-2);
 }
-/* Variante cliquable (RAID lancé) : un petit CTA vers l'arène. */
-a.hub-online-foot--cta {
-  display: block; text-decoration: none; font-weight: 700; color: var(--teal-700);
+/* Variante cliquable (RAID lancé) : un petit CTA qui invite les connectés + entre dans l'arène. */
+.hub-online-foot--cta {
+  display: block; width: 100%; box-sizing: border-box; cursor: pointer;
+  font-family: inherit; font-size: 11.5px; font-weight: 700; text-align: center;
+  text-decoration: none; color: var(--teal-700);
   background: var(--teal-soft); border: 1px solid var(--teal); border-radius: var(--r-sm);
   padding: 8px 10px; margin-top: 12px; transition: background .15s ease, transform .15s ease;
 }
-a.hub-online-foot--cta:hover { background: var(--teal); color: #fff; transform: translateY(-1px); }
+.hub-online-foot--cta:hover { background: var(--teal); color: #fff; transform: translateY(-1px); }
+.hub-online-foot-sub { display: block; margin-top: 3px; font-weight: 600; font-size: 10.5px; opacity: 0.85; }
 
-/* Desktop only : sous 1280px on masque le panneau et on rétablit la pleine largeur. */
+/* ── Fil « Ça papote » — derniers commentaires, sous la bulle (desktop) ───── */
+.hub-feed-panel {
+  margin-top: 18px;
+  background: var(--card); border-radius: var(--r);
+  box-shadow: var(--shadow), 0 0 0 1px var(--line);
+  padding: 16px 14px 12px; animation: hub-online-in .28s ease-out;
+}
+.hub-feed-head {
+  padding: 0 4px 10px; margin-bottom: 2px; border-bottom: 1px solid var(--line);
+}
+.hub-feed-title {
+  font-family: var(--display); font-weight: 700; font-size: 14px; color: var(--ink);
+}
+.hub-feed-list { list-style: none; margin: 0; padding: 0; }
+.hub-feed-list li + li { border-top: 1px solid var(--line); }
+.hub-feed-item {
+  display: flex; gap: 10px; width: 100%; text-align: left; cursor: pointer;
+  background: none; border: 0; padding: 11px 6px; border-radius: var(--r-sm);
+  font: inherit; color: inherit; transition: background .15s ease;
+}
+.hub-feed-item:hover { background: var(--bg-tint); }
+.hub-feed-item:hover .hub-feed-jump { opacity: 1; }
+.hub-feed-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.hub-feed-line1 { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.hub-feed-name {
+  min-width: 0; font-size: 13px; font-weight: 700; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hub-feed-time { flex-shrink: 0; font-size: 10.5px; color: var(--ink-3); }
+.hub-feed-text {
+  font-size: 12.5px; line-height: 1.35; color: var(--ink-2);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.hub-feed-grid {
+  display: flex; align-items: center; gap: 8px; margin-top: 2px;
+  font-size: 11.5px; font-weight: 600; color: var(--ink-3); min-width: 0;
+}
+.hub-feed-grid-name {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.hub-feed-jump {
+  margin-left: auto; flex-shrink: 0; color: var(--teal-700); font-weight: 700;
+  opacity: 0; transition: opacity .15s ease;
+}
+
+/* Surbrillance d'une carte de grille au clic depuis le fil. */
+[data-grid-id] { scroll-margin-top: 96px; }
+@keyframes hubJumpFlash {
+  from { box-shadow: 0 0 0 5px var(--teal-soft), 0 0 0 2px var(--teal), var(--shadow); }
+  to   { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+}
+.hub-jump-flash { animation: hubJumpFlash 1.8s ease-out; border-color: var(--teal); }
+
+/* Desktop only : sous 1280px on masque la colonne et on rétablit la pleine largeur. */
 @media (max-width: 1280px) {
   .hub-online-aside { display: none; }
   .hub-shell--with-panel { max-width: 1200px; }

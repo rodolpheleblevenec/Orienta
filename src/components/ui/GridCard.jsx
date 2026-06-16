@@ -62,6 +62,7 @@ export default function GridCard({ grid, playInfo, index, isDaily = false, isOwn
   return (
     <motion.article
       className="pcard"
+      data-grid-id={grid.id}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}

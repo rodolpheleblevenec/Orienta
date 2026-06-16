@@ -185,6 +185,23 @@ export function useRaidArena(user) {
     return () => { subscribedRef.current = false; supabase.removeChannel(channel); channelRef.current = null }
   }, [sessionId, user?.id, user?.pseudo])
 
+  // Historique du tchat (≤ 10 min) : le Broadcast étant éphémère, on recharge le fil
+  // récent à l'arrivée / au rechargement pour ne pas perdre la coordination d'équipage.
+  // Les messages live déjà reçus sont préservés (dé-doublonnage par auteur+texte).
+  useEffect(() => {
+    if (!sessionId || !user?.id) return
+    let alive = true
+    call('chat-history').then(res => {
+      if (!alive || !Array.isArray(res?.chat) || res.chat.length === 0) return
+      setChat(prev => {
+        const liveKeys = new Set(prev.map(m => `${m.user_id}|${m.text}`))
+        const hist = res.chat.filter(m => !liveKeys.has(`${m.user_id}|${m.text}`))
+        return [...hist, ...prev].slice(-80)
+      })
+    })
+    return () => { alive = false }
+  }, [sessionId, user?.id, call])
+
   // Résolution de conflit d'organe : si un user_id « plus petit » tient le même → je lâche.
   useEffect(() => {
     if (!inLobby || !myRole) return

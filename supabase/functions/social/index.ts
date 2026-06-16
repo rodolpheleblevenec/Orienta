@@ -153,5 +153,73 @@ serve(async (req) => {
     return json({ upvoted, count: fresh?.upvotes_count ?? 0 })
   }
 
+  // ─── Fil communautaire : derniers commentaires (toutes grilles) ───
+  // La lecture cross-grilles est impossible côté client (RLS plays_read_own_or_creator
+  // : on ne lit que ses parties ou celles sur ses grilles). On la sert donc ici en
+  // service_role, en n'exposant QUE des champs publics (pseudo, cosmétiques, texte, grille).
+  if (action === 'feed') {
+    const limit = Math.min(Math.max(Number(body.limit) || 6, 1), 12)
+
+    // On surcharge la requête (×4) puis on dédoublonne par grille pour varier le fil
+    // (éviter 6 commentaires sur la même grille).
+    const { data: rows } = await supabase
+      .from('orienta_plays')
+      .select('id, comment, success, completed_at, grid_id, player_id')
+      .not('comment', 'is', null)
+      .not('completed_at', 'is', null)
+      .order('completed_at', { ascending: false })
+      .limit(limit * 4)
+
+    if (!rows?.length) return json({ comments: [] })
+
+    const seen = new Set<string>()
+    const picked: typeof rows = []
+    for (const r of rows) {
+      if (!r.grid_id || seen.has(r.grid_id)) continue
+      seen.add(r.grid_id)
+      picked.push(r)
+      if (picked.length >= limit) break
+    }
+
+    const gridIds = picked.map((r) => r.grid_id)
+    const playerIds = [...new Set(picked.map((r) => r.player_id).filter(Boolean))]
+
+    const [{ data: grids }, { data: users }] = await Promise.all([
+      supabase.from('orienta_grids')
+        .select('id, title, status, creator_id, orienta_users(pseudo)')
+        .in('id', gridIds),
+      supabase.from('orienta_users')
+        .select('id, pseudo, selected_skin, equipped_color, equipped_frame')
+        .in('id', playerIds),
+    ])
+
+    const gridMap = new Map((grids ?? []).map((g) => [g.id, g]))
+    const userMap = new Map((users ?? []).map((u) => [u.id, u]))
+
+    const comments = picked
+      .map((r) => {
+        const grid = gridMap.get(r.grid_id)
+        if (!grid || grid.status !== 'published') return null // pas de draft/archivé
+        const u = userMap.get(r.player_id)
+        return {
+          id: r.id,
+          player_id: r.player_id,
+          pseudo: u?.pseudo ?? 'Joueur',
+          selected_skin: u?.selected_skin ?? 1,
+          equipped_color: u?.equipped_color ?? null,
+          equipped_frame: u?.equipped_frame ?? null,
+          comment: (r.comment ?? '').slice(0, 160),
+          success: r.success,
+          at: r.completed_at,
+          grid_id: r.grid_id,
+          grid_title: grid.title ?? null,
+          grid_creator: (grid.orienta_users as { pseudo?: string } | null)?.pseudo ?? null,
+        }
+      })
+      .filter(Boolean)
+
+    return json({ comments })
+  }
+
   return json({ error: 'unknown action' }, 400)
 })

@@ -1,7 +1,8 @@
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { CARD_COLORS } from '../../lib/cardColors'
 import { getMarineItem } from '../../lib/marineItems'
 import { isRaidLaunched } from '../../lib/raid'
+import { sendRaidInvite } from '../../lib/useOnlinePlayers'
 import AvatarFrame from './AvatarFrame'
 
 // Couleur d'avatar déterministe à partir de l'id : un même joueur garde
@@ -41,33 +42,51 @@ export function OnlinePlayerItem({ player, isMe }) {
   )
 }
 
-// Panneau latéral « joueurs en ligne » — desktop uniquement (masqué en CSS sous
-// 1280px ; sur mobile, la liste passe dans le burger du header).
+// Panneau « joueurs en ligne » — desktop uniquement (la colonne qui le contient
+// est masquée en CSS sous 1280px ; sur mobile, la liste passe dans le burger).
+// La colonne sticky (`hub-online-aside`) est désormais montée par le hub, qui y
+// empile aussi le fil « Ça papote ».
 //
 // C'est la VITRINE sociale : les cosmétiques achetés (avatar du perso, cadre,
 // couleur de pseudo, statut perso) ne s'affichent QUE ici — vus par tout le monde.
 export default function OnlinePlayersPanel({ players, currentUserId }) {
+  const navigate = useNavigate()
+  const others = players.filter(p => p.id !== currentUserId).length
+
+  // « Jouez ensemble » : invite tous les connectés (broadcast temps réel) puis me
+  // téléporte dans le SAS public — où les invités qui acceptent me rejoignent.
+  function playTogether() {
+    const me = players.find(p => p.id === currentUserId)
+    sendRaidInvite({ id: currentUserId, pseudo: me?.pseudo })
+    navigate('/raid')
+  }
+
   return (
-    <aside className="hub-online-aside" aria-label="Joueurs en ligne">
-      <div className="hub-online-panel">
-        <div className="hub-online-head">
-          <span className="hub-online-title">
-            <span className="hub-ldot" />
-            En ligne
-          </span>
-          <span className="hub-online-count">{players.length}</span>
-        </div>
-
-        <ul className="hub-online-list">
-          {players.map(p => (
-            <OnlinePlayerItem key={p.id} player={p} isMe={p.id === currentUserId} />
-          ))}
-        </ul>
-
-        {isRaidLaunched()
-          ? <Link to="/raid" className="hub-online-foot hub-online-foot--cta">⚔️ Jouez ensemble : rejoignez un RAID</Link>
-          : <p className="hub-online-foot">Bientôt : jouez ensemble en temps réel.</p>}
+    <section className="hub-online-panel" aria-label="Joueurs en ligne">
+      <div className="hub-online-head">
+        <span className="hub-online-title">
+          <span className="hub-ldot" />
+          En ligne
+        </span>
+        <span className="hub-online-count">{players.length}</span>
       </div>
-    </aside>
+
+      <ul className="hub-online-list">
+        {players.map(p => (
+          <OnlinePlayerItem key={p.id} player={p} isMe={p.id === currentUserId} />
+        ))}
+      </ul>
+
+      {isRaidLaunched()
+        ? (
+          <button type="button" className="hub-online-foot hub-online-foot--cta" onClick={playTogether}>
+            ⚔️ Jouez ensemble : rejoignez un RAID
+            {others > 0 && (
+              <span className="hub-online-foot-sub">Invite les {others} joueur{others > 1 ? 's' : ''} en ligne</span>
+            )}
+          </button>
+        )
+        : <p className="hub-online-foot">Bientôt : jouez ensemble en temps réel.</p>}
+    </section>
   )
 }

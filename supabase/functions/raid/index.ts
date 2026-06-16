@@ -522,6 +522,27 @@ serve(async (req) => {
     return json({ ok: true })
   }
 
+  // ── chat-history : derniers messages d'équipage (≤ 10 min) de SA session. ──
+  // Le Broadcast est éphémère → un joueur qui rejoint/recharge le SAS ou l'arène ne
+  // voit rien. On rejoue ici les messages des 10 dernières minutes pour préserver la
+  // coordination. Format aligné sur les messages live (sendChat) : { user_id, pseudo,
+  // role, text, ts }. Bas risque : simple tchat de coordination, scoping par session.
+  if (action === 'chat-history') {
+    const since = new Date(Date.now() - 10 * 60 * 1000).toISOString()
+    const { data: msgs } = await supabase.from('orienta_raid_chat')
+      .select('user_id, pseudo, role, text, created_at')
+      .eq('session_id', sessionId)
+      .gte('created_at', since)
+      .order('created_at')
+      .limit(200)
+    return json({
+      chat: (msgs ?? []).map(m => ({
+        user_id: m.user_id, pseudo: m.pseudo, role: m.role, text: m.text,
+        ts: new Date(m.created_at).getTime(),
+      })),
+    })
+  }
+
   // ── start : lance le combat. Le client (lobby en Presence) envoie le roster. ──
   if (action === 'start') {
     const { data: session } = await supabase.from('orienta_raid_sessions').select('*').eq('id', sessionId).single()

@@ -9,8 +9,10 @@ import CreatedGridCard from '../../components/ui/CreatedGridCard'
 import WinnerWelcomeModal from '../../components/ui/WinnerWelcomeModal'
 import NewWojoModal from '../../components/ui/NewWojoModal'
 import OnlinePlayersPanel from '../../components/ui/OnlinePlayersPanel'
+import HubCommentFeed from '../../components/ui/HubCommentFeed'
 import RaidTeaserBanner from '../../components/raid/RaidTeaserBanner'
 import { useOnlinePlayers } from '../../lib/useOnlinePlayers'
+import { useRecentComments } from '../../lib/useRecentComments'
 
 function formatDayLabel(dateStr) {
   const today = new Date().toISOString().split('T')[0]
@@ -57,6 +59,9 @@ export default function HubPage() {
   // cosmétiques (avatar, cadre, couleur, statut), donc on s'y voit aussi soi-même.
   const onlinePlayers = useOnlinePlayers(user)
   const showOnlinePanel = onlinePlayers.length > 0
+  // Fil « Ça papote » sous la bulle : derniers commentaires laissés sur les grilles.
+  const recentComments = useRecentComments(user)
+  const showSidebar = showOnlinePanel || recentComments.length > 0
 
   useEffect(() => {
     if (!user) return
@@ -243,7 +248,7 @@ export default function HubPage() {
   return (
     <div className="hub-page">
       <Header />
-      <div className={`hub-shell${showOnlinePanel ? ' hub-shell--with-panel' : ''}`}>
+      <div className={`hub-shell${showSidebar ? ' hub-shell--with-panel' : ''}`}>
       <main className="hub-main">
 
         {/* Bannière du mode RAID — se transforme au lancement (15 juin 8h) : teaser →
@@ -683,8 +688,13 @@ export default function HubPage() {
         )}
       </main>
 
-      {showOnlinePanel && (
-        <OnlinePlayersPanel players={onlinePlayers} currentUserId={user?.id} />
+      {showSidebar && (
+        <aside className="hub-online-aside" aria-label="Communauté">
+          {showOnlinePanel && (
+            <OnlinePlayersPanel players={onlinePlayers} currentUserId={user?.id} />
+          )}
+          {recentComments.length > 0 && <HubCommentFeed comments={recentComments} />}
+        </aside>
       )}
       </div>
 

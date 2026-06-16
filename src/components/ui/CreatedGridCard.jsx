@@ -29,6 +29,7 @@ export default function CreatedGridCard({ grid, index }) {
 
   return (
     <motion.div
+      data-grid-id={grid.id}
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
