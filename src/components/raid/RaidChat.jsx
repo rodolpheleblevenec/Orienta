@@ -19,9 +19,19 @@ const ROLE_TAG = {
   capitaine:   { color: 'var(--orange)',  background: 'var(--orange-soft)' },
 }
 
-// Chat d'équipage (broadcast) — UI façon messagerie : avatars, bulles gauche/droite,
+// Chat (broadcast) — UI façon messagerie : avatars, bulles gauche/droite,
 // rôle sous le pseudo, regroupement des messages consécutifs.
-export default function RaidChat({ chat, onSend, me }) {
+// Réutilisé tel quel par le chat tactique RAID ET le canal général (bulle + SAS) :
+// les libellés et le bouton de fermeture sont paramétrables.
+export default function RaidChat({
+  chat,
+  onSend,
+  me,
+  title = 'Coordination',
+  placeholder = 'Message à l’équipage…',
+  emptyHint = 'Parlez-vous : qui voit quoi, qui pose quoi, qui tourne…',
+  onClose,
+}) {
   const [text, setText] = useState('')
   const logRef = useRef(null)
   // Auto-défilement INTERNE au journal uniquement (on règle scrollTop du conteneur)
@@ -39,11 +49,14 @@ export default function RaidChat({ chat, onSend, me }) {
     <div className="rchat">
       <div className="rchat-head">
         <svg className="rchat-head-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>
-        <span className="rchat-head-title">Coordination</span>
+        <span className="rchat-head-title">{title}</span>
         <span className="rchat-head-live"><i />temps réel</span>
+        {onClose && (
+          <button type="button" className="rchat-close" onClick={onClose} aria-label="Fermer la discussion">✕</button>
+        )}
       </div>
       <div className="rchat-log" ref={logRef}>
-        {chat.length === 0 && <p className="rchat-empty">Parlez-vous : qui voit quoi, qui pose quoi, qui tourne…</p>}
+        {chat.length === 0 && <p className="rchat-empty">{emptyHint}</p>}
         {chat.map((m, i) => {
           const mine = me?.user_id != null && m.user_id != null ? m.user_id === me.user_id : m.pseudo === me?.pseudo
           const org = m.role ? ORGANS[m.role] : null
@@ -70,7 +83,7 @@ export default function RaidChat({ chat, onSend, me }) {
         })}
       </div>
       <form className="rchat-form" onSubmit={submit}>
-        <input className="rchat-input" value={text} onChange={e => setText(e.target.value)} placeholder="Message à l’équipage…" maxLength={240} />
+        <input className="rchat-input" value={text} onChange={e => setText(e.target.value)} placeholder={placeholder} maxLength={240} />
         <button type="submit" className="rchat-send" disabled={!text.trim()} aria-label="Envoyer">➤</button>
       </form>
     </div>

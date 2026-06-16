@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti'
 import Header from '../../components/ui/Header'
 import { useAuthStore } from '../../stores/authStore'
 import { useRaidArena } from '../../lib/useRaidArena'
+import { useGeneralChat } from '../../lib/useGeneralChat'
 import { getAdminSecret } from '../../lib/adminSecret'
 import { ORGANS, organPowers, getBossByKey, BOSSES, canPlace, canRotate, canValidate, canSeeFeedback, canSeeClues, canSeeWords, canSeeRaid, isRaidAdmin, isRaidLaunched, currentRaidLevel, difficultyForLevel } from '../../lib/raid'
 import RosterBoard from '../../components/raid/RosterBoard'
@@ -120,6 +121,10 @@ export default function RaidArenaPage() {
   const navigate = useNavigate()
   const arena = useRaidArena(user)
   const { loading, noArena, session, roster, me, view, board, chat, sharedFeedback, role, actions, busy } = arena
+  // Le SAS (salle d'attente) discute sur le canal GÉNÉRAL d'organisation (le même
+  // que la bulle flottante de l'app), éphémère 10 min. Le chat de COMBAT reste
+  // tactique et séparé (par session) → on garde `chat`/`actions.sendChat` pour lui.
+  const general = useGeneralChat(user)
   const canOpen = canSeeRaid(user?.pseudo)
   const isAdmin = isRaidAdmin(user?.pseudo)
   const [opening, setOpening] = useState(false)
@@ -303,7 +308,7 @@ export default function RaidArenaPage() {
           <div className="raid-seg raid-seg--lobby" role="tablist">
             <button type="button" role="tab" aria-selected={lobbyTab === 'roles'} className={`raid-seg-btn${lobbyTab === 'roles' ? ' is-on' : ''}`} onClick={() => setLobbyTab('roles')}>🎭 Rôles</button>
             <button type="button" role="tab" aria-selected={lobbyTab === 'chat'} className={`raid-seg-btn${lobbyTab === 'chat' ? ' is-on' : ''}`} onClick={() => setLobbyTab('chat')}>
-              💬 Chat{lobbyTab !== 'chat' && chat.length > 0 && <span className="raid-seg-badge">{chat.length}</span>}
+              💬 Chat{lobbyTab !== 'chat' && general.chat.length > 0 && <span className="raid-seg-badge">{general.chat.length}</span>}
             </button>
           </div>
 
@@ -312,7 +317,14 @@ export default function RaidArenaPage() {
             <RosterBoard boss={boss} roster={roster} me={me} actions={actions} busy={busy} minPlayers={cfg.min_players} />
             <div className="raid-lobby-side">
               <div className="raid-lobby-chatpanel">
-                <RaidChat chat={chat} onSend={actions.sendChat} me={me} />
+                <RaidChat
+                  chat={general.chat}
+                  onSend={general.sendChat}
+                  me={general.me}
+                  title="Discussion générale"
+                  placeholder="Votre message…"
+                  emptyHint="Organisez-vous ici — c'est le canal général de l'app. Les messages s'effacent au bout de 10 min."
+                />
               </div>
             </div>
           </div>

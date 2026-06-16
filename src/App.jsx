@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from './stores/authStore'
 import RequireAuth from './components/ui/RequireAuth'
+import GeneralChat from './components/ui/GeneralChat'
 import LoginPage from './pages/login/LoginPage'
 import HubPage from './pages/hub/HubPage'
 import DailyArchivesPage from './pages/archives/DailyArchivesPage'
@@ -31,6 +32,14 @@ function ThemeApplier() {
   return null
 }
 
+// Bulle de chat général flottante — montée globalement, sauf sur le login et sur
+// l'arène RAID (/raid), où le SAS affiche déjà ce même chat.
+function GeneralChatMount() {
+  const { pathname } = useLocation()
+  if (pathname === '/login' || pathname === '/raid') return null
+  return <GeneralChat />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -58,6 +67,7 @@ export default function App() {
         <Route path="/le-raid"           element={<RequireAuth><RaidTeaserPage /></RequireAuth>} />
         <Route path="*"                  element={<Navigate to="/hub" replace />} />
       </Routes>
+      <GeneralChatMount />
     </BrowserRouter>
   )
 }

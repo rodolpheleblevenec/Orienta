@@ -15,6 +15,17 @@
 export const CHANGELOG = [
   {
     date: '2026-06-16',
+    emoji: '💭',
+    title: 'Chat général de l\'app',
+    items: [
+      'Une bulle de discussion en bas à gauche de l\'écran, sur ordinateur comme sur mobile : ouvre-la pour discuter avec toute la communauté.',
+      'C\'est le canal d\'organisation : proposez-vous des parties, donnez-vous rendez-vous, lancez un RAID.',
+      'C\'est le même fil que dans la salle d\'attente du RAID : les deux sont reliés.',
+      'Les messages sont éphémères : ils disparaissent au bout de 10 minutes.',
+    ],
+  },
+  {
+    date: '2026-06-16',
     emoji: '🤝',
     title: 'Lancez un RAID en invitant les joueurs en ligne',
     items: [
