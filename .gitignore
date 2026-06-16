@@ -27,3 +27,6 @@ dist-ssr
 .env
 .env.local
 supabase/.temp/
+
+# Firebase (cache de déploiement, régénéré à chaque `firebase deploy`)
+.firebase/
