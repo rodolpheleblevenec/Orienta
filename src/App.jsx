@@ -32,11 +32,18 @@ function ThemeApplier() {
   return null
 }
 
-// Bulle de chat général flottante — montée globalement, sauf sur le login et sur
-// l'arène RAID (/raid), où le SAS affiche déjà ce même chat.
+// Bulle de chat général flottante — disponible partout, SAUF quand on joue
+// vraiment (besoin de concentration) : création de grille (/create), résolution
+// d'une grille (/play/...), et l'arène RAID (/raid, où le SAS affiche déjà ce
+// chat). Masquée aussi sur le login.
 function GeneralChatMount() {
   const { pathname } = useLocation()
-  if (pathname === '/login' || pathname === '/raid') return null
+  const hidden =
+    pathname === '/login' ||
+    pathname === '/raid' ||
+    pathname.startsWith('/create') ||
+    pathname.startsWith('/play')
+  if (hidden) return null
   return <GeneralChat />
 }
 
