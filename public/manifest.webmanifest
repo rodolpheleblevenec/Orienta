@@ -1,0 +1,26 @@
+{
+  "name": "Orienta",
+  "short_name": "Orienta",
+  "description": "Le jeu de mots communautaire — grilles du jour, création, classement et RAID coopératif.",
+  "lang": "fr",
+  "start_url": "/hub",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#0E9A7D",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

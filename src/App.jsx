@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { useAuthStore } from './stores/authStore'
 import RequireAuth from './components/ui/RequireAuth'
 import GeneralChat from './components/ui/GeneralChat'
+import AddToHomeScreenPrompt from './components/ui/AddToHomeScreenPrompt'
 import LoginPage from './pages/login/LoginPage'
 import HubPage from './pages/hub/HubPage'
 import DailyArchivesPage from './pages/archives/DailyArchivesPage'
@@ -47,6 +48,20 @@ function GeneralChatMount() {
   return <GeneralChat />
 }
 
+// Bandeau d'aide « Ajouter à l'écran d'accueil » (visiteurs iPhone/iPad sous
+// Safari, pas encore installé). Masqué sur le login et les écrans de jeu, pour
+// les mêmes raisons de concentration que la bulle de chat.
+function A2HSMount() {
+  const { pathname } = useLocation()
+  const hidden =
+    pathname === '/login' ||
+    pathname === '/raid' ||
+    pathname.startsWith('/create') ||
+    pathname.startsWith('/play')
+  if (hidden) return null
+  return <AddToHomeScreenPrompt />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -75,6 +90,7 @@ export default function App() {
         <Route path="*"                  element={<Navigate to="/hub" replace />} />
       </Routes>
       <GeneralChatMount />
+      <A2HSMount />
     </BrowserRouter>
   )
 }

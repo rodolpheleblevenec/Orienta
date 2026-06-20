@@ -6276,3 +6276,75 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
   .radmin-row-counts { grid-column: 1 / -1; }
   .radmin-row-go { display: none; }
 }
+
+/* ── Bandeau « Ajouter à l'écran d'accueil » (iOS Safari uniquement) ───────── */
+.a2hs {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 40px 12px 12px;
+  background: var(--card, #fff);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .22), 0 0 0 1px var(--line, rgba(0,0,0,.08));
+  animation: a2hs-in .32s cubic-bezier(.2, .8, .25, 1) both;
+}
+@keyframes a2hs-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.a2hs-icon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  box-shadow: 0 0 0 1px var(--line, rgba(0,0,0,.08));
+}
+.a2hs-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.a2hs-text strong { font-size: 14px; font-weight: 800; color: var(--ink, #1a1a1a); }
+.a2hs-text span { font-size: 12.5px; line-height: 1.4; color: var(--ink-3, #555); }
+.a2hs-text b { color: var(--ink, #1a1a1a); font-weight: 700; }
+.a2hs-share {
+  display: inline-block;
+  vertical-align: -5px;
+  color: var(--accent, #0E9A7D);
+  margin: 0 1px;
+}
+.a2hs-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--ink-3, #777);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.a2hs-close:hover { background: var(--bg-surface, rgba(0,0,0,.05)); }
+.a2hs-arrow {
+  position: absolute;
+  left: 50%;
+  bottom: -16px;
+  transform: translateX(-50%);
+  font-size: 30px;
+  line-height: 1;
+  color: var(--accent, #0E9A7D);
+  text-shadow: 0 2px 4px rgba(0,0,0,.2);
+  animation: a2hs-bounce 1.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes a2hs-bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(5px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .a2hs, .a2hs-arrow { animation: none; }
+}

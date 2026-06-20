@@ -14,6 +14,16 @@
 // plus tard (ex. le mode RAID, public à partir du 15 juin 2026).
 export const CHANGELOG = [
   {
+    date: '2026-06-20',
+    emoji: '📲',
+    title: 'Orienta comme une appli sur votre iPhone',
+    items: [
+      'Sur iPhone et iPad (Safari), un petit guide vous explique comment ajouter Orienta à votre écran d\'accueil.',
+      'Une fois ajouté, le jeu s\'ouvre en plein écran avec sa propre icône, comme une vraie application.',
+      'Plus besoin de retaper l\'adresse : un appui sur l\'icône et vous y êtes.',
+    ],
+  },
+  {
     date: '2026-06-16',
     emoji: '💭',
     title: 'Chat général de l\'app',
