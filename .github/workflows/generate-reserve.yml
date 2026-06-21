@@ -1,0 +1,71 @@
+name: Réassort réserve (génération IA de brouillons)
+
+on:
+  schedule:
+    # 06h00 UTC = 07h/08h Paris — les brouillons sont prêts à relire le matin.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      max_iterations:
+        description: "Nombre max d'appels (chaque appel fabrique jusqu'à 3 brouillons)"
+        required: false
+        default: '5'
+
+jobs:
+  topup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Réassortir la réserve via generate-reserve-grid
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          FUNCTION_SECRET: ${{ secrets.FUNCTION_SECRET }}
+          MAX_ITER: ${{ github.event.inputs.max_iterations }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_URL}" ]; then
+            echo "❌ Le secret SUPABASE_URL est vide ou absent."
+            echo "   → Settings → Secrets and variables → Actions → SUPABASE_URL = https://<ref>.supabase.co"
+            exit 1
+          fi
+
+          MAX_ITER="${MAX_ITER:-5}"
+          if ! [[ "${MAX_ITER}" =~ ^[0-9]+$ ]]; then MAX_ITER=5; fi
+
+          # On rappelle la fonction tant qu'il reste un besoin (chaque appel est
+          # borné à 3 brouillons côté serveur → appels courts), avec un plafond
+          # d'itérations comme garde-fou.
+          TOTAL_MADE=0
+          for i in $(seq 1 "${MAX_ITER}"); do
+            CURL_EXIT=0
+            HTTP_STATUS=$(curl -sS -o /tmp/gen.json -w "%{http_code}" \
+              -X POST \
+              "${SUPABASE_URL}/functions/v1/generate-reserve-grid" \
+              -H "x-function-secret: ${FUNCTION_SECRET}" \
+              -H "Content-Type: application/json" \
+              -d '{}') || CURL_EXIT=$?
+
+            echo "— itération ${i} : curl exit ${CURL_EXIT}, HTTP ${HTTP_STATUS}"
+            cat /tmp/gen.json 2>/dev/null || true; echo
+
+            if [ "${CURL_EXIT}" -ne 0 ]; then
+              echo "❌ curl a échoué (code ${CURL_EXIT}) — fonction injoignable. Vérifie SUPABASE_URL."
+              exit 1
+            fi
+            if [ "${HTTP_STATUS}" -ge 400 ]; then
+              echo "❌ HTTP ${HTTP_STATUS} (403 = FUNCTION_SECRET non concordant, 404 = non déployée, 500 = OPENAI_API_KEY manquante)."
+              exit 1
+            fi
+
+            MADE=$(jq -r '.made // 0' /tmp/gen.json)
+            REMAINING=$(jq -r '.remaining_need // 0' /tmp/gen.json)
+            TOTAL_MADE=$((TOTAL_MADE + MADE))
+            echo "  → ${MADE} brouillon(s) ce tour, besoin restant : ${REMAINING}"
+
+            # Plus rien à faire (réserve+brouillons pleine) ou aucun progrès → on s'arrête.
+            if [ "${REMAINING}" -le 0 ] || [ "${MADE}" -le 0 ]; then
+              break
+            fi
+          done
+
+          echo "✅ Réassort terminé — ${TOTAL_MADE} brouillon(s) généré(s) au total."

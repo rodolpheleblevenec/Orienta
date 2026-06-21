@@ -361,13 +361,42 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 /* ── Admin : réserve de grilles + programme ── */
 .admin-reserve-page { display: flex; flex-direction: column; gap: 24px; }
 /* Chaque section est un panneau blanc contenu, nettement séparé des autres. */
-.admin-programme, .admin-reserve, .admin-grants {
+.admin-programme, .admin-reserve, .admin-grants, .admin-ai {
   background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
   box-shadow: var(--shadow-sm); padding: 24px 26px;
 }
 .admin-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
 .admin-section-sub { margin: 6px 0 0; font-size: 13px; color: var(--ink-3); line-height: 1.45; }
 .admin-empty { font-size: 13px; color: var(--ink-3); padding: 18px 0 4px; }
+
+/* ── Génération assistée par IA : brouillons à relire ── */
+.admin-ai-msg {
+  font-size: 13px; font-weight: 600; color: var(--teal);
+  background: var(--accent-soft); border-radius: var(--r-sm); padding: 8px 12px; margin: 4px 0 14px;
+}
+.ai-draft-list { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.ai-draft {
+  display: flex; gap: 20px; align-items: flex-start;
+  background: var(--bg-tint); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 18px;
+}
+.ai-draft-preview { flex-shrink: 0; }
+.ai-draft-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.ai-draft-notes {
+  margin: 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.5;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px 12px;
+}
+.ai-draft-clues { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+.ai-clue-field { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; font-weight: 600; color: var(--ink-2); }
+.ai-clue-field input {
+  font-size: 13px; padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--card); color: var(--ink); font-family: inherit;
+}
+.ai-clue-field input:focus { outline: none; border-color: var(--teal); }
+.ai-draft-actions { display: flex; align-items: center; gap: 10px; margin-top: 2px; }
+@media (max-width: 680px) {
+  .ai-draft { flex-direction: column; }
+  .ai-draft-preview { align-self: center; }
+}
 
 /* Bandeau pédagogique — relie les 3 sections (prochaines / réserve / gagnants) */
 .admin-howto {

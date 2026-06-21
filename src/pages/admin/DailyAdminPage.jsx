@@ -10,6 +10,7 @@ import { sample } from '../../lib/shuffle'
 import Header from '../../components/ui/Header'
 import CloverWithInputs from '../../components/game/CloverWithInputs'
 import WordCard from '../../components/game/WordCard'
+import StaticMiniGrid from '../../components/ui/StaticMiniGrid'
 import SuggestionsAdmin from './SuggestionsAdmin'
 import StatsAdmin from './StatsAdmin'
 import RaidAdmin from './RaidAdmin'
@@ -90,6 +91,13 @@ export default function DailyAdminPage() {
   const [cardPool, setCardPool] = useState([])
   const today = isoTodayParis()
 
+  // Génération assistée par IA : brouillons à relire avant la réserve
+  const [drafts, setDrafts] = useState([])
+  const [draftClues, setDraftClues] = useState({}) // grid_id → { top,right,bottom,left }
+  const [generating, setGenerating] = useState(false)
+  const [busyDraft, setBusyDraft] = useState(null)
+  const [genMsg, setGenMsg] = useState('')
+
   // Éditeur (réutilisé pour réserve + override d'un jour daté)
   const [view, setView] = useState('list')              // 'list' | 'editor'
   const [editorMode, setEditorMode] = useState('reserve') // 'reserve' | 'dated'
@@ -117,6 +125,7 @@ export default function DailyAdminPage() {
   useEffect(() => {
     fetchCardPool().then(setCardPool)
     refreshData()
+    loadDrafts()
   }, [])
 
   async function refreshData() {
@@ -138,6 +147,75 @@ export default function DailyAdminPage() {
     setReserve(res ?? [])
     setProgramme(prog ?? [])
     setGrants(grnts ?? [])
+  }
+
+  // ── Génération assistée par IA ──
+  async function loadDrafts() {
+    const { data } = await supabase.functions.invoke('admin', {
+      body: { admin_secret: getAdminSecret(), action: 'list-draft-grids' },
+    })
+    const list = data?.grids ?? []
+    setDrafts(list)
+    setDraftClues(prev => {
+      const next = { ...prev }
+      for (const g of list) {
+        if (!next[g.id]) next[g.id] = { top: g.clue_top ?? '', right: g.clue_right ?? '', bottom: g.clue_bottom ?? '', left: g.clue_left ?? '' }
+      }
+      return next
+    })
+  }
+
+  // Reconstruit les placements (StaticMiniGrid) à partir des cartes du brouillon.
+  function draftPlacements(grid) {
+    const p = {}
+    for (const cell of grid.orienta_grid_cards ?? []) {
+      if (cell.position >= 0 && cell.position <= 3 && cell.orienta_word_cards) {
+        p[cell.position] = { card: cell.orienta_word_cards, rotation: cell.rotation ?? 0, colorIndex: cell.position }
+      }
+    }
+    return p
+  }
+
+  async function handleGenerate() {
+    setGenerating(true); setGenMsg('')
+    const { data, error } = await supabase.functions.invoke('generate-reserve-grid', {
+      body: { admin_secret: getAdminSecret(), count: 1 },
+    })
+    setGenerating(false)
+    if (error || !data || data.error) {
+      if (data?.error === 'unauthorized') { clearAdminSecret(); alert('Mot de passe administrateur incorrect.') }
+      else alert('Échec de la génération : ' + (data?.error || error?.message || 'inconnu'))
+      return
+    }
+    let msg = data.made > 0 ? `✓ ${data.made} grille${data.made > 1 ? 's' : ''} générée${data.made > 1 ? 's' : ''}.` : (data.message || 'Rien à générer.')
+    if ((data.errors ?? []).length) msg += ` (${data.errors.length} échec${data.errors.length > 1 ? 's' : ''})`
+    setGenMsg(msg)
+    await loadDrafts()
+  }
+
+  async function handleApproveDraft(grid) {
+    setBusyDraft(grid.id)
+    const { data, error } = await supabase.functions.invoke('admin', {
+      body: { admin_secret: getAdminSecret(), action: 'approve-draft-grid', grid_id: grid.id, clues: draftClues[grid.id] },
+    })
+    setBusyDraft(null)
+    if (error || !data || data.error) {
+      if (data?.error === 'unauthorized') { clearAdminSecret(); alert('Mot de passe administrateur incorrect.') }
+      else alert('Échec de l\'approbation : ' + (data?.error || ''))
+      return
+    }
+    await Promise.all([loadDrafts(), refreshData()])
+  }
+
+  async function handleRejectDraft(grid) {
+    if (!window.confirm('Rejeter et supprimer définitivement ce brouillon ?')) return
+    setBusyDraft(grid.id)
+    const { data, error } = await supabase.functions.invoke('admin', {
+      body: { admin_secret: getAdminSecret(), action: 'reject-draft-grid', grid_id: grid.id },
+    })
+    setBusyDraft(null)
+    if (error || !data || data.error) { alert('Échec du rejet.'); return }
+    await loadDrafts()
   }
 
   // ── Éditeur : ouverture ──
@@ -457,6 +535,60 @@ export default function DailyAdminPage() {
                   </ul>
                 </SortableContext>
               </DndContext>
+            )}
+          </section>
+
+          {/* ②bis Génération assistée par IA — brouillons à relire avant la réserve */}
+          <section className="admin-ai">
+            <div className="admin-section-head">
+              <div>
+                <h2 className="admin-editor-title">🤖 Génération assistée</h2>
+                <p className="admin-section-sub">
+                  L'IA compose 4 cartes et propose les 4 indices. Relis, corrige si besoin, puis approuve pour envoyer en réserve.
+                  Un réassort automatique vise ~10 grilles (réserve + brouillons).
+                </p>
+              </div>
+              <button className="btn-primary" onClick={handleGenerate} disabled={generating} type="button">
+                {generating ? '… génération' : '🤖 Générer une grille'}
+              </button>
+            </div>
+
+            {genMsg && <div className="admin-ai-msg">{genMsg}</div>}
+
+            {drafts.length === 0 ? (
+              <p className="admin-empty">Aucun brouillon en attente. Clique sur « Générer une grille » ou laisse le réassort automatique tourner.</p>
+            ) : (
+              <ul className="ai-draft-list">
+                {drafts.map(g => {
+                  const cl = draftClues[g.id] ?? { top: '', right: '', bottom: '', left: '' }
+                  const setCl = (side, v) => setDraftClues(prev => ({ ...prev, [g.id]: { ...(prev[g.id] ?? {}), [side]: v } }))
+                  const cluesOkDraft = cl.top && cl.right && cl.bottom && cl.left
+                  return (
+                    <li key={g.id} className="ai-draft">
+                      <div className="ai-draft-preview">
+                        <StaticMiniGrid placements={draftPlacements(g)} clues={cl} />
+                      </div>
+                      <div className="ai-draft-body">
+                        {g.ai_notes && <p className="ai-draft-notes"><strong>Analyse IA :</strong> {g.ai_notes}</p>}
+                        <div className="ai-draft-clues">
+                          {[['top', 'Haut'], ['right', 'Droite'], ['bottom', 'Bas'], ['left', 'Gauche']].map(([side, label]) => (
+                            <label key={side} className="ai-clue-field">
+                              <span>{label}</span>
+                              <input value={cl[side]} maxLength={80} onChange={e => setCl(side, e.target.value)} />
+                            </label>
+                          ))}
+                        </div>
+                        <div className="ai-draft-actions">
+                          <button className="btn-primary" onClick={() => handleApproveDraft(g)} disabled={busyDraft === g.id || !cluesOkDraft} type="button">
+                            {busyDraft === g.id ? '…' : '✓ Approuver → réserve'}
+                          </button>
+                          <button className="reserve-del" onClick={() => handleRejectDraft(g)} disabled={busyDraft === g.id} type="button">Rejeter</button>
+                        </div>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
             )}
           </section>
 

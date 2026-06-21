@@ -446,5 +446,60 @@ serve(async (req) => {
     return json({ ok: true, count: order.length })
   }
 
+  // ─── Brouillons IA : lister les grilles générées en attente de relecture ───
+  if (action === 'list-draft-grids') {
+    const { data: grids } = await supabase
+      .from('orienta_grids')
+      .select('id, difficulty, ai_notes, created_at, clue_top, clue_right, clue_bottom, clue_left, orienta_grid_cards(position, rotation, orienta_word_cards(id, word_top, word_right, word_bottom, word_left))')
+      .eq('status', 'draft')
+      .eq('ai_generated', true)
+      .order('created_at', { ascending: true })
+    return json({ grids: grids ?? [] })
+  }
+
+  // ─── Approuver un brouillon → entre dans la réserve jouable (fin de file) ───
+  if (action === 'approve-draft-grid') {
+    const { grid_id, clues } = body
+    if (!grid_id) return json({ error: 'grid_id required' }, 400)
+    const { data: g } = await supabase.from('orienta_grids').select('id, status').eq('id', grid_id).maybeSingle()
+    if (!g || g.status !== 'draft') return json({ error: 'not a draft' }, 400)
+
+    const update: Record<string, unknown> = { status: 'published', daily_status: 'reserve' }
+    // Indices éventuellement édités par l'admin avant approbation.
+    if (clues) {
+      const c = {
+        top: (clues.top ?? '').trim(), right: (clues.right ?? '').trim(),
+        bottom: (clues.bottom ?? '').trim(), left: (clues.left ?? '').trim(),
+      }
+      if (!c.top || !c.right || !c.bottom || !c.left) return json({ error: 'all clues required' }, 400)
+      if ([c.top, c.right, c.bottom, c.left].some(v => v.length > MAX_CLUE_LENGTH)) return json({ error: 'clue too long' }, 400)
+      update.clue_top = c.top; update.clue_right = c.right; update.clue_bottom = c.bottom; update.clue_left = c.left
+    }
+    // Priorité = fin de file (max + 1), comme une nouvelle grille de réserve.
+    const { data: last } = await supabase
+      .from('orienta_grids').select('reserve_priority')
+      .eq('daily_status', 'reserve').order('reserve_priority', { ascending: false }).limit(1).maybeSingle()
+    update.reserve_priority = ((last?.reserve_priority as number | undefined) ?? 0) + 1
+
+    const { error } = await supabase.from('orienta_grids').update(update).eq('id', grid_id)
+    if (error) return json({ error: 'could not approve' }, 500)
+    return json({ ok: true, grid_id })
+  }
+
+  // ─── Rejeter un brouillon → suppression complète (grille + cartes composées) ───
+  if (action === 'reject-draft-grid') {
+    const { grid_id } = body
+    if (!grid_id) return json({ error: 'grid_id required' }, 400)
+    const { data: g } = await supabase.from('orienta_grids').select('id, status').eq('id', grid_id).maybeSingle()
+    if (!g || g.status !== 'draft') return json({ error: 'not a draft' }, 400)
+    const { data: cells } = await supabase.from('orienta_grid_cards').select('card_id').eq('grid_id', grid_id)
+    const cardIds = (cells ?? []).map((c: { card_id: string }) => c.card_id)
+    await supabase.from('orienta_grid_cards').delete().eq('grid_id', grid_id)
+    await supabase.from('orienta_grids').delete().eq('id', grid_id)
+    // Ne supprime que les cartes composées (playable=false), jamais une carte partagée.
+    if (cardIds.length) await supabase.from('orienta_word_cards').delete().in('id', cardIds).eq('playable', false)
+    return json({ ok: true })
+  }
+
   return json({ error: 'unknown action' }, 400)
 })
