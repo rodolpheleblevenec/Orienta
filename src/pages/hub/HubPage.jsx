@@ -13,6 +13,7 @@ import HubCommentFeed from '../../components/ui/HubCommentFeed'
 import RaidTeaserBanner from '../../components/raid/RaidTeaserBanner'
 import { useOnlinePlayers } from '../../lib/useOnlinePlayers'
 import { useRecentComments } from '../../lib/useRecentComments'
+import { useBodyScrollLock } from '../../lib/useBodyScrollLock'
 
 function formatDayLabel(dateStr) {
   const today = new Date().toISOString().split('T')[0]
@@ -53,6 +54,7 @@ export default function HubPage() {
   const [pendingGrant, setPendingGrant] = useState(null)   // droit de créer la grille du jour (gagnant)
   const [showWinnerModal, setShowWinnerModal] = useState(false)
   const [showWojoModal, setShowWojoModal] = useState(false)   // annonce des nouveaux paliers (1 fois)
+  const [communityOpen, setCommunityOpen] = useState(false)   // tiroir « En ligne / Ça papote » (rabattu par défaut)
 
   // Présence temps réel : qui est connecté sur le hub en ce moment.
   // Panneau affiché (desktop only) dès qu'on est connecté — c'est la vitrine des
@@ -62,6 +64,13 @@ export default function HubPage() {
   // Fil « Ça papote » sous la bulle : derniers commentaires laissés sur les grilles.
   const recentComments = useRecentComments(user)
   const showSidebar = showOnlinePanel || recentComments.length > 0
+  useBodyScrollLock(communityOpen) // verrouille le scroll quand le tiroir communauté est ouvert
+  useEffect(() => {
+    if (!communityOpen) return
+    const onKey = e => { if (e.key === 'Escape') setCommunityOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [communityOpen])
 
   useEffect(() => {
     if (!user) return
@@ -248,7 +257,7 @@ export default function HubPage() {
   return (
     <div className="hub-page">
       <Header />
-      <div className={`hub-shell${showSidebar ? ' hub-shell--with-panel' : ''}`}>
+      <div className="hub-shell">
       <main className="hub-main">
 
         {/* Bannière du mode RAID — se transforme au lancement (15 juin 8h) : teaser →
@@ -687,16 +696,45 @@ export default function HubPage() {
         </section>
         )}
       </main>
+      </div>
 
       {showSidebar && (
-        <aside className="hub-online-aside" aria-label="Communauté">
-          {showOnlinePanel && (
-            <OnlinePlayersPanel players={onlinePlayers} currentUserId={user?.id} />
+        <>
+          {/* Onglet rabattu sur le bord droit — ouvre le tiroir communauté en overlay */}
+          {!communityOpen && (
+            <button
+              type="button"
+              className="hub-community-tab"
+              onClick={() => setCommunityOpen(true)}
+              aria-label="Ouvrir le panneau communauté"
+            >
+              <span className="hub-community-tab-arrow" aria-hidden="true">‹</span>
+              <span className="hub-community-tab-label">Communauté</span>
+            </button>
           )}
-          {recentComments.length > 0 && <HubCommentFeed comments={recentComments} />}
-        </aside>
+
+          {communityOpen && (
+            <div className="hub-community-backdrop" onClick={() => setCommunityOpen(false)} />
+          )}
+
+          <aside
+            className={`hub-online-aside${communityOpen ? ' hub-online-aside--open' : ''}`}
+            aria-label="Communauté"
+            aria-hidden={!communityOpen}
+          >
+            <button
+              type="button"
+              className="hub-community-close"
+              onClick={() => setCommunityOpen(false)}
+              aria-label="Fermer le panneau"
+            >›</button>
+            {showOnlinePanel && (
+              <OnlinePlayersPanel players={onlinePlayers} currentUserId={user?.id} />
+            )}
+            {recentComments.length > 0 && <HubCommentFeed comments={recentComments} />}
+          </aside>
+        </>
       )}
-      </div>
 
       {showWojoModal && (
         <NewWojoModal onClose={() => setShowWojoModal(false)} />

@@ -359,7 +359,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 }
 
 /* ── Admin : réserve de grilles + programme ── */
-.admin-reserve-page { display: flex; flex-direction: column; gap: 24px; }
+.admin-reserve-page { display: flex; flex-direction: column; gap: 40px; }
 /* Chaque section est un panneau blanc contenu, nettement séparé des autres. */
 .admin-programme, .admin-reserve, .admin-grants, .admin-ai {
   background: var(--card); border: 1px solid var(--line); border-radius: var(--r);
@@ -1071,16 +1071,59 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 
 .hub-main { flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 0 28px 80px; }
 
-/* ── Panneau latéral « joueurs en ligne » (desktop) ──────────────────────── */
+/* ── Tiroir « Communauté » : En ligne + Ça papote (desktop) ────────────────
+   Rabattu par défaut sur le bord droit (onglet `.hub-community-tab`) ; s'ouvre
+   en OVERLAY par-dessus le contenu du hub (position fixe, slide-in). */
 .hub-online-aside {
-  flex: 0 0 264px; position: sticky; top: 88px; align-self: flex-start;
-  padding-top: 12px;   /* remonté pour gagner de la place (était aligné au 1er bloc) */
-  box-sizing: border-box;
-  /* Borne la colonne à la zone visible (marge de 24px en bas de l'écran) : le fil
-     défile à l'intérieur plutôt que de couler sous le pli. */
-  max-height: calc(100vh - 88px - 24px);
+  position: fixed; top: 76px; right: 0; z-index: 200;
+  width: 300px; max-width: 90vw; box-sizing: border-box;
+  padding: 6px 18px 18px;
+  max-height: calc(100dvh - 88px);
   display: flex; flex-direction: column; min-height: 0;
+  transform: translateX(calc(100% + 28px));
+  transition: transform .32s cubic-bezier(.22, 1, .36, 1);
 }
+.hub-online-aside--open { transform: translateX(0); }
+
+/* Onglet rabattu sur le bord droit (état fermé) */
+.hub-community-tab {
+  position: fixed; right: 0; top: 50%; transform: translateY(-50%);
+  z-index: 199; cursor: pointer;
+  display: inline-flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 14px 7px;
+  background: var(--card); color: var(--teal-700);
+  border: 1px solid var(--line); border-right: 0;
+  border-radius: 14px 0 0 14px;
+  box-shadow: -3px 2px 12px rgba(28, 33, 40, 0.10);
+  transition: background .18s ease, padding-right .18s ease;
+}
+.hub-community-tab:hover { background: var(--teal-soft); padding-right: 11px; }
+.hub-community-tab-arrow { font-family: var(--display); font-weight: 700; font-size: 18px; line-height: 1; }
+.hub-community-tab-label {
+  writing-mode: vertical-rl; font-family: var(--display); font-weight: 700;
+  font-size: 12px; letter-spacing: .02em; color: var(--ink-2);
+}
+
+/* Voile cliquable derrière le tiroir (ferme au clic) */
+.hub-community-backdrop {
+  position: fixed; inset: 0; z-index: 199;
+  background: rgba(28, 33, 40, 0.16);
+  animation: hub-community-fade .2s ease-out;
+}
+@keyframes hub-community-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* Bouton de repli dans le tiroir */
+.hub-community-close {
+  flex: 0 0 auto; align-self: flex-end; margin-bottom: 2px;
+  width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--display); font-weight: 700; font-size: 18px; line-height: 1;
+  color: var(--ink-2); background: var(--card);
+  border: 1px solid var(--line); border-radius: 50%;
+  box-shadow: var(--shadow-sm); cursor: pointer;
+  transition: color .15s ease, border-color .15s ease;
+}
+.hub-community-close:hover { color: var(--teal-700); border-color: var(--teal); }
 .hub-online-panel {
   flex: 0 0 auto;
   background: var(--card); border-radius: var(--r);
@@ -1211,7 +1254,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; color: var(--text-pr
 
 /* Desktop only : sous 1280px on masque la colonne et on rétablit la pleine largeur. */
 @media (max-width: 1280px) {
-  .hub-online-aside { display: none; }
+  .hub-online-aside, .hub-community-tab, .hub-community-backdrop { display: none; }
   .hub-shell--with-panel { max-width: 1200px; }
 }
 
